@@ -1,3 +1,31 @@
+## BLOQUE 02 · Documento INF institucional y estructura APA 7 (28/10/2026)
+
+**Implementado directamente en `main`.** No se entregan PDF desde ChatGPT: se generan dentro de Informetit desde **Dos informes → Vista previa → Guardar PDF** o con los botones de descarga.
+
+### Cambios
+- `document/institutional.js`: módulo separado de presentación documental. Portada INF A4 según la *Guía de estandarización de portadas institucionales RGI e INF* (septiembre 2026), incluyendo encabezado de 18 cm y columnas de 4,80 / 9,50 / 3,70 cm, tres filas, logotipo, código, versión y fecha. Mantiene una zona para el título y bloque inferior de firmas de tres columnas de 6 cm.
+- `report_institucional.js`: sustituye la portada y los párrafos introductorios antiguos; genera automáticamente el resumen ejecutivo, la introducción, los objetivos, el alcance, la metodología y los referentes normativos, distinguiendo dos modalidades. Construye índice de contenidos, índice de tablas e índice de figuras en función de los títulos existentes; no arrastra números de páginas del Word anterior.
+- `electron-preload.js` y `electron-main.js`: imprimen encabezado INF en todas las páginas con **Página X de Y** automática mediante `printToPDF`. El motor intenta una segunda pasada de PDF para completar las páginas reales de los tres índices con `pdfjs-dist`. Si no puede analizar la paginación, deja un guion y lo comunica, **nunca inventa números**.
+- `app.js`: sección **Dos informes** incorpora campos INF y controles de normativa y firmas; estos controles **no equivalen a firmas electrónicas** ni validan por sí solos las actas académicas.
+- `tests/block02.test.js`: regresión de encabezados, portada, capítulos iniciales e índices. `tests/block01.test.js` se conserva y adapta.
+- El contenido de los informes se limita a **octubre 2025–marzo 2026**, sin comparaciones con períodos anteriores.
+
+### Instalación y comprobación en Windows
+
+```powershell
+git pull origin main
+npm install
+npm run check
+npm test
+npm start
+```
+
+`npm install` es necesario al actualizar por primera vez este bloque porque se añadió `pdfjs-dist` para obtener los números reales de los índices. La base nominal privada permanece **fuera del repositorio público**; el almacenamiento local no se borra con `git pull`.
+
+### Lo que sigue pendiente
+
+Las citas legales específicas requieren verificación de vigencia y los nombres, notas, actas, supletorios y defensas se completan desde los motores de evaluación de los siguientes bloques. Las áreas de firma se reservan, sin generar firmas falsas. La revisión final de paginación y saltos de tabla/figuras continuará en el Bloque 11.
+
 ## BLOQUE 01 · Base maestra y motor único de datos (octubre 2026)
 
 **Implementado en main**. Este bloque no cambia el mecanismo de ejecución: sigue siendo una app de escritorio Electron y abre con `npm start`.

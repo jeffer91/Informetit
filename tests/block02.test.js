@@ -7,6 +7,7 @@ require('../public_summary.js');
 require('../nucleos_agregados.js');
 const Doc=require('../document/institutional.js');
 require('../analysis/requirements.js');
+require('../analysis/nuclei.js');
 require('../report_institucional.js');
 function state(mode){
  const s=Model.empty();

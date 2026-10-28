@@ -104,7 +104,7 @@ function createIndividual(state,mode){
  const priorities=direct8.filter(r=>r.fail>0||r.unknown>0)
   .sort((a,b)=>(b.fail+b.unknown)-(a.fail+a.unknown)||b.fail-a.fail||a.label.localeCompare(b.label,'es'));
  return {
-  mode,source:'individual',total,valid,complete8,complete9,
+  mode,source:'individual',students,total,valid,complete8,complete9,
   notComplete8:total-complete8,notComplete9:total-complete9,
   fail8Students,unknown8Students,checks,requirements:byReq,careers,
   cases:cases.sort((a,b)=>a.career.localeCompare(b.career,'es')||a.name.localeCompare(b.name,'es')),
@@ -133,7 +133,7 @@ function createAggregate(mode){
   .sort((a,b)=>b.unclassified-a.unclassified||a.label.localeCompare(b.label,'es'));
  const sites={rows:(base.sedes||[]).map(([name,count])=>({name,count})),missing:null,source:'aggregate'};
  const schedules={rows:(base.horarios||[]).map(([name,count])=>({name,count})),missing:null,source:'aggregate'};
- return {mode,source:'aggregate',total,valid:false,sites,schedules,complete8:base.completos8,
+ return {mode,source:'aggregate',students:[],total,valid:false,sites,schedules,complete8:base.completos8,
   complete9:base.completos9,notComplete8:total-base.completos8,
   notComplete9:total-base.completos9,
   fail8Students:null,unknown8Students:null,checks,requirements,careers,cases:[],priorities,

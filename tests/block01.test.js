@@ -7,6 +7,7 @@ const Model=require('../data/model.js');
 require('../public_summary.js');
 require('../nucleos_agregados.js');
 require('../document/institutional.js');
+require('../analysis/requirements.js');
 require('../report_institucional.js');
 const requisites=()=>Object.fromEntries(Model.REQUIREMENTS.map(k=>[k,'CUMPLE']));
 const one=(id,mode='presencial',career='ENFERMERIA')=>({

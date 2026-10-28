@@ -36,3 +36,15 @@ README.md    - instrucciones y limitaciones
 - Cronogramas 2025–2026 precargados de Trabajo de Titulación (20 actividades) y Examen Complexivo (6 actividades).
 - Requisitos de titulación: Académico, Documentación, Financiero, Prácticas, Vinculación, Seguimiento, Inglés, Actualización de datos y Titulación.
 - No equiparar cumplimiento de requisitos con aprobación final ni modalidad de estudios con mecanismo de titulación.
+
+
+## Informes PDF y graficos (actualizacion octubre 2026)
+- **Descargar PDF con graficos:** genera PDF separado por modalidad a partir de las tablas de requisitos, carreras, sedes, horarios y, si existen, notas por nucleo y estados de evaluacion. Los graficos se crean solo con valores existentes, nunca con notas interpoladas.
+- **PDF APA 7 / Times 12:** abre una vista de impresion en Times New Roman de 12 puntos, interlineado doble y margenes de 2,54 cm para el cuerpo del informe. Usa el dialogo del navegador para seleccionar **Guardar como PDF**. La portada usa el estandar institucional INF en A4 y margenes de 1,50 cm.
+- **Portada institucional:** incorpora el logotipo mediante el boton **Subir/cambiar logotipo** en Informes, ademas de los campos de codigo, version, fecha y firmas.
+- **Figuras relevantes:** distribucion por carrera, sede, horario; cumplimiento de ocho requisitos previos; incidencias por requisito; cumplimiento integral; volumen y promedios por nucleo; histograma de calificaciones; promedios por carrera y resultados finales cuando existan.
+- **Diferencia de fuentes:** el requisito Titulacion no equivale a la aprobacion del Examen Complexivo. Los datos pendientes se excluyen de los promedios, y los borradores no se presentan como informes aprobados.
+- **Para Windows:** ejecuta `clonar_windows.bat` para descargar el codigo a tu escritorio (sin sobrescribir una carpeta existente); dentro de la carpeta usa `iniciar_windows.bat`. Para trabajar sin conexion primero ejecuta `preparar_offline.bat` una vez con Internet.
+- El PDF de descarga directa usa tipografia PDF incorporada, mientras que el boton **PDF APA 7 / Times 12** emplea Times New Roman real al imprimir desde el navegador.
+
+Enlace al ZIP del codigo: https://github.com/jeffer91/Informetit/archive/refs/heads/main.zip

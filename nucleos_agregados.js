@@ -1,9 +1,10 @@
-/* Resumen provisional extraído de las tablas de calificaciones del Word de trabajo (131 páginas).
-   Solo incluye n, media, mínima y máxima: nunca nombres ni notas individuales.
-   Los resultados necesitan conciliación con los libros de Moodle antes del cierre oficial. */
+/* Resumen agregado extraído de las tablas de calificaciones del Word de trabajo (131 páginas).
+   Fuente aceptada por la coordinación para este período. Contiene solo n, media, mínima
+   y máxima: NO incluye nombres, notas individuales, mediana ni distribución de rangos.
+   Las discrepancias específicas con Moodle se identifican para resolución y auditoría. */
 window.InformetitNucleos=Object.freeze({
   fuente:"INFORME TITULACIÓN Oct-Marz 2026 (documento de trabajo, 131 páginas)",
-  estado:"transcripcion_provisional",
+  estado:"aceptada_para_el_periodo",
   modalidad:"presencial",
   datos:{
     "Enfermería":[[43,9.4447,7.68,10],[43,9.6633,8.16,10],[43,9.5109,7.72,9.96],[43,9.3937,7.76,9.96]],

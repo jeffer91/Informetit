@@ -77,32 +77,73 @@ function createWindow() {
  * Actualiza private/base-gpt.json con un paquete privado para importar
  * automáticamente nuevas notas al siguiente inicio, sin borrar ediciones locales.
  */
+/*
+ * Base GPT EN CÓDIGO: private/base-gpt.cjs es un archivo JavaScript
+ * de datos, creado localmente y excluido del GitHub público.
+ *
+ * También detecta un archivo de datos descargado en Descargas sin
+ * pedir al usuario que haga una importación desde la interfaz.
+ */
 ipcMain.handle('informetit:read-master', async event => {
   if (!mainWindow || event.sender !== mainWindow.webContents) {
-    throw new Error('Solicitud de base privada no autorizada');
+    throw new Error('Solicitud de base GPT no autorizada');
   }
-  const candidates = [
-    path.join(__dirname, 'private', 'base-gpt.json'),
-    path.join(app.getPath('userData'), 'base-gpt.json')
+  const sourceDirs = [
+    path.join(__dirname, 'private'),
+    app.getPath('downloads'),
+    app.getPath('desktop'),
+    app.getPath('userData')
   ];
-  for (const file of candidates) {
-    let buffer;
-    try { buffer = await fs.readFile(file); }
-    catch (err) {
-      if (err.code === 'ENOENT') continue;
-      throw err;
+  const selectedFiles = [];
+  const namePattern = /^(?:base-gpt|informetit_base(?:_[\w-]+)*)\.(?:json|cjs)$/i;
+  for (const directory of sourceDirs) {
+    try {
+      const items = await fs.readdir(directory, { withFileTypes: true });
+      const matches = items
+        .filter(item => item.isFile() && namePattern.test(item.name))
+        .map(item => path.join(directory, item.name));
+      const found = await Promise.all(matches.map(async file => {
+        const stat = await fs.stat(file);
+        return { file, mtime: stat.mtimeMs, size: stat.size };
+      }));
+      found.sort((a, b) => b.mtime - a.mtime);
+      selectedFiles.push(...found);
+    } catch (error) {
+      if (error.code !== 'ENOENT' && error.code !== 'EACCES') {
+        console.warn('[Informetit] No se pudo revisar:', directory, error.message);
+      }
     }
-    if (buffer.length > 12 * 1024 * 1024) throw new Error('La base GPT supera 12 MB.');
-    const data = JSON.parse(buffer.toString('utf8').replace(/^\uFEFF/, ''));
-    if (!data || !Array.isArray(data.estudiantes) || !Array.isArray(data.notas)) {
-      throw new Error('La base GPT local no tiene el formato de Informetit.');
-    }
-    return {
-      data,
-      fingerprint: crypto.createHash('sha256').update(buffer).digest('hex'),
-      filename: 'base-gpt.json'
-    };
   }
+  let problem;
+  for (const entry of selectedFiles) {
+    if (entry.size > 12 * 1024 * 1024 || entry.size < 10) continue;
+    try {
+      const buffer = await fs.readFile(entry.file);
+      let raw = buffer.toString('utf8').replace(/^\uFEFF/, '').trim();
+      // Se interpreta el objeto literal como JSON, SIN ejecutar JavaScript.
+      if (/\.cjs$/i.test(entry.file)) {
+        const match = raw.match(/^\/\*[\s\S]*?\*\/\s*module\.exports\s*=\s*([\s\S]*?)\s*;\s*$/);
+        if (!match) throw new Error('Código de la base GPT con formato no reconocido.');
+        raw = match[1];
+      }
+      const data = JSON.parse(raw);
+      if (!data || !Array.isArray(data.estudiantes) || !Array.isArray(data.notas) ||
+          !data.estudiantes.every(x => x && typeof x.id === 'string')) {
+        throw new Error('No contiene estudiantes y notas con el formato esperado.');
+      }
+      console.info('[Informetit] Base GPT reconocida:', path.basename(entry.file),
+        data.estudiantes.length, 'estudiantes;', data.notas.length, 'notas.');
+      return {
+        data,
+        fingerprint: crypto.createHash('sha256').update(raw).digest('hex'),
+        filename: path.basename(entry.file)
+      };
+    } catch(error) {
+      problem = error;
+      console.warn('[Informetit] Base candidata descartada:', entry.file, error.message);
+    }
+  }
+  if (selectedFiles.length && problem) throw new Error('No se pudo interpretar la base GPT local: ' + problem.message);
   return null;
 });
 

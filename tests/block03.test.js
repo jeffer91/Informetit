@@ -121,3 +121,12 @@ test('IDs duplicados generan advertencia de calidad antes de aprobar',()=>{
  const html=window.InformetitFullReport.makeReport(s,'presencial');
  assert.match(html,/identificaciones vacías o repetidas/);
 });
+
+test('motor entrega nómina local para renderizar la pantalla de estudiantes',()=>{
+ const s=Model.empty();s.estudiantes=[student('01'),student('02')];
+ const individual=Req.analyze(s,'presencial');
+ const aggregate=Req.analyze(Model.empty(),'presencial');
+ assert.equal(individual.students.length,2);
+ assert.equal(individual.students[0].id,'01');
+ assert.deepEqual(aggregate.students,[]);
+});

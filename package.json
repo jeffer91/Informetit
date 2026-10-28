@@ -10,8 +10,8 @@
     "dev": "electron .",
     "web": "node server.js",
     "postinstall": "node scripts/preparar-bibliotecas.js",
-    "check": "node --check electron-main.js && node --check electron-preload.js && node --check data/model.js && node --check data/storage.js && node --check app.js && node --check report_institucional.js && node --check report_pdf.js && node --check document/institutional.js && node --check analysis/requirements.js",
-    "test": "node --test tests/block01.test.js tests/block02.test.js tests/block03.test.js"
+    "check": "node --check electron-main.js && node --check electron-preload.js && node --check data/model.js && node --check data/storage.js && node --check app.js && node --check report_institucional.js && node --check report_pdf.js && node --check document/institutional.js && node --check analysis/requirements.js && node --check moodle/importer.js",
+    "test": "node --test tests/block01.test.js tests/block02.test.js tests/block03.test.js tests/block04.test.js"
   },
   "engines": {
     "node": ">=20"

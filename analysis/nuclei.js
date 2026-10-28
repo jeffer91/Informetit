@@ -84,7 +84,13 @@ function build(state,mode='presencial'){
      individualWithAllNotes:individual?complexivo.filter(st=>nuclei.every(x=>x.entries.some(e=>e.id===String(st.id)))).length:null};
  });
  const activeNuclei=careers.flatMap(c=>c.nuclei);
- const result={mode:actual,source:individual?'individual':'aggregate',careers,individual,
+ const plan=[['Núcleo 1','30/03/2026','02/04/2026'],['Núcleo 2','06/04/2026','09/04/2026'],
+ ['Núcleo 3','10/04/2026','14/04/2026'],['Núcleo 4','15/04/2026','18/04/2026']].map((row,i)=>{
+  const d=state?.cronogramaPersonalizado?.['complexivo|'+i]||{};
+  const f=x=>/^\d{4}-\d{2}-\d{2}$/.test(String(x||''))?x.slice(8,10)+'/'+x.slice(5,7)+'/'+x.slice(0,4):x||'Por definir';
+  return [row[0],f(d.inicio??row[1]),f(d.fin??row[2])];
+ });
+ const result={mode:actual,source:individual?'individual':'aggregate',careers,individual,planning:plan,
    roster:individual?students.length:overview.total,
    eligible:individual?careers.reduce((n,c)=>n+c.eligible,0):null,
    projects:individual?careers.reduce((n,c)=>n+c.projects,0):null,
@@ -143,8 +149,7 @@ function renderReport(dataset,helpers){
  out+=para('Los cuatro núcleos forman parte de la preparación del Examen Complexivo. Los análisis presentan únicamente las notas finales disponibles, con sus denominadores y fuentes. Se conservan los parciales en la base local sin incorporarlos a estas tablas. Los estudiantes de Trabajo de Titulación se analizan en su capítulo correspondiente.');
  out+=Table('Cronograma planificado de los núcleos estructurantes',
    ['Núcleo','Fecha de inicio','Fecha de finalización'],
-   [['Núcleo 1','30/03/2026','02/04/2026'],['Núcleo 2','06/04/2026','09/04/2026'],
-    ['Núcleo 3','10/04/2026','14/04/2026'],['Núcleo 4','15/04/2026','18/04/2026']],
+   dataset.planning,
    'Fechas de la planificación de Examen Complexivo del período; no prueban por sí solas que las sesiones se hayan ejecutado');
  out+=H(3,'5.1. Cobertura y fuentes');
  out+=para('Se consideran '+dataset.careers.length+' carreras en la modalidad '+dataset.mode+'. Existen '+dataset.nucleiWithResults+

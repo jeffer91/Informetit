@@ -74,7 +74,41 @@ function indexize(html,pages={}){
  return {html:body,front:make('Índice de contenidos',sections)+make('Índice de tablas',tables)+make('Índice de figuras',figures),sections,tables,figures};
 }
 function paginate(html,pages){return html.replace(/(<span class="inf-index-page" data-page=")([^"]+)(">)(?:—|\d+)(<\/span>)/g,(m,prefix,id,middle,end)=>prefix+id+middle+(Number.isInteger(pages?.[id])?pages[id]:'—')+end);}
-const api=Object.freeze({fields,pending,printHeader,cover,introduction,legal,indexize,paginate,date});
+
+const CSS=[
+'@page{size:A4;margin:5.05cm 2.54cm 2.54cm}',
+'@page:first{size:A4;margin:5.05cm 1.5cm 1.5cm}',
+'@media print{.inf-cover-head{display:none!important}}',
+'.inf-cover{background:#fff!important;min-height:21.6cm!important;break-after:page;page-break-after:always;display:flex;flex-direction:column;justify-content:space-between;margin:0!important;padding:0!important;box-shadow:none!important}',
+'.inf-cover-head{width:18cm;margin:0 auto}.inf-header{width:18cm!important;table-layout:fixed;border-collapse:collapse;font:8pt/1.15 Arial,sans-serif}',
+'.inf-header td{border:.5pt solid #000;text-align:center;vertical-align:middle;padding:.1cm;overflow-wrap:anywhere}',
+'.inf-headrow-1{height:1.28cm}.inf-headrow-2{height:.75cm}.inf-headrow-3{height:1.20cm}',
+'.inf-logo{max-height:1.7cm;max-width:3.7cm;object-fit:contain}',
+'.inf-cover-middle{text-align:center;padding:2cm 0;font-family:Arial,sans-serif}',
+'.inf-cover-middle h1{font:bold 18pt/1.25 Arial,sans-serif!important;margin:0 0 1cm!important;text-align:center!important}',
+'.inf-cover-middle p{font:bold 12pt/1.35 Arial,sans-serif!important;text-align:center!important;margin:.5cm 0!important}',
+'.inf-cover-middle small{font:9pt Arial,sans-serif;display:block;margin-top:1.6cm}',
+'.inf-signatures{width:18cm!important;table-layout:fixed!important;border-collapse:collapse!important;font:8pt/1.15 Arial,sans-serif!important;margin:0!important}',
+'.inf-signatures td{border:.5pt solid #000!important;vertical-align:top!important;padding:0!important;overflow-wrap:anywhere}',
+'.inf-sign-title{text-align:center;font-weight:bold;min-height:.5cm;padding:.12cm}',
+'.inf-sign-space{height:2.4cm;border-top:.5pt solid #000;border-bottom:.5pt solid #000}',
+'.inf-sign-name{min-height:.75cm;padding:.12cm .1cm}',
+'.inf-sign-job{min-height:1.05cm;border-top:.5pt solid #000;padding:.12cm .1cm}',
+'.inf-index{break-after:page;page-break-after:always;line-height:1.4;font-family:"Times New Roman",serif}',
+'.inf-index h2{font:bold 13pt/1.3 "Times New Roman",serif;text-align:center;margin:0 0 14pt}',
+'.inf-index-item{display:flex;gap:7pt;align-items:flex-end;margin:4pt 0;break-inside:avoid}',
+'.inf-index-item.sub{padding-left:15pt;font-size:10pt}',
+'.inf-index-item a{color:inherit;text-decoration:none;overflow-wrap:anywhere}',
+'.inf-index-dots{flex:1;border-bottom:1pt dotted #999;min-width:10pt}',
+'.inf-index-page{min-width:22pt;text-align:right;font-variant-numeric:tabular-nums}',
+'.inf-page-marker{font-size:3px;color:#fff;letter-spacing:0}',
+'.inf-cover + .inf-index{break-before:auto}',
+'@media screen{.inf-cover{min-height:24cm!important;max-width:21cm;margin:0 auto 24px!important;padding:14px!important;box-shadow:0 1px 6px #d6dce7!important}',
+'.inf-cover-head{width:100%}.inf-cover-head .inf-header{width:100%!important}',
+'.inf-index{background:#fff;max-width:21cm;margin:0 auto 24px;padding:20px;box-shadow:0 1px 6px #d6dce7}}'
+].join('\n');
+
+const api=Object.freeze({fields,pending,printHeader,cover,introduction,legal,indexize,paginate,date,CSS});
 root.InformetitDocument=api;
 if(typeof module==='object'&&module.exports)module.exports=api;
 })(typeof window!=='undefined'?window:globalThis);

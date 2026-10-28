@@ -9,6 +9,8 @@ require('../document/institutional.js');
 require('../analysis/requirements.js');
 require('../analysis/nuclei.js');
 const X=require('../analysis/complexivo.js');
+require('../analysis/trabajo.js');
+require('../analysis/consolidado.js');
 require('../report_institucional.js');
 const create=(id='0000000001',tipo='complexivo',modalidad='presencial',carrera='Enfermería')=>({
  id,nombre:'ESTUDIANTE DE PRUEBA '+id,tipoTitulacion:tipo,modalidad,carrera,requisitos:{}

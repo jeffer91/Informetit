@@ -1,3 +1,41 @@
+## BLOQUE 03 · Fase I — Análisis de requisitos (octubre 2026)
+
+**Implementado directamente en main**. La pantalla **Estudiantes y requisitos** y el capítulo **4. Fase I. Verificación de requisitos** de ambos informes utilizan el mismo motor `analysis/requirements.js`.
+
+### Motor de análisis
+
+- Clasifica cada control en **Cumple**, **No cumple**, **Sin verificar** y **No aplica**. Reconoce NO, NC, NO CUMPLE, No cumple – mora y No alcanza 70 como incumplimientos. Una celda vacía o PENDIENTE queda **sin verificar**, no se declara NO CUMPLE.
+- Separa **ocho requisitos previos** y **noveno control Titulación** (no es aprobación de Complexivo). Calcula porcentajes sobre requisitos aplicables y reporta los no aplicables por separado.
+- Calcula verificaciones y **personas únicas afectadas**, sin equiparar dos requisitos incumplidos a dos estudiantes.
+- Genera distribución por carrera, sede y horario según datos efectivamente disponibles; matriz carrera × requisito (incumplimiento / sin verificar), priorización y lista nominal de casos, solamente en la instalación privada.
+- Mantiene como referencia documental las cifras del Word de la cohorte presencial: **267 iniciales, 262 activos, 5 retirados, 255 en fase final y 12 fuera de fase final**. No afirma que llegar a fase final equivale a cumplir los nueve requisitos.
+- Para online no inventa matrícula inicial, retiros ni resultados individuales. Cuando la base no está cargada, los resúmenes agregados se señalan como tales, sin desglosar incumplimiento de estados sin verificar.
+- Si solo hay una parte de la nómina local, no mezcla sus porcentajes con los totales agregados de 262/101.
+- Identifica las cédulas repetidas o vacías como una **advertencia que impide validar el informe como definitivo**.
+
+### Pantalla de seguimiento
+
+La sección **Estudiantes y requisitos** ahora incluye indicadores generales, nueve controles, cumplimiento por carrera, matriz de incidencias, filtros por requisito y estado, búsqueda por nombre o cédula, lista de seguimiento y clasificación editable de **Complexivo / Trabajo de Titulación**. La edición conserva la base local y los datos académicos anteriores.
+
+### Capítulo 4 del PDF institucional
+
+Contiene ocho apartados: caracterización de cohorte; requisitos; incidencias y prioridades; incidencias por carrera; cumplimiento integral; seguimiento nominal de casos; continuidad; y análisis académico-administrativo. Las tablas, figuras e interpretaciones surgen del mismo motor que la pantalla de la app. El índice automático del Bloque 02 incorpora estas nuevas secciones.
+
+### Archivos
+
+- Nuevo: `analysis/requirements.js`, `tests/block03.test.js`.
+- Actualizados: `index.html`, `report_institucional.js`, `app.js`, `tests/block01.test.js`, `tests/block02.test.js`, `package.json`.
+- La batería de pruebas `npm test` ahora incluye los bloques 01, 02 y 03. La interfaz y la exportación deben terminar de verificarse en Electron en Windows.
+
+```powershell
+git pull origin main
+npm run check
+npm test
+npm start
+```
+
+No se publican cédulas, nombres ni notas de estudiantes en GitHub. Los documentos PDF y los listados nominales se generan en la instalación local, con la base privada del usuario.
+
 ## BLOQUE 02 · Documento INF institucional y estructura APA 7 (28/10/2026)
 
 **Implementado directamente en `main`.** No se entregan PDF desde ChatGPT: se generan dentro de Informetit desde **Dos informes → Vista previa → Guardar PDF** o con los botones de descarga.

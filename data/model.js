@@ -4,10 +4,10 @@
 const SCHEMA_VERSION=2;
 const PERIOD='Octubre 2025 - Marzo 2026';
 const REQUIREMENTS=['Academico','Documentacion','Financiero','Practicas','Vinculacion','Seguimiento','Ingles','Datos','Titulacion'];
-const arrays=['estudiantes','notas','notasBorrador','evaluaciones','conflictos','sinVincular','complementarios','importaciones','auditoria','firebaseDiferencias'];
+const arrays=['estudiantes','notas','notasBorrador','evaluaciones','trabajos','conflictos','sinVincular','complementarios','importaciones','auditoria','firebaseDiferencias'];
 const empty=()=>({
   version:SCHEMA_VERSION,periodo:PERIOD,estudiantes:[],notas:[],notasBorrador:[],
-  evaluaciones:[],ejecucion:{},conflictos:[],sinVincular:[],complementarios:[],
+  evaluaciones:[],trabajos:[],ejecucion:{},cronogramaPersonalizado:{},conflictos:[],sinVincular:[],complementarios:[],
   importaciones:[],auditoria:[],firebaseDiferencias:[],gptSeedFingerprint:'',
   config:{codigoPresencial:'',codigoOnline:'',version:'1.0',fechaElaboracion:'',
     elaborado:'Mgs. Jefferson Villarreal',revisado:'Ing. Martha Tomalá',
@@ -51,6 +51,7 @@ function migrate(raw){
   for(const k of arrays)if(Array.isArray(raw[k]))d[k]=raw[k].map(x=>x&&typeof x==='object'?{...x}:x);
   d.estudiantes=d.estudiantes.filter(s=>s&&typeof s==='object').map(normalizeStudent);
   if(raw.ejecucion&&typeof raw.ejecucion==='object'&&!Array.isArray(raw.ejecucion))d.ejecucion={...raw.ejecucion};
+  if(raw.cronogramaPersonalizado&&typeof raw.cronogramaPersonalizado==='object'&&!Array.isArray(raw.cronogramaPersonalizado))d.cronogramaPersonalizado={...raw.cronogramaPersonalizado};
   if(raw.config&&typeof raw.config==='object'&&!Array.isArray(raw.config))d.config={...d.config,...raw.config};
   if(typeof raw.gptSeedFingerprint==='string')d.gptSeedFingerprint=raw.gptSeedFingerprint;
   if(typeof raw.periodo==='string'&&raw.periodo.trim())d.periodo=raw.periodo;

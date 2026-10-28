@@ -1,4 +1,5 @@
-/* Informetit: informe institucional extenso. No incluye registros nominales. */
+/* Informetit: generador local de los dos informes. Incluye registros nominales únicamente
+   cuando existen en la base privada de Electron; nunca se publican en el repositorio. */
 (() => {
 'use strict';
 const E=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -73,7 +74,6 @@ function makeReport(state,mode){
  const phaseReq=window.InformetitRequirements.analyze(state,mode);
  const totalChecks=phaseReq.checks.applicable,done=phaseReq.checks.ok;
  const pending=phaseReq.source==='individual'?phaseReq.checks.fail+phaseReq.checks.unknown:phaseReq.checks.unclassified;
- const notesCount=d.careers.reduce((x,c)=>x+[1,2,3,4].reduce((q,k)=>q+d.N(c.name,k).n,0),0);
  let out='<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Informe de titulación '+desc+'</title><style>'+STYLES+'\n'+DOC.CSS+'</style></head><body>';
  out+=DOC.cover(state,mode);
  out+='<!--INFORMETIT_INDEX-->';

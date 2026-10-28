@@ -8,6 +8,7 @@
 const { app, BrowserWindow, dialog, ipcMain } = require('electron');
 const fs = require('node:fs/promises');
 const path = require('node:path');
+const crypto = require('node:crypto');
 const { pathToFileURL } = require('node:url');
 
 app.setAppUserModelId('ec.itsqmet.informetit');
@@ -69,6 +70,41 @@ function createWindow() {
   mainWindow.webContents.session.setPermissionRequestHandler((_contents, _permission, callback) => callback(false));
   mainWindow.on('closed', () => { mainWindow = null; });
 }
+
+/*
+ * La base GPT contiene datos personales: se lee exclusivamente desde un
+ * archivo PRIVADO del equipo, jamás desde el repositorio público.
+ * Actualiza private/base-gpt.json con un paquete privado para importar
+ * automáticamente nuevas notas al siguiente inicio, sin borrar ediciones locales.
+ */
+ipcMain.handle('informetit:read-master', async event => {
+  if (!mainWindow || event.sender !== mainWindow.webContents) {
+    throw new Error('Solicitud de base privada no autorizada');
+  }
+  const candidates = [
+    path.join(__dirname, 'private', 'base-gpt.json'),
+    path.join(app.getPath('userData'), 'base-gpt.json')
+  ];
+  for (const file of candidates) {
+    let buffer;
+    try { buffer = await fs.readFile(file); }
+    catch (err) {
+      if (err.code === 'ENOENT') continue;
+      throw err;
+    }
+    if (buffer.length > 12 * 1024 * 1024) throw new Error('La base GPT supera 12 MB.');
+    const data = JSON.parse(buffer.toString('utf8').replace(/^\uFEFF/, ''));
+    if (!data || !Array.isArray(data.estudiantes) || !Array.isArray(data.notas)) {
+      throw new Error('La base GPT local no tiene el formato de Informetit.');
+    }
+    return {
+      data,
+      fingerprint: crypto.createHash('sha256').update(buffer).digest('hex'),
+      filename: 'base-gpt.json'
+    };
+  }
+  return null;
+});
 
 ipcMain.handle('informetit:save-pdf', async (event, payload) => {
   if (!mainWindow || event.sender !== mainWindow.webContents) {

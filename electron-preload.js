@@ -6,5 +6,6 @@ const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('informetitDesktop', Object.freeze({
   isElectron: true,
-  savePDF: (base64, name) => ipcRenderer.invoke('informetit:save-pdf', { base64, name })
+  savePDF: (base64, name) => ipcRenderer.invoke('informetit:save-pdf', { base64, name }),
+  saveAPAHTML: (html, name) => ipcRenderer.invoke('informetit:save-apa-pdf', { html, name })
 }));

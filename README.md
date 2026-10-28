@@ -1,64 +1,73 @@
-# Informetit · UTET
+# Informetit · Electron Desktop · UTET
 
-Aplicación web local para elaborar dos borradores independientes del **Informe Final del Proceso de Titulación** del período octubre 2025 – marzo 2026: presencial y online.
+Informetit es una **aplicación de escritorio Electron** para registrar estudiantes, requisitos, núcleos estructurantes, evaluaciones y elaborar **dos informes de titulación**, presencial y online, para octubre 2025 – marzo 2026.
 
-## Estado
-Primera versión funcional de captura, validación, análisis preliminar y exportación de borradores. **No sustituye actas, notas oficiales ni la revisión institucional.** La portada INF definitiva y la maquetación completa de Word/PDF todavía están pendientes de desarrollo.
+## Inicio desde Visual Studio Code (Windows / PowerShell)
 
-## Cómo usar
-1. Abre `index.html` en un navegador moderno (o activa GitHub Pages desde Settings > Pages, branch main, raíz /).
-2. En **Datos y respaldo**, pulsa **Importar JSON maestro** y selecciona el archivo privado `Informetit_base_local_2025-2026.json` preparado por ChatGPT. Este JSON contiene la nómina institucional y las 11 notas de ejemplo recibidas; **no se encuentra publicado en este repositorio**.
-3. También puedes **Subir Excel institucional** para incorporar registros; acepta .xls HTML exportado por el sistema, .xlsx real y .csv con el encabezado `numeroIdentificacion`.
-4. En **Estudiantes**, confirma si cada estudiante cursó Examen Complexivo o Trabajo de Titulación.
-5. En **Notas de núcleos**, pega directamente los textos del libro de calificaciones de Moodle, incluidos sus encabezados, nombres, correos y 6 valores numéricos. El sistema intenta reconocer automáticamente el núcleo y la carrera; los vincula por correo y, si es necesario, por nombre exacto. Revisa la vista previa y pulsa guardar.
-6. En **Evaluación final**, ingresa los resultados oficiales y referencias de actas. Las ponderaciones de evaluación requieren validación institucional.
-7. En **Informes**, previsualiza el borrador presencial u online. Exporta en Word compatible (.doc), o usa Imprimir > Guardar como PDF.
-8. En **Datos y respaldo**, descarga una copia JSON antes de cerrar sesión, cambiar navegador o limpiar datos. Puedes compartir ese JSON **en privado** con ChatGPT para conciliar nuevas notas y obtener un archivo maestro actualizado.
-
-## Datos y privacidad
-- La aplicación no tiene un servidor de datos ni cuentas. Guarda todo en el almacenamiento **IndexedDB del navegador**, con alternativa a localStorage.
-- GitHub Pages publica los archivos de código, **no** almacena de forma privada las cédulas ni notas.
-- **No** subas el JSON maestro, Excel con estudiantes o archivos con calificaciones a este repositorio público.
-- Para que ChatGPT edite una base que existe solo en tu navegador, **debes exportar y adjuntar el JSON**. No existe sincronización automática con el navegador.
-- Los datos nuevos que se pegan en el formulario permanecen en el navegador; las notas duplicadas idénticas no se agregan y las diferentes se guardan como conflictos pendientes.
-- Las notas ausentes permanecen como **pendientes**. Nunca se inventan o interpolan calificaciones oficiales. Si se necesita un escenario estimativo, debe separarse claramente y excluirse del informe oficial.
-
-## Organización
-```
-index.html   - interfaz y entradas
-styles.css   - estilos compactos adaptables
-app.js       - almacenamiento, importaciones, cálculos, cronogramas y borradores
-README.md    - instrucciones y limitaciones
-```
-
-## Configuración institucional
-- Dos informes: presencial y online, con sus propias tablas.
-- Cronogramas 2025–2026 precargados de Trabajo de Titulación (20 actividades) y Examen Complexivo (6 actividades).
-- Requisitos de titulación: Académico, Documentación, Financiero, Prácticas, Vinculación, Seguimiento, Inglés, Actualización de datos y Titulación.
-- No equiparar cumplimiento de requisitos con aprobación final ni modalidad de estudios con mecanismo de titulación.
-
-
-## Informes PDF y graficos (actualizacion octubre 2026)
-- **Descargar PDF con graficos:** genera PDF separado por modalidad a partir de las tablas de requisitos, carreras, sedes, horarios y, si existen, notas por nucleo y estados de evaluacion. Los graficos se crean solo con valores existentes, nunca con notas interpoladas.
-- **PDF APA 7 / Times 12:** abre una vista de impresion en Times New Roman de 12 puntos, interlineado doble y margenes de 2,54 cm para el cuerpo del informe. Usa el dialogo del navegador para seleccionar **Guardar como PDF**. La portada usa el estandar institucional INF en A4 y margenes de 1,50 cm.
-- **Portada institucional:** incorpora el logotipo mediante el boton **Subir/cambiar logotipo** en Informes, ademas de los campos de codigo, version, fecha y firmas.
-- **Figuras relevantes:** distribucion por carrera, sede, horario; cumplimiento de ocho requisitos previos; incidencias por requisito; cumplimiento integral; volumen y promedios por nucleo; histograma de calificaciones; promedios por carrera y resultados finales cuando existan.
-- **Diferencia de fuentes:** el requisito Titulacion no equivale a la aprobacion del Examen Complexivo. Los datos pendientes se excluyen de los promedios, y los borradores no se presentan como informes aprobados.
-- **Para Windows:** ejecuta `clonar_windows.bat` para descargar el codigo a tu escritorio (sin sobrescribir una carpeta existente); dentro de la carpeta usa `iniciar_windows.bat`. Para trabajar sin conexion primero ejecuta `preparar_offline.bat` una vez con Internet.
-- El PDF de descarga directa usa tipografia PDF incorporada, mientras que el boton **PDF APA 7 / Times 12** emplea Times New Roman real al imprimir desde el navegador.
-
-Enlace al ZIP del codigo: https://github.com/jeffer91/Informetit/archive/refs/heads/main.zip
-
-
-## Ejecutar con Visual Studio Code / npm (Windows)
-La app es estática, pero incluye un servidor local Node sin paquetes externos.
+Abre la terminal en la carpeta `Informetit` y ejecuta:
 
 ```powershell
-cd ([Environment]::GetFolderPath("Desktop"))
-cd Informetit
 git pull origin main
 npm install
-npm run dev
+npm start
 ```
 
-Abrir http://127.0.0.1:5500/ y mantener la terminal activa. Para detener, Ctrl+C. `package.json` y `server.js` permiten estos comandos. No se requiere Vite, React ni una cuenta de base de datos.
+`npm start` abre una ventana **Electron**, no un servidor web ni una pestaña del navegador. La primera instalación requiere Internet para descargar Electron y las bibliotecas. Después puedes ejecutar `npm start` sin conexión.
+
+- `npm start`: aplicación Electron de escritorio.
+- `npm run dev`: alias de desarrollo que también abre Electron.
+- `npm run check`: comprueba sintaxis del código JavaScript.
+- `npm run web`: servidor opcional para diagnóstico, **no es el modo normal de trabajo**.
+
+También puedes ejecutar `iniciar_windows.bat` desde la carpeta.
+
+## Estructura
+
+```text
+package.json                   Dependencias y comando npm start
+electron-main.js              Ventana de escritorio, seguridad, guardar PDF
+electron-preload.js           Puente limitado para guardar PDF en Windows
+scripts/preparar-bibliotecas.js  Copia XLSX y pdfMake a vendor al instalar
+index.html                    Interfaz principal
+app.js                        Base local, validaciones, notas y módulos
+report_pdf.js                 Informes separados, tablas y gráficos
+styles.css                    Estilos
+vendor/                       Bibliotecas locales, generadas con npm install
+server.js                     Solo modo diagnóstico npm run web
+iniciar_windows.bat           Lanzador Electron
+preparar_offline.bat          Instala dependencias una sola vez
+clonar_windows.bat            Descarga código e instala Electron
+```
+
+## Base de datos privada
+
+La aplicación conserva la información en **IndexedDB dentro del perfil local de Electron**. Ni estudiantes ni notas se publican en GitHub. El repositorio solo contiene código. Para cargar la nómina y las primeras notas, abre **Datos y respaldo → Importar JSON maestro** y selecciona tu archivo privado `Informetit_base_local_2025-2026.json`.
+
+Se puede importar Excel institucional `.xls` (también cuando el sistema exporta HTML con esa extensión), `.xlsx`, CSV y textos copiados de los libros de notas de Moodle. Al pegar notas, se concilian estudiantes, se detectan duplicados y se conservan las diferencias como conflictos.
+
+**Importante:** los datos de tu navegador anterior (por ejemplo `localhost`) no se trasladan automáticamente a Electron. Exporta JSON en la versión anterior e impórtalo aquí si deseas conservarlos. Haz periódicamente **Datos y respaldo → Descargar JSON** para crear copias privadas.
+
+## Informes y PDF
+
+Los informes presencial y online calculan sus propios indicadores: requisitos, carreras, sedes, calificaciones observadas, núcleos y evaluación final si está registrada. No se rellenan notas ausentes con valores inventados.
+
+En **Informes** hay dos exportaciones:
+- **Descargar PDF con gráficos:** PDF directamente desde pdfMake con el diálogo nativo de guardado de Electron.
+- **PDF APA 7 · Times 12:** PDF generado con la impresión nativa de Chromium/Electron, fuente Times New Roman 12, cuerpo a doble espacio, márgenes académicos y portada institucional INF. También abre un diálogo de guardado nativo.
+
+Los informes siguen siendo **borradores hasta disponer de todas las evidencias, calificaciones y validaciones**. La portada puede llevar el logo institucional y el código documental de cada modalidad.
+
+## Privacidad y GitHub
+
+No publiques cédulas, calificaciones, respaldos JSON o informes privados en un repositorio público. El archivo `.gitignore` excluye bibliotecas locales, `node_modules`, y extensiones de archivos sensibles frecuentes.
+
+La aplicación no sincroniza datos automáticamente con ChatGPT. Para trabajar con una base actualizada desde un chat, importa un respaldo JSON privado.
+
+## Solución de problemas
+
+Si `npm start` informa que `electron` no existe, ejecuta `npm install` y revisa posibles errores de red.
+Si `npm install` falla, comprueba tu versión de Node con `node -v` y de npm con `npm -v`. Se recomienda Node.js 20 o superior.
+Si el PDF no se descarga, comprueba que `vendor/pdfmake.min.js` y `vendor/vfs_fonts.js` se hayan generado con `npm install`.
+Si necesitas actualizar los archivos sin perder el respaldo local, ejecuta `git pull origin main` antes de `npm start`.
+
+Código fuente: https://github.com/jeffer91/Informetit

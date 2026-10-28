@@ -61,10 +61,15 @@ function average(values){return values.length&&values.every(x=>x!==null&&x!==und
  values.reduce((a,b)=>a+b,0)/values.length:null}
 function evaluate(input){
  const r=normalize(input),warnings=[];
- if(r.asistencia==='no_presentado')return {...r,practices:[null,null,null],defenses:[null,null,null],
-  written:null,practical:null,defense:null,oral:null,ordinary:null,recovery:null,
-  definitive:null,status:'no_presentado',warnings:[],actaReferenced:!!r.numeroActa,
-  complete:false};
+ if(r.asistencia==='no_presentado'){
+  const contradictory=valid(r.tutor)!==null||valid(r.lector)!==null||
+   r.vocales.some(v=>[...PRACTICA.map(k=>v.practica[k.key]),...DEFENSA.map(k=>v.defensa[k.key])]
+    .some(g=>valid(g)!==null));
+  if(contradictory)warnings.push('El estudiante figura como no presentado, pero tiene calificaciones registradas.');
+  return {...r,practices:[null,null,null],defenses:[null,null,null],
+    written:null,practical:null,defense:null,oral:null,ordinary:null,recovery:null,
+    definitive:null,status:'no_presentado',warnings,actaReferenced:!!r.numeroActa,complete:false};
+ }
  for(const [label,v] of [['Tutor',r.tutor],['Lector',r.lector]]){
   if(v!==null&&v!==undefined&&txt(v)!==''&&valid(v)===null)warnings.push(label+' contiene una nota inválida.');
  }
@@ -229,7 +234,7 @@ function renderReport(dataset,{Table,Figure,H,para,F}){
  for(const career of dataset.careers){
   out+=H(3,'6.3. '+career.name);
   out+=Table('Calificaciones del proyecto y defensa — '+career.name,
-    ['Estudiante','Cédula','Acta','Escrito','Práctica','Defensa','Oral','Definitiva','Estado'],
+    ['Estudiante','Cédula','Acta','Escrito','Práctica','Defensa','Promedio oral','Definitiva','Estado'],
     career.entries.filter(e=>e.record?.complete&&!e.duplicate).map(e=>[
       e.name,e.id,e.record.numeroActa||'Sin referencia',
       fmt(e.record.written),fmt(e.record.practical),fmt(e.record.defense),

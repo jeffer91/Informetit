@@ -117,6 +117,8 @@ function resolveRow(row,students,context){
  const all=(students||[]),matchingID=row.id?all.filter(s=>code(s.id)===code(row.id)):[];
  const matchingMail=row.email?all.filter(s=>[s.correo,s.correoPersonal,s.CorreoInstitucional,s.CorreoPersonal].some(e=>e&&email(e)===row.email)):[];
  const matchingName=row.name?all.filter(s=>tokens(s.nombre)===tokens(row.name)):[];
+ if(row.id&&matchingID.length===0&&matchingMail.length) return {status:'identity_conflict',reason:'La cédula no coincide con el correo'};
+ if(row.email&&matchingMail.length===0&&matchingID.length) return {status:'identity_conflict',reason:'El correo no coincide con la cédula'};
  const matches=matchingID.length?matchingID:matchingMail.length?matchingMail:matchingName;
  if(!matches.length)return {status:'unmatched',reason:'Sin coincidencia exacta de cédula, correo o nombre'};
  if(matches.length!==1)return {status:'ambiguous',reason:'Identidad duplicada; requiere revisión'};
@@ -156,8 +158,8 @@ function assess(parsed,context,state){
     const official=notes.find(x=>String(x.studentId)+'|'+Number(x.nucleo)===id);
     const fromWord=word.find(x=>String(x.studentId)+'|'+Number(x.nucleo)===id);
     if(conflicts.has(id)){status='already_conflicted';reason='Ya existe un conflicto sin resolver'}
+    else if((official&&!gradeEqual(official.nota,grade))||(fromWord&&!gradeEqual(fromWord.nota,grade))){status='conflict';reason='La calificación difiere de Moodle o del Word anterior'}
     else if(official&&gradeEqual(official.nota,grade)){status='duplicate';reason='Nota oficial ya registrada; sin duplicar'}
-    else if(official||fromWord&&!gradeEqual(fromWord.nota,grade)){status='conflict';reason='La calificación difiere de Moodle o del Word anterior'}
     else{status='ready';reason=fromWord?'La calificación coincide con el Word y se vinculará a Moodle':'Nueva nota identificada'}
     seen.set(id,{status,grade,reason,record:null});
    }

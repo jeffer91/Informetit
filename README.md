@@ -39,6 +39,14 @@ preparar_offline.bat          Instala dependencias una sola vez
 clonar_windows.bat            Descarga código e instala Electron
 ```
 
+## Descarga con git pull y protección de datos
+
+**Uso actual con el repositorio público:** `git pull origin main` descarga el código Electron y el archivo `public_summary.js` con resultados institucionales **agregados, sin nombres, cédulas, correos ni notas individuales**. Al ejecutar `npm start`, el panel muestra 363 estudiantes (262 presencial, 101 online) como totales agregados. Se pueden generar borradores PDF APA 7 con gráficos de carrera, sede, horario y requisitos. Los datos individuales no están disponibles en la rama pública; no se crea ningún estudiante ficticio.
+
+**Para que absolutamente todos los registros individuales se descarguen con `git pull`:** el propietario debe hacer PRIVADO el repositorio en GitHub (Settings → General → Danger Zone → Change repository visibility → Make private). Una vez privado y verificado, se podrá incorporar `data/base-gpt.json` directamente a `main`, retirando la excepción de seguridad correspondiente de `.gitignore`. Electron ya tiene programada la búsqueda de esa carpeta, y el mismo comando `git pull origin main && npm start` podrá actualizar tanto el código como la base.
+
+**Nunca subir la nómina completa mientras el repositorio siga siendo público:** la visibilidad pública y el historial de commits permitirían descargar los datos de terceros, incluso si se borran en un commit posterior.
+
 ## Base GPT incluida en código privado: sin importar archivos
 
 Para la cohorte octubre 2025 – marzo 2026, ChatGPT ha preparado un archivo privado de **código JavaScript** llamado `base-gpt.cjs`, que incluye 363 estudiantes y 11 notas verificadas del Núcleo 1 de Enfermería. Se distribuye como archivo descargable privado de ChatGPT (no por GitHub).

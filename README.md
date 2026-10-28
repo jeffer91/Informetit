@@ -1,3 +1,20 @@
+## Informe institucional ampliado (28 de octubre de 2026)
+
+A partir del PDF de 6 páginas y del Word de 131 páginas de referencia, se implementó `report_institucional.js` con las siguientes secciones: resumen ejecutivo, introducción, objetivos, metodología, marco normativo referencial, cronogramas, Fase I, cumplimiento y continuidad por carrera, Fase II con cuatro núcleos para cada carrera, Trabajo de Titulación, Fase III, conclusiones, recomendaciones y referencias. Los botones de descarga PDF se dirigen a este generador.
+
+El módulo `nucleos_agregados.js` contiene solo estadísticas anónimas extraídas de las tablas del Word de trabajo: **19 núcleos de 5 carreras y 647 registros de calificaciones**, con cantidad, promedio, mínimo y máximo. **Son datos provisionales** que requieren conciliación contra Moodle; no se incorporan nombres ni notas individuales al repositorio público. En el informe presencial se muestran los núcleos disponibles y los ausentes quedan pendientes. El informe online mantiene las notas pendientes.
+
+La base privada conservada en ChatGPT incluye `notasBorrador`, con **647 notas extraídas** y vinculadas sin ambigüedad a sus registros originales, mientras que `notas` mantiene por separado las 11 notas previamente recibidas de Moodle. El código de Electron preserva estas listas cuando se importe una versión privada. No se suben datos nominales al repositorio mientras sea público.
+
+Al descargar el PDF se obtiene un **borrador académico**, no el documento final de 131 páginas: el propio Word está incompleto, el marco jurídico necesita revisión de vigencia y faltan los resultados de Examen Complexivo, supletorios, defensas, ejecución documentada de cronogramas y algunos núcleos. No se interpolan notas.
+
+Ejecutar las actualizaciones:
+
+```powershell
+git pull origin main
+npm start
+```
+
 # Informetit · Electron Desktop · UTET
 
 Informetit es una **aplicación de escritorio Electron** para registrar estudiantes, requisitos, núcleos estructurantes, evaluaciones y elaborar **dos informes de titulación**, presencial y online, para octubre 2025 – marzo 2026.

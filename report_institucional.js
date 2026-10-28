@@ -71,6 +71,7 @@ function makeReport(state,mode){
  tables=0;figs=0;const d=getData(state,mode),n=d.total,desc=mode==='online'?'online':'presencial',cfg=state?.config||{};
  const DOC=window.InformetitDocument;if(!DOC)throw Error('Módulo de formato INF no disponible');
  if(!window.InformetitNuclei)throw Error('Motor de núcleos no disponible');
+ if(!window.InformetitComplexivo)throw Error('Motor de Examen Complexivo no disponible');
  const phaseReq=window.InformetitRequirements.analyze(state,mode);
  const totalChecks=phaseReq.checks.applicable,done=phaseReq.checks.ok;
  const pending=phaseReq.source==='individual'?phaseReq.checks.fail+phaseReq.checks.unknown:phaseReq.checks.unclassified;
@@ -87,6 +88,13 @@ function makeReport(state,mode){
   academicOverview.wordOnlyNuclei+' núcleos cuentan solo con un agregado documental del Word, separado de las notas individuales.':
   'Se han documentado '+academicOverview.nucleiWithResults+
   ' núcleos con estadísticas del Word institucional, sin información nominal asociada en la modalidad. Las calificaciones no disponibles permanecen pendientes.');
+ const examPreview=window.InformetitComplexivo.analyze(state,mode);
+ out+=para('En Examen Complexivo constan '+examPreview.counts.eligible+
+  ' estudiantes identificados en la nómina local, con '+examPreview.counts.ordinaryComplete+
+  ' calificaciones ordinarias completas, '+examPreview.counts.ordinaryApproved+
+  ' aprobados ordinarios calculados, '+examPreview.counts.recovered+
+  ' aprobados tras supletorio y '+examPreview.counts.pending+
+  ' resultados pendientes. Los cálculos y su respaldo en actas se informan por separado.');
  out+=DOC.introduction();
  out+=DOC.legal(Table);
  out+=H(2,'3. Planificación y organización');
@@ -100,14 +108,15 @@ function makeReport(state,mode){
  out+=para('El mecanismo de Trabajo de Titulación dispone de un cronograma distinto, que comprende formulación de temas, tutorías, revisión de borradores, informe antiplagio, defensa y supletorio. No se fusionan sus calificaciones con los cuatro núcleos del Examen Complexivo.');
  for(const [fase,rows] of Object.entries(thesis)){out+=H(3,fase);out+=Table('Actividades programadas: '+fase,['Actividad','Inicio','Fin'],rows,'Cronograma proporcionado para el período octubre 2025–marzo 2026');}
  out+=para('La Guía institucional para la formulación y aprobación de títulos de titulación (octubre de 2026) requiere una sola acción central, un objeto único, neutralidad, delimitación y viabilidad. La revisión puede finalizar en Aprobado, Corregir o Reformular. La guía debe considerarse un instrumento de validación de propuestas y no evidencia de ejecución del cronograma 2025–2026.');
- out+=H(2,'7. Fase III. Evaluación del Examen Complexivo y defensas');
- const finals=d.finals,ok=finals.filter(x=>x.status==='aprobado').length,bad=finals.filter(x=>x.status==='reprobado').length,abs=finals.filter(x=>x.status==='no_presentado').length,pend=finals.length-ok-bad-abs;
- if(finals.length){out+=Table('Resultados finales cargados en Informetit',['Estado','Registros'],[['Aprobados',ok],['Reprobados',bad],['No presentados',abs],['Pendientes',pend],['Actas o registros incorporados',finals.length]],'Resultados parciales; el denominador es el total de evaluaciones registradas');out+=Figure('Distribución de resultados cargados',[['Aprobado',ok],['Reprobado',bad],['No presentado',abs],['Pendiente',pend]]);}
- else out+=para('No se han incorporado actas oficiales de la evaluación ordinaria, defensa o supletorio en esta modalidad. No es válido presentar tasas de aprobación o reprobación calculadas desde los requisitos previos o las notas de los núcleos.');
- out+=Table('Evidencias necesarias para cerrar la Fase III',['Indicador','Situación actual'],[['Habilitados y convocados','Requiere registro individual'],['Asistentes a evaluación ordinaria','Requiere acta'],['Notas teóricas y prácticas',finals.length?'Parcialmente registrado':'Pendiente'],['Aprobación en primera instancia',finals.length?'Parcialmente registrado':'Pendiente'],['Supletorios y reprobaciones','Requiere actas de recuperación'],['Resultado definitivo','Pendiente de validación institucional']],'No se confunden datos no cargados con estudiantes reprobados');
+ const complexivoData=window.InformetitComplexivo.analyze(state,mode);
+ out+=window.InformetitComplexivo.renderReport(complexivoData,{Table,Figure,H,para,F,P});
  out+=H(2,'8. Síntesis general de la cohorte');
- out+=para('El cumplimiento integral de los requisitos, la preparación académica y los resultados definitivos de titulación se interpretan por separado. Para la modalidad '+desc+', los indicadores de eficiencia terminal solo podrán cerrarse al incorporar las actas oficiales y verificar los estudiantes convocados, presentados y aprobados. No se efectúan comparaciones con otras cohortes en este informe.');
+ out+=para('El cumplimiento de requisitos, los núcleos y las evaluaciones definitivas se interpretan por separado. En la modalidad '+desc+' se registran '+complexivoData.counts.approved+' aprobaciones calculadas de Examen Complexivo, de las cuales '+complexivoData.counts.verified+' tienen referencias de actas completas. La eficiencia terminal de toda la cohorte no se cierra hasta integrar los resultados de Trabajo de Titulación y resolver las actas pendientes. No se comparan otros períodos.');
  out+=H(2,'9. Conclusiones');
+ out+=para('En Examen Complexivo, el total de aprobaciones calculadas asciende a '+complexivoData.counts.approved+
+ ' entre '+complexivoData.counts.eligible+' estudiantes asignados a este mecanismo, y '+complexivoData.counts.verified+
+ ' resultados cuentan con referencias de actas completas. '+complexivoData.counts.pending+
+ ' evaluaciones siguen pendientes; estos casos no pueden reportarse como reprobados.');
  out+='<ol><li>En la modalidad '+desc+' constan '+n+' estudiantes, de los que '+d.completos9+' cumplen íntegramente los nueve controles ('+F(P(d.completos9,n))+' %).</li><li>En los ocho requisitos previos se identifican '+pending+' verificaciones pendientes; no representan necesariamente a '+pending+' personas.</li><li>El análisis académico de los cuatro núcleos debe completarse con registros verificados y muestras comparables.</li><li>Los resultados definitivos de titulación están pendientes de actas suficientes para establecer un cierre institucional.</li></ol>';
  out+=H(2,'10. Recomendaciones');
  out+='<ol><li>Conciliar la base de estudiantes con los libros de calificaciones y resolver registros duplicados o discrepantes.</li><li>Dar seguimiento a las categorías con más verificaciones pendientes y documentar su cierre.</li><li>Separar planificado, ejecutado, evidenciado y aprobado para cada hito.</li><li>Incorporar actas y supletorios antes de calcular indicadores de aprobación definitiva.</li><li>Revisar la versión normativa, los códigos institucionales y las firmas antes de aprobar el informe.</li></ol>';

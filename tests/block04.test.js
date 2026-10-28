@@ -6,7 +6,7 @@ const M=require('../data/model.js');
 const Import=require('../moodle/importer.js');
 const req=()=>Object.fromEntries(M.REQUIREMENTS.map(r=>[r,'CUMPLE']));
 const student=(id='0000000001',career='Enfermería',mode='presencial')=>({
- id,nombre:'Persona De Prueba',carrera,modalidad:mode,correo:'persona@instituto.edu.ec',
+ id,nombre:'Persona De Prueba',carrera:career,modalidad:mode,correo:'persona@instituto.edu.ec',
  correoPersonal:'personal@example.org',tipoTitulacion:'complexivo',requisitos:req()
 });
 const state=()=>{const s=M.empty();s.estudiantes=[student()];return s};

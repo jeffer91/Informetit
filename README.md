@@ -1,3 +1,39 @@
+## BLOQUE 04 · Importación inteligente de calificaciones Moodle (octubre 2026)
+
+**Implementado directamente en `main`.** La carga y conciliación se realizan dentro de **Notas de núcleos** en Electron; los informes siguen generándose exclusivamente desde la app.
+
+### Motor independiente
+
+- `moodle/importer.js` reconoce tres formatos de texto copiado: **Moodle vertical** con correo y seis notas, **tabla tabulada** y **tabla separada por punto y coma** con columna de nota final o Total del curso. Conserva los parciales cuando existen; solo la nota final se utiliza en las estadísticas y el informe académico.
+- Detecta núcleo y carrera en el encabezado cuando están disponibles. Permite seleccionarlos manualmente, pero **bloquea la importación** si la selección contradice la cabecera. No asigna valores por orden de filas ni por coincidencias aproximadas.
+- Concilia estudiantes por **cédula, correo institucional/personal o nombre completo exacto** y comprueba carrera, modalidad y mecanismo de titulación. Los estudiantes de Trabajo de Titulación **no** se contabilizan en los núcleos de Complexivo.
+- Preserva el cero cuando es una calificación real y rechaza notas vacías, fuera de 0 a 10 o ambiguas. Cuando no existe una columna inequívoca de total del curso, no inventa el resultado.
+- Usa un flujo seguro: **Analizar y revisar → Guardar resultado de la revisión**. Si cambia el texto, el núcleo, la carrera o la modalidad, debe volver a analizarse. Una importación nueva solo reemplaza el estado de la app **después** de que el guardado transaccional haya terminado correctamente.
+- Una nota Moodle igual a otra existente no se duplica. Una nota diferente genera un conflicto trazable. Las notas provenientes del **Word son aceptadas como fuente del período** conforme a la decisión de la Coordinación, pero las divergencias se conservan para revisión.
+- En **Datos y respaldo → Notas en conflicto** permite seleccionar **Usar nueva** o **Conservar actual**. La elección resuelve efectivamente la contradicción entre Word y Moodle y deja el antecedente en la auditoría privada.
+- Los registros Moodle sin vincular aparecen en **Notas de núcleos → Pendientes de conciliación Moodle**, donde se puede elegir explícitamente un estudiante de la misma carrera y modalidad. Las notas parciales también se conservan cuando la asociación se realiza manualmente.
+- Los datos personales y calificaciones **no** se publican en GitHub; están en IndexedDB de Electron, en archivos privados importados o en respaldos que guarda el usuario.
+
+### Pantalla y pruebas
+
+- `app.js`: importa con revisión, muestra cobertura por carrera × núcleo y calificaciones individuales, distingue notas disponibles y pendientes, y ofrece conciliación manual.
+- `data/model.js`: excluye los estudiantes de Trabajo de Titulación de los promedios de núcleos correspondientes a Complexivo.
+- `tests/block04.test.js`: prueba formatos, notas cero/vacías, identificación, importación repetida, contradicción Word–Moodle, resolución, vinculación manual y separación de mecanismos.
+- `index.html` carga `moodle/importer.js` antes de `app.js`; `package.json` incluye el bloque en `npm run check` y `npm test`.
+
+### Actualizar en Windows
+
+```powershell
+git pull origin main
+npm run check
+npm test
+npm start
+```
+
+No se requiere ninguna dependencia adicional para este bloque. La instalación local de Electron continúa utilizando los módulos y dependencias instalados en los bloques anteriores.
+
+**Pendientes del siguiente Bloque 05:** desarrollar las tablas individuales de los cuatro núcleos por carrera dentro del PDF, las estadísticas de distribución, el análisis académico de cada núcleo y el listado de estudiantes que aún no tienen nota, sin equipararlos a reprobados.
+
 ## BLOQUE 03 · Fase I — Análisis de requisitos (octubre 2026)
 
 **Implementado directamente en main**. La pantalla **Estudiantes y requisitos** y el capítulo **4. Fase I. Verificación de requisitos** de ambos informes utilizan el mismo motor `analysis/requirements.js`.
@@ -110,13 +146,13 @@ La generación y descarga se realiza **dentro de la app**, nunca se requiere rec
 3. Electron genera el documento mediante impresión nativa y abre el diálogo de Windows para elegir la carpeta y el nombre del archivo.
 4. En **Dos informes**, selecciona la modalidad, comprueba la cobertura de núcleos y usa **Vista previa** o **Descargar PDF completo**.
 
-Los documentos son borradores hasta incorporar y verificar todos los resultados. Las estadísticas de notas de Word mantienen estado provisional; las notas oficiales de Moodle permanecen en su registro distinto. Los datos nominales nunca se publican en la rama pública.
+Los documentos son borradores hasta incorporar y verificar todos los resultados. Las notas del Word están aceptadas como fuente del período; las discrepancias con Moodle se muestran para revisión, manteniendo el origen de cada registro. Los datos nominales nunca se publican en la rama pública.
 
 ## Informe institucional ampliado (28 de octubre de 2026)
 
 A partir del PDF de 6 páginas y del Word de 131 páginas de referencia, se implementó `report_institucional.js` con las siguientes secciones: resumen ejecutivo, introducción, objetivos, metodología, marco normativo referencial, cronogramas, Fase I, cumplimiento y continuidad por carrera, Fase II con cuatro núcleos para cada carrera, Trabajo de Titulación, Fase III, conclusiones, recomendaciones y referencias. Los botones de descarga PDF se dirigen a este generador.
 
-El módulo `nucleos_agregados.js` contiene solo estadísticas anónimas extraídas de las tablas del Word de trabajo: **19 núcleos de 5 carreras y 647 registros de calificaciones**, con cantidad, promedio, mínimo y máximo. **Son datos provisionales** que requieren conciliación contra Moodle; no se incorporan nombres ni notas individuales al repositorio público. En el informe presencial se muestran los núcleos disponibles y los ausentes quedan pendientes. El informe online mantiene las notas pendientes.
+El módulo `nucleos_agregados.js` contiene solo estadísticas anónimas extraídas de las tablas del Word de trabajo: **19 núcleos de 5 carreras y 647 registros de calificaciones**, con cantidad, promedio, mínimo y máximo. **Son datos agregados procedentes del Word**, aceptados para este período; las discrepancias con Moodle se someten a revisión y no se incorporan nombres ni notas individuales al repositorio público. En el informe presencial se muestran los núcleos disponibles y los ausentes quedan pendientes. El informe online mantiene las notas pendientes.
 
 La base privada conservada en ChatGPT incluye `notasBorrador`, con **647 notas extraídas** y vinculadas sin ambigüedad a sus registros originales, mientras que `notas` mantiene por separado las 11 notas previamente recibidas de Moodle. El código de Electron preserva estas listas cuando se importe una versión privada. No se suben datos nominales al repositorio mientras sea público.
 

@@ -9,6 +9,8 @@ const Doc=require('../document/institutional.js');
 require('../analysis/requirements.js');
 require('../analysis/nuclei.js');
 require('../analysis/complexivo.js');
+require('../analysis/trabajo.js');
+require('../analysis/consolidado.js');
 require('../report_institucional.js');
 function state(mode){
  const s=Model.empty();

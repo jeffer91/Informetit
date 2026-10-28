@@ -4,6 +4,7 @@
 'use strict';
 const E=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const F=(x,n=2)=>Number(x).toLocaleString('es-EC',{minimumFractionDigits:n,maximumFractionDigits:n});
+const dateText=x=>{const v=String(x??'');return /^\d{4}-\d{2}-\d{2}$/.test(v)?v.slice(8,10)+'/'+v.slice(5,7)+'/'+v.slice(0,4):v||'Por definir'};
 const P=(x,n)=>n?100*x/n:0;
 const avg=xs=>xs.length?xs.reduce((a,b)=>a+b,0)/xs.length:null;
 const keys=['Academico','Documentacion','Financiero','Practicas','Vinculacion','Seguimiento','Ingles','Datos','Titulacion'];
@@ -107,7 +108,7 @@ function makeReport(state,mode){
  out+=para('La planificación de Examen Complexivo contempla cuatro núcleos estructurantes y las etapas ordinaria y supletoria. Las fechas que se presentan son programadas y no deben interpretarse como constancia de ejecución. Los procesos de Trabajo de Titulación se registran separadamente.');
  out+=Table('Cronograma de Examen Complexivo',['Actividad','Inicio','Fin'],
   nucleus.map((row,i)=>{const over=state?.cronogramaPersonalizado?.['complexivo|'+i]||{};
-    return [row[0],over.inicio||row[1],over.fin||row[2]]}),
+    return [row[0],dateText(over.inicio??row[1]),dateText(over.fin??row[2])]}),
   'Cronograma editable del período, no evidencia de ejecución');
  const phase1=window.InformetitRequirements.analyze(state,mode);
  out+=window.InformetitRequirements.renderReport(phase1,{Table,Figure,H,para,F,P});
@@ -122,7 +123,7 @@ function makeReport(state,mode){
    out+=H(3,fase);
    const plan=rows.map(row=>{
      const override=state?.cronogramaPersonalizado?.['trabajo|'+(workIndex++)]||{};
-     return [row[0],override.inicio||row[1],override.fin||row[2]];
+     return [row[0],dateText(override.inicio??row[1]),dateText(override.fin??row[2])];
    });
    out+=Table('Actividades programadas: '+fase,['Actividad','Inicio','Fin'],plan,
      'Cronograma editable de octubre 2025–marzo 2026; no acredita ejecución');

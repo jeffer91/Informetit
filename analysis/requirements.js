@@ -43,6 +43,19 @@ function studentStatus(student,columns=REQUIREMENTS){
   complete:applicable.length>0&&fail.length===0&&unknown.length===0,
   reviewRequired:fail.length>0||unknown.length>0};
 }
+function distribution(students,field){
+ const map=new Map();
+ let missing=0;
+ for(const st of students){
+  const value=String(st[field]??'').trim();
+  if(!value){missing++;continue;}
+  const normalized=norm(value),existing=map.get(normalized);
+  if(existing)existing.count++;
+  else map.set(normalized,{name:value,count:1});
+ }
+ return {rows:[...map.values()].sort((a,b)=>b.count-a.count||a.name.localeCompare(b.name,'es')),
+   missing,source:'individual'};
+}
 function createIndividual(state,mode){
  const model=root.InformetitDataModel;
  if(!model)throw new Error('Se requiere data/model.js antes del motor de requisitos');
@@ -95,6 +108,7 @@ function createIndividual(state,mode){
   notComplete8:total-complete8,notComplete9:total-complete9,
   fail8Students,unknown8Students,checks,requirements:byReq,careers,
   cases:cases.sort((a,b)=>a.career.localeCompare(b.career,'es')||a.name.localeCompare(b.name,'es')),
+  sites:distribution(students,'sede'),schedules:distribution(students,'horario'),
   priorities,reference:mode==='presencial'&&total===262?PREVIOUS_COHORT_REFERENCE.presencial:null,
   referenceSource:PREVIOUS_COHORT_REFERENCE.source,
   confidence:valid?'nominal':'revisar_identificaciones',
@@ -117,7 +131,9 @@ function createAggregate(mode){
    fail:null,unknown:null,na:null};
  const priorities=requirements.slice(0,8).filter(x=>x.unclassified>0)
   .sort((a,b)=>b.unclassified-a.unclassified||a.label.localeCompare(b.label,'es'));
- return {mode,source:'aggregate',total,valid:false,complete8:base.completos8,
+ const sites={rows:(base.sedes||[]).map(([name,count])=>({name,count})),missing:null,source:'aggregate'};
+ const schedules={rows:(base.horarios||[]).map(([name,count])=>({name,count})),missing:null,source:'aggregate'};
+ return {mode,source:'aggregate',total,valid:false,sites,schedules,complete8:base.completos8,
   complete9:base.completos9,notComplete8:total-base.completos8,
   notComplete9:total-base.completos9,
   fail8Students:null,unknown8Students:null,checks,requirements,careers,cases:[],priorities,
@@ -155,6 +171,19 @@ function renderReport(report,helper){
  out+=Table('Distribución por carrera y cumplimiento integral',['Carrera','Estudiantes','Participación','Ocho controles','Nueve controles'],rows,
   individual?'Cálculos desde la nómina local, desagregados por carrera':'Cifras por carrera de la matriz agregada. No se infieren estados individuales por carrera');
  out+=Figure('Distribución de la cohorte por carrera',report.careers.map(c=>[c.name,c.total]),{note:'Total de estudiantes registrado para la modalidad.'});
+ if(report.sites.rows.length){
+  out+=Table('Distribución de la cohorte por sede',['Sede','Estudiantes','Porcentaje'],
+   report.sites.rows.map(r=>[r.name,r.count,p(P(r.count,n))+' %']),
+   'Sedes declaradas según '+(individual?'nómina individual':'matriz agregada')+(individual?'; no declaradas: '+report.sites.missing:''));
+ }
+ if(report.schedules.rows.length){
+  out+=Table('Distribución por horario',['Horario','Estudiantes','Porcentaje'],
+   report.schedules.rows.map(r=>[r.name,r.count,p(P(r.count,n))+' %']),
+   'Horarios declarados según '+(individual?'nómina individual':'matriz agregada')+(individual?'; no declarados: '+report.schedules.missing:''));
+ }
+ if(individual&&(report.sites.missing||report.schedules.missing))
+  out+=para('La clasificación por sede u horario está incompleta: '+report.sites.missing+' estudiantes no tienen sede registrada y '+report.schedules.missing+' no tienen horario. Estos campos no se rellenan con estimaciones.');
+
  out+=H(3,'4.2. Cumplimiento por requisito');
  const reqRows=report.requirements.map(r=>individual?
   [r.label,r.applicable,r.ok,r.fail,r.unknown,r.na,p(r.pct)+' %']:
@@ -218,6 +247,8 @@ function renderReport(report,helper){
  'No consta en los documentos recibidos un consolidado verificable de matrícula inicial y retiros para la modalidad online. Por tanto, no se trasladan los valores de presencial.':
  'La nómina disponible es parcial; no se mezcla con los indicadores históricos de continuidad hasta comprobar que corresponde a la cohorte completa.');
  out+=H(3,'4.8. Análisis e interpretación de la Fase I');
+ if(individual&&!report.valid)out+=para('Advertencia de calidad: se detectan identificaciones vacías o repetidas. Las estadísticas nominales no deben declararse definitivas hasta conciliar esos registros.');
+
  for(const x of insight(report))out+=para(x);
  out+=para('La priorización de verificaciones pendientes permite orientar la gestión administrativa, pero no establece causas del incumplimiento ni acredita la aprobación final de las modalidades de titulación.');
  return out;

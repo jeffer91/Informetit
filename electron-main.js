@@ -8,6 +8,7 @@
 const { app, BrowserWindow, dialog, ipcMain } = require('electron');
 const fs = require('node:fs/promises');
 const path = require('node:path');
+const { pathToFileURL } = require('node:url');
 
 app.setAppUserModelId('ec.itsqmet.informetit');
 const singleInstance = app.requestSingleInstanceLock();
@@ -61,7 +62,7 @@ function createWindow() {
   });
 
   mainWindow.webContents.on('will-navigate', (event, url) => {
-    const expected = new URL('file://' + path.join(__dirname, 'index.html').replace(/\\/g, '/')).href;
+    const expected = pathToFileURL(path.join(__dirname, 'index.html')).href;
     if (url !== expected) event.preventDefault();
   });
 
@@ -94,6 +95,56 @@ ipcMain.handle('informetit:save-pdf', async (event, payload) => {
   if (selection.canceled || !selection.filePath) return { canceled: true };
   await fs.writeFile(selection.filePath, content);
   return { canceled: false, name: path.basename(selection.filePath) };
+});
+
+
+/**
+ * Genera el PDF APA 7 con la propia impresión de Chromium/Electron.
+ * Respeta la fuente Times New Roman y las reglas CSS @page.
+ */
+ipcMain.handle('informetit:save-apa-pdf', async (event, payload) => {
+  if (!mainWindow || event.sender !== mainWindow.webContents) {
+    throw new Error('Solicitud de impresión no autorizada');
+  }
+  const html = payload?.html;
+  const providedName = payload?.name;
+  if (typeof html !== 'string' || html.length > 12000000 ||
+      !/^<!doctype html>/i.test(html) || typeof providedName !== 'string') {
+    throw new Error('Documento APA 7 inválido');
+  }
+  const preview = new BrowserWindow({
+    show: false,
+    width: 1024,
+    height: 1152,
+    webPreferences: {
+      nodeIntegration: false,
+      contextIsolation: true,
+      sandbox: true,
+      webSecurity: true
+    }
+  });
+  try {
+    await preview.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(html));
+    await preview.webContents.executeJavaScript('document.fonts.ready.then(() => true)');
+    const pdf = await preview.webContents.printToPDF({
+      printBackground: true,
+      preferCSSPageSize: true,
+      margins: { marginType: 'none' }
+    });
+    if (!Buffer.isBuffer(pdf) || pdf.length < 10) throw new Error('No se pudo renderizar el PDF.');
+    const cleanName = path.basename(providedName).replace(/[^\\p{L}\\p{N}_. -]/gu, '_').slice(0, 100);
+    const selection = await dialog.showSaveDialog(mainWindow, {
+      title: 'Guardar informe APA 7',
+      defaultPath: path.join(app.getPath('documents'), cleanName.toLowerCase().endsWith('.pdf') ? cleanName : cleanName + '.pdf'),
+      buttonLabel: 'Guardar PDF',
+      filters: [{ name: 'Documento PDF', extensions: ['pdf'] }]
+    });
+    if (selection.canceled || !selection.filePath) return { canceled: true };
+    await fs.writeFile(selection.filePath, pdf);
+    return { canceled: false, name: path.basename(selection.filePath) };
+  } finally {
+    if (!preview.isDestroyed()) preview.destroy();
+  }
 });
 
 if (singleInstance) {

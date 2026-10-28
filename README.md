@@ -48,3 +48,17 @@ README.md    - instrucciones y limitaciones
 - El PDF de descarga directa usa tipografia PDF incorporada, mientras que el boton **PDF APA 7 / Times 12** emplea Times New Roman real al imprimir desde el navegador.
 
 Enlace al ZIP del codigo: https://github.com/jeffer91/Informetit/archive/refs/heads/main.zip
+
+
+## Ejecutar con Visual Studio Code / npm (Windows)
+La app es estática, pero incluye un servidor local Node sin paquetes externos.
+
+```powershell
+cd ([Environment]::GetFolderPath("Desktop"))
+cd Informetit
+git pull origin main
+npm install
+npm run dev
+```
+
+Abrir http://127.0.0.1:5500/ y mantener la terminal activa. Para detener, Ctrl+C. `package.json` y `server.js` permiten estos comandos. No se requiere Vite, React ni una cuenta de base de datos.

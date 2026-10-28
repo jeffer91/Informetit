@@ -4,11 +4,11 @@
 const SCHEMA_VERSION=2;
 const PERIOD='Octubre 2025 - Marzo 2026';
 const REQUIREMENTS=['Academico','Documentacion','Financiero','Practicas','Vinculacion','Seguimiento','Ingles','Datos','Titulacion'];
-const arrays=['estudiantes','notas','notasBorrador','evaluaciones','conflictos','sinVincular','complementarios','importaciones','auditoria'];
+const arrays=['estudiantes','notas','notasBorrador','evaluaciones','conflictos','sinVincular','complementarios','importaciones','auditoria','firebaseDiferencias'];
 const empty=()=>({
   version:SCHEMA_VERSION,periodo:PERIOD,estudiantes:[],notas:[],notasBorrador:[],
   evaluaciones:[],ejecucion:{},conflictos:[],sinVincular:[],complementarios:[],
-  importaciones:[],auditoria:[],gptSeedFingerprint:'',
+  importaciones:[],auditoria:[],firebaseDiferencias:[],gptSeedFingerprint:'',
   config:{codigoPresencial:'',codigoOnline:'',version:'1.0',fechaElaboracion:'',
     elaborado:'Mgs. Jefferson Villarreal',revisado:'Ing. Martha Tomalá',
     aprobado:'Dr. Alex León',observaciones:''}

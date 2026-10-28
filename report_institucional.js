@@ -38,6 +38,7 @@ function Figure(name,rows,{max,percentage=false,decimals=0,note='No se interpola
 function getData(state,mode){
  const fallback=window.InformetitPublicSummary?.DATA?.[mode];
  if(!fallback)throw Error('No existe el resumen inicial de '+mode);
+ const requirementSummary=window.InformetitRequirements?.analyze(state,mode);
  const model=window.InformetitDataModel;
  const hasIndividuals=(state?.estudiantes||[]).some(s=>s.modalidad===mode);
  if(hasIndividuals&&model){
@@ -48,8 +49,8 @@ function getData(state,mode){
    return {...x,aggregate:false,provisional:false,individual:x.n,source:'base_local'};
   };
   // Un documento con nómina individual parcial informa solo la parte disponible.
-  return {...fallback,total:a.total,careers,completos8:a.complete8,completos9:a.complete9,
-   requisitos:a.byReq.map((r,i)=>[fallback.requisitos[i]?.[0]||r.field,r.compliant,r.pending]),
+  return {...fallback,total:a.total,careers,completos8:requirementSummary?.complete8??a.complete8,completos9:requirementSummary?.complete9??a.complete9,
+   requisitos:requirementSummary?.requirements.map(r=>[r.label,r.ok,r.fail+r.unknown])||a.byReq.map((r,i)=>[fallback.requisitos[i]?.[0]||r.field,r.compliant,r.pending]),
    people:a.students,notes:a.notes,finals:a.evaluations,N,excludedConflicts:a.conflicts.length,
    fullRoster:a.total===fallback.total&&audit.canUseIndividual,
    source:a.total===fallback.total&&audit.canUseIndividual?'base_local_completa':'base_local_parcial'};
@@ -68,7 +69,9 @@ const STYLES='@page{size:A4;margin:2.54cm}@page:first{margin:1.5cm}*{box-sizing:
 function makeReport(state,mode){
  tables=0;figs=0;const d=getData(state,mode),n=d.total,desc=mode==='online'?'online':'presencial',cfg=state?.config||{};
  const DOC=window.InformetitDocument;if(!DOC)throw Error('Módulo de formato INF no disponible');
- const totalChecks=n*8,done=d.requisitos.slice(0,8).reduce((a,r)=>a+r[1],0),pending=totalChecks-done;
+ const phaseReq=window.InformetitRequirements.analyze(state,mode);
+ const totalChecks=phaseReq.checks.applicable,done=phaseReq.checks.ok;
+ const pending=phaseReq.source==='individual'?phaseReq.checks.fail+phaseReq.checks.unknown:phaseReq.checks.unclassified;
  const notesCount=d.careers.reduce((x,c)=>x+[1,2,3,4].reduce((q,k)=>q+d.N(c.name,k).n,0),0);
  let out='<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Informe de titulación '+desc+'</title><style>'+STYLES+'\n'+DOC.CSS+'</style></head><body>';
  out+=DOC.cover(state,mode);
@@ -82,28 +85,8 @@ function makeReport(state,mode){
  out+=H(2,'3. Planificación y organización');
  out+=para('La planificación de Examen Complexivo contempla cuatro núcleos estructurantes y las etapas ordinaria y supletoria. Las fechas que se presentan son programadas y no deben interpretarse como constancia de ejecución. Los procesos de Trabajo de Titulación se registran separadamente.');
  out+=Table('Cronograma de Examen Complexivo',['Actividad','Inicio','Fin'],nucleus,'Cronograma de la cohorte comunicado por la coordinación');
- out+=H(2,'4. Fase I. Verificación de requisitos');
- out+=H(3,'4.1. Caracterización inicial');
- let cr=d.careers.map(c=>[c.name,c.n,F(P(c.n,n))+' %',c.passed==null?'Pendiente':c.passed,c.passed==null?'Pendiente':F(P(c.passed,c.n))+' %']);
- out+=Table('Estudiantes y cumplimiento integral por carrera',['Carrera','Activos','Participación','Completos','Cumplimiento'],cr,'Para presencial se usan los datos por carrera del informe Word; para online se requiere la matriz nominal para la columna de cumplimiento');
- out+=Figure('Población de estudiantes por carrera',d.careers.map(c=>[c.name,c.n]),{note:'Distribución de la modalidad '+desc+' según matriz de requisitos.'});
- if(mode==='presencial')out+=para('En la cohorte presencial, Enfermería cuenta con 45 estudiantes, mientras que Educación Inicial y Marketing Digital y Comercio Electrónico registran 39 cada una. En conjunto suman 123 estudiantes, equivalentes al '+F(P(123,n))+' % de la población activa. Al estudiar tasas por carrera debe considerarse el tamaño desigual de los grupos.');
- else out+=para('En la modalidad online, las carreras presentan poblaciones heterogéneas. La columna de cumplimiento por carrera se completará únicamente cuando pueda cruzarse con la matriz nominal individual; no se asignarán porcentajes desconocidos.');
- out+=H(3,'4.2. Resultados por requisito');
- out+=Table('Cumplimiento y pendientes por tipo de requisito',['Requisito','Cumplen','Pendientes','Porcentaje'],d.requisitos.map(r=>[r[0],r[1],r[2],F(P(r[1],n))+' %']),'Cada porcentaje utiliza '+n+' estudiantes como denominador');
- out+=Figure('Cumplimiento porcentual por requisito',d.requisitos.map(r=>[r[0],P(r[1],n)]),{max:100,percentage:true,decimals:2,note:'Cumplimiento del control específico, no aprobación final del examen.'});
- out+=para('Los ocho requisitos previos representan '+totalChecks+' verificaciones. Se registran '+done+' verificaciones completas ('+F(P(done,totalChecks))+' %) y '+pending+' pendientes. Las incidencias corresponden a controles, no necesariamente a estudiantes diferentes.');
- out+=H(3,'4.3. Requisitos pendientes y priorización');
- const priority=d.requisitos.slice(0,8).filter(r=>r[2]>0).sort((a,b)=>b[2]-a[2]);
- out+=para('Las categorías con más incidencias son '+priority.slice(0,4).map(r=>r[0]+' ('+r[2]+')').join(', ')+'. Esta identificación orienta el seguimiento y no permite atribuir automáticamente incumplimientos a estudiantes específicos sin conciliación nominal.');
- out+=Figure('Verificaciones pendientes por requisito',d.requisitos.slice(0,8).map(r=>[r[0],r[2]]),{note:'Se representan verificaciones pendientes, no estudiantes únicos.'});
- out+=H(3,'4.4. Cumplimiento integral y continuidad');
- out+=para('Los nueve controles completos corresponden a '+d.completos9+' estudiantes ('+F(P(d.completos9,n))+' %). Los '+(n-d.completos9)+' restantes presentan al menos un control pendiente. Este estado no demuestra inasistencia ni reprobación de exámenes o defensas.');
- out+=Figure('Estudiantes con nueve controles completos',[['Completos',d.completos9],['Con pendientes',n-d.completos9]],{note:'Indicador integral de requisitos, no de titulación definitiva.'});
- if(mode==='presencial'){
-  out+=para('El informe Word registra inicialmente 267 estudiantes en la cohorte presencial; 262 activos, cinco retiros, 255 que alcanzaron la fase final y doce que no la alcanzaron, incluidos los cinco retiros. Este conjunto de 255 no debe confundirse sin verificación con los 254 de cumplimiento integral.');
-  out+=Table('Continuidad de la cohorte presencial',['Condición','Estudiantes','Denominador','Porcentaje'],[['Inicialmente registrados',267,267,'100,00 %'],['Activos',262,267,F(P(262,267))+' %'],['Retirados',5,267,F(P(5,267))+' %'],['Llegaron a fase final',255,267,F(P(255,267))+' %'],['No llegaron a fase final',12,267,F(P(12,267))+' %']],'Indicadores del Word institucional de referencia; no se deducen del Excel de estudiantes activos');
- }else out+=para('Para online no se recibió una matriz de matrícula inicial y retiros equivalente a la presencial. Se mantiene pendiente este indicador, sin trasladar al informe online las cifras del presencial.');
+ const phase1=window.InformetitRequirements.analyze(state,mode);
+ out+=window.InformetitRequirements.renderReport(phase1,{Table,Figure,H,para,F,P});
  out+=H(2,'5. Fase II. Núcleos estructurantes');
  out+=para('Los cuatro núcleos son actividades de preparación académica y deben analizarse por carrera. La aplicación conserva las notas finales disponibles y, cuando corresponda, las evaluaciones parciales y talleres. Los promedios se calculan con las notas individuales disponibles o con estadísticas procedentes del Word institucional de trabajo. Conforme al criterio de la coordinación, las notas del Word se utilizan como resultados de referencia; su procedencia se conserva y cualquier discrepancia con Moodle se registra para revisión. Una nota faltante no equivale a cero.');
  out+=Table('Cronograma de núcleos estructurantes',['Núcleo','Inicio','Fin'],nucleus.slice(0,4),'Fechas programadas');

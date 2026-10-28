@@ -9,6 +9,7 @@ const initial=()=>Data.empty();
 let state=initial(), page="inicio", tab="presencial", query="", inputText="", draft="", ready=false, lastParse=null;
 let reqFilter="todos",reqStatus="todos";
 let nucleusCareerKey="";
+let firebaseComparison=null,firebaseConnection=null,firebaseMessage="";
 const $=x=>document.querySelector(x), el=id=>document.getElementById(id), h=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])), normal=Data.key, compact=s=>normal(s).replace(/\s/g,""), getNum=Data.grade, num=s=>s===null||s===undefined?"—":Number(s).toLocaleString("es-EC",{minimumFractionDigits:2,maximumFractionDigits:2}), today=()=>new Date().toISOString().slice(0,10);
 function notify(t){const node=el("toast");node.textContent=t;node.style.display="block";clearTimeout(notify.timer);notify.timer=setTimeout(()=>node.style.display="none",4300)}
 const sanitize=d=>Data.migrate(d);
@@ -368,7 +369,109 @@ return head("Base maestra local","Bloque 01 · Persistencia, integridad y cálcu
 +'<p class="hint">Origen de los cálculos: datos individuales locales. Si la nómina privada no está instalada, la app conserva solo el resumen institucional agregado por separado.</p>'
 +table(["Control","Registro"],problems)+'</section>'
 +head("Datos y respaldo","Importación manual opcional y copia de seguridad.")+'<div class="grid2"><section class="panel"><h2>Importar</h2><p>Importa la base maestra JSON preparada desde ChatGPT o el archivo institucional original XLS/HTML/XLSX.</p><div class="actions"><button class="btn primary" data-action="backup-file">Importar JSON maestro</button><button class="btn" data-action="student-file">Importar Excel de estudiantes</button></div><p class="hint">La importación de JSON reemplaza la base local previa. Descarga antes una copia de seguridad si ya has registrado cambios.</p></section><section class="panel"><h2>Exportar respaldo</h2><p>Descarga estudiantes, notas, resultados, cronogramas verificados, observaciones y conflictos. Podrás compartir este JSON en el chat para que prepare una versión actualizada.</p><div class="actions"><button class="btn primary" data-action="export-json">Descargar JSON</button><button class="btn danger" data-action="clear-db">Vaciar base local</button></div></section></div><section class="panel"><h2>Estado de la base</h2><div class="cards">'+card("Estudiantes",state.estudiantes.length)+card("Notas de núcleos",state.notas.length)+card("Conflictos",state.conflictos.length)+card("Sin vincular",state.sinVincular.length)+'</div><h3>Importaciones</h3>'+table(["Fuente","Tipo","Filas","Fecha"],state.importaciones.map(i=>'<tr>'+td(i.nombre)+td(i.tipo)+td(i.filas)+td(i.fecha)+'</tr>'))+'<h3>Complementarios pendientes de conciliar</h3>'+table(["Fuente","Registro","Estado"],state.complementarios.map(x=>'<tr>'+td(x.fuente)+td(x.registro?.Nombre||x.registro?.nombre||"Sin nombre")+td(x.estado||"Por conciliar")+'</tr>'))+'<h3>Notas en conflicto</h3>'+table(["Estudiante","Núcleo","Actual","Nueva","Decisión"],state.conflictos.map((c,i)=>'<tr>'+td(c.id?.split("|")[0])+td(c.nuevo?.nucleo)+td(num(c.anterior?.nota))+td(num(c.nuevo?.nota))+'<td><button class="btn small" data-use-conflict="'+i+'">Usar nueva</button> <button class="btn small" data-keep-conflict="'+i+'">Conservar actual</button></td></tr>'))+'</section><section class="panel"><h2>Privacidad y límites</h2><p class="privacy">Los datos se guardan en IndexedDB (o localStorage de respaldo) de este navegador, no en GitHub. Borrar datos del navegador puede eliminarlos. Descarga copias JSON y almacénalas en un lugar privado. ChatGPT no puede modificar directamente el contenido guardado dentro de tu navegador: para aplicar cambios realizados aquí, importa el archivo JSON actualizado.</p></section>'}
-const views={inicio,estudiantes,nucleos:grades,evaluaciones:evaluations,cronogramas:schedule,informes:reports,datos:data};
+
+function firebaseView(){
+ const F=window.InformetitFirebase,preview=firebaseComparison,connected=!!firebaseConnection?.connected;
+ let out=head("Firebase UTET · solo lectura",
+   "Vinculación con Firestore y conciliación del período octubre 2025–marzo 2026.");
+ out+='<section class="panel"><h2>Proyecto UTET · utet-4387a</h2>'
+  +'<p>La aplicación nunca escribe en Firestore. El acceso en vivo requiere permisos Google autorizados. Las credenciales permanecen en tu equipo y no se guardan en GitHub ni en el archivo maestro de estudiantes.</p>'
+  +'<div class="actions"><button class="btn" data-action="firebase-adc">Conectar con Google (credenciales locales)</button>'
+  +'<button class="btn" data-action="firebase-credential">Elegir credencial de lectura</button>'
+  +'<button class="btn primary" data-action="firebase-read"'+(connected?'':' disabled')+'>Consultar Firestore ahora</button>'
+  +'<button class="btn" data-action="firebase-backup">Analizar respaldo JSON/TXT</button></div>'
+  +'<p class="hint">Método recomendado: credenciales de Google configuradas localmente (ADC). Si utilizas una cuenta de servicio, debe tener acceso de solo lectura; nunca compartas su clave privada en un chat ni la publiques.</p>'
+  +'<p class="hint">Estado: '+h(connected?"Identidad autorizada para consultar":'Sin autorización en vivo')
+  +(firebaseMessage?' · '+h(firebaseMessage):'')+'</p></section>';
+ if(!preview){
+  out+='<section class="panel"><h2>Conciliación pendiente</h2><p>Carga el respaldo UTET o consulta Firestore para comparar la nómina con la base local. Ningún estudiante se añadirá automáticamente.</p></section>';
+  return out;
+ }
+ const q=preview.stats,snapshot=preview.remote;
+ out+='<section class="panel"><h2>Resultado de conciliación</h2>'
+  +'<p class="hint">Fuente: '+h(snapshot.source)+' · Período '+h(snapshot.period)+'. Las diferencias se guardan como incidencias, sin sobrescribir decisiones académicas.</p>'
+  +'<div class="cards">'+card("Registros de Firebase",q.source)+card("Coincidentes",q.matched)
+  +card("Adicionales",q.additional)+card("No encontrados",q.onlyLocal)
+  +card("Diferencias de requisitos",q.differences)+'</div>'
+  +'<p class="hint">Distribución Firebase: '+snapshot.counts.presencial+' presencial, '+snapshot.counts.online+' online. Esta población no sustituye automáticamente los totales aprobados para el informe.</p>'
+  +'<p><b>Calificaciones numéricas:</b> '+(snapshot.gradeDiscovery.found.length?
+   h("Posibles campos en "+snapshot.gradeDiscovery.found.length+" registros. Deben verificarse estructura y correspondencia antes de importarlos."):
+   "No encontradas en las colecciones consultadas. Los estados de aprobación CUMPLE/NO CUMPLE no son notas.")+'</p>';
+ if(snapshot.gradeDiscovery.collections.length)
+  out+='<p class="hint">Colecciones académicas examinadas: '+h(snapshot.gradeDiscovery.collections.join(", "))+'</p>';
+ if(snapshot.issues.length)out+='<p class="hint">Incidencias de origen: '+snapshot.issues.length+'. No se incorporan registros sin ficha o requisitos.</p>';
+ if(preview.added.length)
+  out+='<h3>Registros adicionales para revisar</h3>'
+   +table(["Cédula","Nombre","Carrera","Modalidad"],
+    preview.added.map(x=>'<tr>'+td(x.id)+td(x.nombre)+td(x.carrera)+td(x.modalidad)+'</tr>'));
+ if(preview.onlyLocal.length)
+  out+='<h3>Registros de Informetit no encontrados en Firebase</h3>'
+   +table(["Cédula","Nombre","Carrera"],
+    preview.onlyLocal.map(x=>'<tr>'+td(x.id)+td(x.nombre)+td(x.carrera)+'</tr>'));
+ if(preview.differences.length)
+  out+='<h3>Diferencias por verificar</h3>'
+   +table(["Cédula","Campo","Informetit","Firebase"],
+    preview.differences.slice(0,150).map(x=>'<tr>'+td(x.id)+td(x.field)+td(x.local)+td(x.remote)+'</tr>'))
+   +'<p class="hint">Se muestran hasta 150 discrepancias; todas se conservarán en el registro privado de conciliación.</p>';
+ out+='<div class="actions block"><button class="btn primary" data-action="firebase-apply">Incorporar datos faltantes de coincidentes</button>'
+  +'<button class="btn" data-action="firebase-add">Incorporar también los '+q.additional+' adicionales</button></div>'
+  +'<p class="hint">Ambas opciones preservan notas Moodle, Word, exámenes, actas, tipo de titulación y valores locales ya completados. La incorporación de registros adicionales modifica la población, por lo que requiere una confirmación explícita.</p></section>';
+ return out;
+}
+async function firebaseAction(code){
+ const F=window.InformetitFirebase;
+ try{
+  if(!F)throw Error("Módulo de Firebase no disponible");
+  if(code==="firebase-backup"){el("firebase-file").click();return}
+  if(code==="firebase-adc"||code==="firebase-credential"){
+   if(!window.informetitDesktop?.firebaseConnect)throw Error("La conexión autorizada requiere ejecutar Informetit en Electron.");
+   const result=await window.informetitDesktop.firebaseConnect(code==="firebase-adc"?"adc":"service_account");
+   if(result?.canceled)return;
+   firebaseConnection=result;
+   firebaseMessage="Conexión autorizada · consulta pendiente";draw();notify("Conectado a Firebase UTET en modo lectura.");
+   return;
+  }
+  if(code==="firebase-read"){
+   if(!window.informetitDesktop?.firebaseRead)throw Error("Solo disponible en Electron.");
+   firebaseMessage="Consultando colecciones autorizadas";draw();
+   const raw=await window.informetitDesktop.firebaseRead();
+   firebaseComparison=F.compare(state,F.snapshot(raw));firebaseMessage="Consulta recibida · conciliación preparada";
+   draw();notify("Firebase consultado: "+firebaseComparison.stats.matched+" coincidentes.");
+   return;
+  }
+  if(code==="firebase-apply"||code==="firebase-add"){
+   if(!firebaseComparison)throw Error("Primero compara los datos de Firebase con la base.");
+   const extra=code==="firebase-add";
+   const msg=extra?"Se incorporarán también los "+firebaseComparison.added.length+" estudiantes adicionales. ¿Confirmas que pertenecen al informe?":
+    "¿Completar datos vacíos de estudiantes coincidentes, conservando toda la información local existente?";
+   if(!confirm(msg))return;
+   // Recalcular en el instante de aplicar, por si cambió la base desde la vista previa.
+   const comparison=F.compare(state,firebaseComparison.remote);
+   const operation=F.apply(state,comparison,{includeAdditional:extra});
+   await Store.save(operation.next);
+   state=operation.next;
+   firebaseComparison=F.compare(state,comparison.remote);
+   firebaseMessage=operation.stats.filled+" campos completados · "+operation.stats.added+" estudiantes añadidos · "+
+     operation.stats.conflicts+" discrepancias nuevas";
+   draw();notify("Conciliación guardada localmente. No se modificó Firestore.");
+   return;
+  }
+ }catch(error){firebaseMessage=error.message;console.error("Firebase UTET:",error.message);draw();notify("Firebase: "+error.message)}
+}
+async function firebaseLoadFile(event){
+ const file=event.target.files?.[0];
+ if(!file)return;
+ try{
+  if(file.size>35*1024*1024)throw Error("El respaldo es demasiado grande (límite 35 MB).");
+  const raw=JSON.parse((await file.text()).replace(/^\uFEFF/,''));
+  firebaseComparison=window.InformetitFirebase.compare(state,window.InformetitFirebase.snapshot(raw));
+  firebaseMessage="Respaldo leído en este equipo · no se ha escrito en Firestore";
+  page="firebase";draw();notify("Respaldo UTET analizado. Revisa las diferencias antes de aplicar.");
+ }catch(error){notify("No se pudo analizar el respaldo: "+error.message)}
+ finally{event.target.value=""}
+}
+
+const views={inicio,estudiantes,nucleos:grades,evaluaciones:evaluations,cronogramas:schedule,informes:reports,firebase:firebaseView,datos:data};
 function draw(){el("main").innerHTML=views[page]();document.querySelectorAll(".nav").forEach(x=>x.classList.toggle("active",x.dataset.page===page));}
 function download(name,type,content){let blob=new Blob([content],{type}),u=URL.createObjectURL(blob),a=document.createElement("a");a.href=u;a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),2000)}
 async function parseGradeAndSave(save){
@@ -449,7 +552,7 @@ async function handleFiles(ev){
  finally{ev.target.value=""}
 }
 async function action(code){switch(code){case"student-file":el("student-file").click();break;case"logo-file":el("logo-file").click();break;case"backup-file":el("backup-file").click();break;case"preview-notes":await parseGradeAndSave(false);break;case"save-notes":await parseGradeAndSave(true);break;case"export-json":download("Informetit_base_local_"+today()+".json","application/json;charset=utf-8",JSON.stringify(state,null,2));break;case"clear-db":if(confirm("¿Eliminar todas las notas, estudiantes y demás datos almacenados en ESTE navegador? Asegúrate de haber exportado un respaldo.")){state=initial();await persist();draw();notify("Base local vaciada")}break;case"save-eval":{let id=el("eval-id").value;if(!id){notify("Selecciona primero un estudiante clasificado.");break}let student=state.estudiantes.find(s=>s.id===id);let e={studentId:id,tipo:student.tipoTitulacion,one:getNum(el("eval-one").value),two:getNum(el("eval-two").value),rescue:getNum(el("eval-rescue").value),status:el("eval-status").value,source:el("eval-source").value,updated:today()};let i=state.evaluaciones.findIndex(x=>x.studentId===id);if(i<0)state.evaluaciones.push(e);else state.evaluaciones[i]=e;await persist();draw();notify("Resultado registrado.")}break;case"doc":download("Informe_"+tab+"_"+today()+".doc","application/msword;charset=utf-8",'<html><head><meta charset="utf-8"><style>body{font-family:Arial}table{border-collapse:collapse;width:100%}td,th{border:1px solid #777;padding:6px}h1{text-align:center;font-size:18pt}h2{font-size:14pt}</style></head><body>'+reportBody(tab,true)+'</body></html>');break;case"pdf":if(window.InformetitFullReport){try{await window.InformetitFullReport.download(state,tab)}catch(e){notify("No se pudo generar PDF: "+e.message)}}else notify("Informe institucional no disponible.");break;case"preview-current":case"preview-presencial":case"preview-online":{const m=code==="preview-current"?tab:code==="preview-online"?"online":"presencial";try{showReportPreview(m)}catch(e){notify("No se pudo abrir la vista previa: "+e.message)}break}case"draft-presencial":case"draft-online":{const mode=code==="draft-online"?"online":"presencial";if(window.InformetitFullReport){try{const result=await window.InformetitFullReport.download(state,mode);if(result&&!result.canceled)notify("Borrador institucional guardado en PDF.");}catch(err){notify("Error al generar el informe: "+err.message);console.error(err)}}else notify("Generador institucional no disponible.");break}case"print":if(window.InformetitFullReport){try{await window.InformetitFullReport.download(state,tab)}catch(e){notify("No se pudo generar PDF: "+e.message)}}else notify("Informe institucional no disponible.");break;}}
-document.addEventListener("click",async ev=>{let nav=ev.target.closest("[data-page]");if(nav){page=nav.dataset.page;query="";lastParse=null;draw();return}let m=ev.target.closest("[data-mode]");if(m){tab=m.dataset.mode;lastParse=null;draw();return}let cmd=ev.target.closest("[data-action]");if(cmd){await action(cmd.dataset.action);return}let pending=ev.target.closest("[data-link-unmatched]");if(pending){
+document.addEventListener("click",async ev=>{let nav=ev.target.closest("[data-page]");if(nav){page=nav.dataset.page;query="";lastParse=null;draw();return}let m=ev.target.closest("[data-mode]");if(m){tab=m.dataset.mode;lastParse=null;draw();return}let cmd=ev.target.closest("[data-action]");if(cmd){if(cmd.dataset.action.startsWith("firebase-"))await firebaseAction(cmd.dataset.action);else await action(cmd.dataset.action);return}let pending=ev.target.closest("[data-link-unmatched]");if(pending){
  const idx=Number(pending.dataset.linkUnmatched),record=state.sinVincular[idx];
  if(!record)return;
  const studentId=el("unmatched-student-"+idx)?.value;
@@ -477,6 +580,7 @@ let conflict=ev.target.closest("[data-use-conflict], [data-keep-conflict]");if(c
 document.addEventListener("input",ev=>{if(ev.target.id==="student-search"){query=ev.target.value;let pos=ev.target.selectionStart;draw();let search=el("student-search");search.focus();search.setSelectionRange(pos,pos)}if(ev.target.id==="moodle-text"){inputText=ev.target.value;lastParse=null}});
 document.addEventListener("change",async ev=>{let field=ev.target;if(field.dataset.studentType){let s=state.estudiantes.find(x=>x.id===field.dataset.studentType);if(s){s.tipoTitulacion=field.value;await persist();notify("Modalidad de titulación actualizada.")}}else if(field.hasAttribute("data-nucleus-career")){nucleusCareerKey=field.value;draw()}else if(field.hasAttribute("data-requirement-filter")){reqFilter=field.value;draw()}else if(field.hasAttribute("data-status-filter")){reqStatus=field.value;draw()}else if(field.dataset.schedule){state.ejecucion[field.dataset.schedule]=field.value;await persist();notify("Ejecución registrada.")}else if(field.dataset.config){state.config[field.dataset.config]=field.type==="checkbox"?field.checked:field.value;await persist();draw()}});
 el("student-file").addEventListener("change",handleFiles);el("backup-file").addEventListener("change",handleFiles);
+el("firebase-file").addEventListener("change",firebaseLoadFile);
 el("logo-file").addEventListener("change",async ev=>{const file=ev.target.files?.[0];if(!file)return;try{if(!file.type.startsWith("image/"))throw Error("Solo se aceptan imágenes.");if(file.size>2000000)throw Error("La imagen debe tener menos de 2 MB.");const dataURL=await new Promise((res,rej)=>{let fr=new FileReader();fr.onload=()=>res(fr.result);fr.onerror=()=>rej(new Error("No se pudo leer imagen."));fr.readAsDataURL(file)});state.config.logoDataUrl=dataURL;await persist();notify("Logotipo incorporado a los PDF.");}catch(e){notify(e.message)}finally{ev.target.value=""}});
 (async()=>{state=await load();try{const imported=await loadPrivateGPT();if(imported&&!imported.unchanged){console.info("Base GPT privada disponible:",imported.students,"estudiantes nuevos,",imported.grades,"notas nuevas.")}}catch(e){console.error("No se pudo cargar la base GPT privada:",e);notify("No se pudo cargar la base GPT local: "+e.message)}ready=true;draw()})().catch(e=>{el("main").textContent="No fue posible iniciar Informetit: "+e.message});
 })();

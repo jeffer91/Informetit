@@ -221,7 +221,7 @@ ipcMain.handle('informetit:save-apa-pdf', async (event, payload) => {
     throw new Error('Documento APA 7 inválido');
   }
   const opts = payload?.options || {};
-  const template = typeof opts.headerTemplate === 'string' && opts.headerTemplate.length < 800000
+  const template = typeof opts.headerTemplate === 'string' && opts.headerTemplate.length < 4000000
     && /^<!doctype html>/i.test(opts.headerTemplate) ? opts.headerTemplate : '';
   const preview = new BrowserWindow({
     show: false,

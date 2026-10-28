@@ -1,0 +1,12 @@
+node_modules/
+package-lock.json
+.env
+.env.*
+*.log
+# Datos personales y reportes locales: no publicar en un repositorio público
+*.xlsx
+*.xls
+*.csv
+*.pdf
+Informetit_base_*.json
+Informetit_base_local_*.json

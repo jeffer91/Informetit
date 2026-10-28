@@ -211,7 +211,33 @@ function plan(state,assessment,stamp){
   tipo:'moodle',filas:assessment.total,fecha:stamp,incorporados:stats.added,conflictos:stats.conflict,sinVincular:stats.unmatched,formato:assessment.format});
  return {next,stats};
 }
-const api=Object.freeze({parse,contextualize,assess,plan,resolveRow,findHeader});
+function resolveConflict(state,index,decision,stamp){
+ if(decision!=='new'&&decision!=='current')throw Error('Decisión de conflicto desconocida');
+ const next=M().migrate(state),conflict=next.conflictos[index];
+ if(!conflict)throw Error('No existe el conflicto solicitado');
+ const identity=String(conflict.id||'');
+ if(!/^[^|]+\|[1-4]$/.test(identity))throw Error('Identificador de conflicto académico inválido');
+ const selected=decision==='new'?conflict.nuevo:conflict.anterior;
+ if(!selected||validGrade(selected.nota)===null)throw Error('La nota elegida no contiene un resultado válido');
+ const oldNotes=next.notas.filter(x=>String(x.studentId)+'|'+Number(x.nucleo)===identity);
+ const oldWord=next.notasBorrador.filter(x=>String(x.studentId)+'|'+Number(x.nucleo)===identity);
+ next.notas=next.notas.filter(x=>String(x.studentId)+'|'+Number(x.nucleo)!==identity);
+ next.notasBorrador=next.notasBorrador.filter(x=>String(x.studentId)+'|'+Number(x.nucleo)!==identity);
+ // La fuente elegida se conserva; la descartada queda en el registro privado de auditoría.
+ const isFromWord=decision==='current'&&oldWord.some(x=>gradeEqual(x.nota,selected.nota))
+   &&!oldNotes.some(x=>gradeEqual(x.nota,selected.nota));
+ const source={...selected,id:identity,studentId:String(selected.studentId||identity.split('|')[0]),
+   nucleo:Number(selected.nucleo||identity.split('|')[1]),nota:validGrade(selected.nota)};
+ if(isFromWord)next.notasBorrador.push(source);
+ else next.notas.push(source);
+ next.auditoria.push({tipo:'resolucion_nota',id:identity,decision,fecha:stamp,
+  descartadas:[...oldNotes,...oldWord,conflict.nuevo,conflict.anterior].filter(Boolean),
+  seleccionada:source});
+ next.conflictos.splice(index,1);
+ return next;
+}
+
+const api=Object.freeze({parse,contextualize,assess,plan,resolveConflict,resolveRow,findHeader});
 root.InformetitMoodle=api;
 if(typeof module==='object'&&module.exports)module.exports=api;
 })(typeof window!=='undefined'?window:globalThis);

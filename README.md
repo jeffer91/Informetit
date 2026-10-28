@@ -39,6 +39,26 @@ preparar_offline.bat          Instala dependencias una sola vez
 clonar_windows.bat            Descarga código e instala Electron
 ```
 
+## Base GPT privada: carga automática al iniciar Electron
+
+**No se publica la nómina en GitHub.** El código de `main` lee automáticamente el archivo privado `private/base-gpt.json` al iniciar Electron. La primera carga se importa a IndexedDB; después solo se incorporan estudiantes y notas nuevos sin sobrescribir modificaciones locales. Si aparece una nota oficial distinta a una ya existente, queda en la lista de conflictos para revisión.
+
+### Instalar la base privada (una sola vez)
+
+1. Descarga el archivo privado `Instalar_Base_GPT_Informetit.ps1` proporcionado en el chat de ChatGPT.
+2. Abre VS Code en `Informetit`, ejecuta `git pull origin main` y después, en PowerShell:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File "$env:USERPROFILE\Downloads\Instalar_Base_GPT_Informetit.ps1"
+npm start
+```
+
+El instalador crea `private/base-gpt.json` y verifica la integridad de los datos. Si ya había una versión, crea un respaldo. Si Windows descarga en otra carpeta, reemplaza la ruta del comando por la ubicación real del archivo.
+
+**Alternativa:** extrae `Paquete_Privado_Base_GPT_Informetit.zip` en la carpeta del proyecto; verifica que exista `Informetit/private/base-gpt.json`.
+
+Para actualizaciones futuras, el asistente prepara un nuevo archivo privado con los datos aportados por el usuario. Al instalar el archivo actualizado y reiniciar Electron, la aplicación incorpora las novedades. **No existe sincronización automática directa entre ChatGPT y Electron** y no debe afirmarse lo contrario.
+
 ## Base de datos privada
 
 La aplicación conserva la información en **IndexedDB dentro del perfil local de Electron**. Ni estudiantes ni notas se publican en GitHub. El repositorio solo contiene código. Para cargar la nómina y las primeras notas, abre **Datos y respaldo → Importar JSON maestro** y selecciona tu archivo privado `Informetit_base_local_2025-2026.json`.

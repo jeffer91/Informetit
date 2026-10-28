@@ -201,7 +201,7 @@ function plan(state,assessment,stamp){
    const key=['nota_moodle',assessment.context.nucleus,assessment.context.career,r.email,r.name].join('|');
    if(!unlinked.has(key)){
     next.sinVincular.push({tipo:'nota_moodle',nucleo:assessment.context.nucleus,carrera:assessment.context.career,
-     modalidad:assessment.context.mode,registro:{name:r.name,email:r.email,id:r.id,nota:r.grade},
+     modalidad:assessment.context.mode,registro:{name:r.name,email:r.email,id:r.id,nota:r.grade,parciales:r.partials},
      estado:r.status,motivo:r.reason,fecha:stamp});
     unlinked.add(key);stats.unmatched++;
    }
@@ -238,7 +238,36 @@ function resolveConflict(state,index,decision,stamp){
  return next;
 }
 
-const api=Object.freeze({parse,contextualize,assess,plan,resolveConflict,resolveRow,findHeader});
+function linkPending(state,index,studentId,stamp){
+ const next=M().migrate(state);
+ const pending=next.sinVincular[index],student=next.estudiantes.find(s=>String(s.id)===String(studentId));
+ if(!pending||pending.tipo!=='nota_moodle')throw Error('Registro Moodle no disponible para vincular');
+ if(!student)throw Error('Selecciona un estudiante de la nómina');
+ if(pending.modalidad&&pending.modalidad!==student.modalidad)throw Error('El estudiante pertenece a otra modalidad');
+ if(career(student.carrera)!==career(pending.carrera))throw Error('La carrera del estudiante no coincide con la del registro');
+ const grade=validGrade(pending.registro?.nota),nucleus=Number(pending.nucleo);
+ if(grade===null)throw Error('No hay calificación final válida para vincular');
+ if(!Number.isInteger(nucleus)||nucleus<1||nucleus>4)throw Error('Núcleo inválido');
+ const id=String(student.id)+'|'+nucleus;
+ if(next.conflictos.some(c=>String(c.id)===id))throw Error('Esta identidad ya tiene un conflicto de calificaciones sin resolver');
+ const note={id,studentId:student.id,carrera:student.carrera,modalidad:student.modalidad,
+  nucleo:nucleus,nota:grade,parciales:pending.registro?.parciales||[],email:pending.registro?.email||'',
+  source:'Moodle · vínculo manual',status:'oficial_registro_moodle',fecha:stamp};
+ const prior=next.notas.find(x=>String(x.studentId)+'|'+Number(x.nucleo)===id);
+ const word=next.notasBorrador.find(x=>String(x.studentId)+'|'+Number(x.nucleo)===id);
+ let status='added';
+ if((prior&&!gradeEqual(prior.nota,grade))||(word&&!gradeEqual(word.nota,grade))){
+  next.conflictos.push({id,anterior:prior&&!gradeEqual(prior.nota,grade)?prior:word,nuevo:note,
+   fuente:'Moodle · vínculo manual',fecha:stamp});status='conflict';
+ }else if(prior)status='duplicate';
+ else next.notas.push(note);
+ next.auditoria.push({tipo:'vinculo_manual_moodle',fecha:stamp,estudiante:student.id,
+  origen:pending,resultado:status});
+ next.sinVincular.splice(index,1);
+ return {next,status};
+}
+
+const api=Object.freeze({parse,contextualize,assess,plan,resolveConflict,linkPending,resolveRow,findHeader});
 root.InformetitMoodle=api;
 if(typeof module==='object'&&module.exports)module.exports=api;
 })(typeof window!=='undefined'?window:globalThis);

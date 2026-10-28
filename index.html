@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#f7f9fc">
+  <meta name="description" content="Informetit: elaboración local de informes institucionales de titulación UTET, presencial y online.">
+  <title>Informetit · UTET</title>
+  <link rel="stylesheet" href="./styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
+  <script src="./app.js" defer></script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand"><span class="brandmark">IT</span><span><strong>Informetit</strong><small>Unidad de Titulación y Eficiencia Terminal</small></span></div>
+    <span class="local-label">Base local · los estudiantes no se suben a GitHub</span>
+  </header>
+  <div class="shell">
+    <aside class="side">
+      <div class="side-group">PERÍODO</div>
+      <div class="period-label">Octubre 2025 — Marzo 2026</div>
+      <div class="side-group">MÓDULOS</div>
+      <nav id="nav" aria-label="Módulos">
+        <button class="nav active" data-page="inicio"><span>▤</span> Resumen</button>
+        <button class="nav" data-page="estudiantes"><span>♟</span> Estudiantes y requisitos</button>
+        <button class="nav" data-page="nucleos"><span>▦</span> Notas de núcleos</button>
+        <button class="nav" data-page="evaluaciones"><span>◉</span> Evaluación final</button>
+        <button class="nav" data-page="cronogramas"><span>▣</span> Cronogramas</button>
+        <button class="nav" data-page="informes"><span>▤</span> Dos informes</button>
+        <button class="nav" data-page="datos"><span>↧</span> Datos y respaldo</button>
+      </nav>
+      <div class="side-note">Las calificaciones sin fuente se guardan como <b>pendientes</b>. Las estimaciones se muestran por separado.</div>
+    </aside>
+    <main id="main" tabindex="-1" aria-live="polite"></main>
+  </div>
+  <div id="toast" role="status" aria-live="polite"></div>
+  <input hidden id="student-file" type="file" accept=".xls,.xlsx,.csv,.html,.htm">
+  <input hidden id="backup-file" type="file" accept=".json">
+  <input hidden id="logo-file" type="file" accept="image/png,image/jpeg,image/webp">
+</body>
+</html>

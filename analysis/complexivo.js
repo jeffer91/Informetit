@@ -244,7 +244,7 @@ function renderReport(data,{Table,Figure,H,para,F,P}){
    out+=H(3,'7.4. '+c.name);
    out+=Table('Ordinario, supletorio y resultado definitivo — '+c.name,
     ['Estudiante','Cédula','Teoría ord.','Práctica ord.','Ordinario','Supletorio','Definitivo','Estado','Acta'],
-    c.records.filter(x=>x.evaluation&&!x.duplicate&&x.evaluation.hasRecordedOrdinary||x.evaluation?.hasRecordedRecovery).map(x=>[x.name,x.studentId,
+    c.records.filter(x=>x.evaluation&&!x.duplicate&&(x.evaluation.hasRecordedOrdinary||x.evaluation.hasRecordedRecovery)).map(x=>[x.name,x.studentId,
       x.evaluation?num(grade(x.evaluation.ordinario.teoria)):'—',
       x.evaluation?num(grade(x.evaluation.ordinario.practica)):'—',
       x.ordinary===null?'—':num(x.ordinary),

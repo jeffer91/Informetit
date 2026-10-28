@@ -36,44 +36,33 @@ function Figure(name,rows,{max,percentage=false,decimals=0,note='No se interpola
  return '<div class="fig"><p class="flabel">Figura '+figs+'</p><p class="fname">'+E(name)+'</p>'+svg+'<p class="note">Nota. '+E(note)+'</p></div>';
 }
 function getData(state,mode){
- const base=window.InformetitPublicSummary?.DATA?.[mode];if(!base)throw Error('No existe resumen para '+mode);
- const norm=x=>String(x??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().replace(/\bONLINE\b/g,'').replace(/[^A-Z0-9]+/g,' ').trim();
- const careerKey=x=>{const v=norm(x);return v==='ADMINISTRACION DE EMPRESAS'?'ADMINISTRACION':v==='GESTION DE TALENTO HUMANO'?'GESTION DEL TALENTO HUMANO':v;};
- const people=(state?.estudiantes||[]).filter(s=>s.modalidad===mode), ids=new Set(people.map(s=>String(s.id)));
- const fullRoster=people.length===base.total&&ids.size===base.total&&!ids.has('');
- const notes=(state?.notas||[]).filter(g=>ids.has(String(g.studentId))&&g.nota!==null&&g.nota!==undefined&&String(g.nota).trim()!==''&&!['ESTIMADO','PROVISIONAL','BORRADOR','TRANSCRIPCION PROVISIONAL'].includes(norm(g.status))&&Number.isFinite(Number(String(g.nota).replace(',','.')))&&Number(String(g.nota).replace(',','.'))>=0&&Number(String(g.nota).replace(',','.'))<=10);
- const unresolved=new Set((state?.conflictos||[]).map(x=>String(x.id)));
- const gradeMap=new Map(),invalidKeys=new Set();
- for(const g of notes){
-   const k=String(g.studentId)+'|'+Number(g.nucleo);
-   if(unresolved.has(k)||invalidKeys.has(k))continue;
-   const prev=gradeMap.get(k);
-   if(!prev){gradeMap.set(k,g);continue;}
-   if(Number(String(prev.nota).replace(',','.'))!==Number(String(g.nota).replace(',','.'))){
-     gradeMap.delete(k);invalidKeys.add(k);
-   }
+ const fallback=window.InformetitPublicSummary?.DATA?.[mode];
+ if(!fallback)throw Error('No existe el resumen inicial de '+mode);
+ const model=window.InformetitDataModel;
+ const hasIndividuals=!!(state?.estudiantes?.length);
+ if(hasIndividuals&&model){
+  const a=model.analyze(state,mode),audit=model.audit(state);
+  const careers=a.careers.map(c=>({name:c.name,n:c.total,passed:c.complete9}));
+  const N=(name,k)=>{
+   const x=a.nucleus(name,k);
+   return {...x,aggregate:false,provisional:false,individual:x.n,source:'base_local'};
+  };
+  // Un documento con nómina individual parcial informa solo la parte disponible.
+  return {...fallback,total:a.total,careers,completos8:a.complete8,completos9:a.complete9,
+   requisitos:a.byReq.map((r,i)=>[fallback.requisitos[i]?.[0]||r.field,r.compliant,r.pending]),
+   people:a.students,notes:a.notes,finals:a.evaluations,N,excludedConflicts:a.conflicts.length,
+   fullRoster:a.total===fallback.total&&audit.canUseIndividual,
+   source:a.total===fallback.total&&audit.canUseIndividual?'base_local_completa':'base_local_parcial'};
  }
- const uniqueNotes=[...gradeMap.values()];
- const finals=(state?.evaluaciones||[]).filter(x=>ids.has(String(x.studentId)));
- const careers=base.carreras.map(([name,n])=>{
-  const group=people.filter(s=>careerKey(s.carrera)===careerKey(name));
-  const passed=group.filter(s=>keys.every(k=>String(s.requisitos?.[k]||'').trim().toUpperCase()==='CUMPLE')).length;
-  return {name,n:fullRoster?group.length:n,passed:fullRoster?passed:mode==='presencial'?presencialCompletes[name]??null:null};
- });
- function N(name,k){const found=uniqueNotes.filter(x=>careerKey(x.carrera||people.find(s=>String(s.id)===String(x.studentId))?.carrera)===careerKey(name)&&Number(x.nucleo)===k);
-  const xs=found.map(x=>Number(String(x.nota).replace(',','.')));
-  const documented=(mode==='presencial'&&window.InformetitNucleos?.datos?.[name]||[])[k-1];
-  if(documented && documented[0]>xs.length){
-    return {n:documented[0],mean:documented[1],min:documented[2],max:documented[3],aggregate:true,provisional:true,individual:xs.length};
-  }
-  return {n:xs.length,mean:avg(xs),min:xs.length?Math.min(...xs):null,max:xs.length?Math.max(...xs):null,aggregate:false,provisional:false};}
- let requisitos=base.requisitos, completos8=base.completos8,completos9=base.completos9;
- if(fullRoster){
-   requisitos=base.requisitos.map((r,i)=>{const ok=people.filter(s=>norm(s.requisitos?.[keys[i]])==='CUMPLE').length;return [r[0],ok,people.length-ok]});
-   completos8=people.filter(s=>keys.slice(0,8).every(k=>norm(s.requisitos?.[k])==='CUMPLE')).length;
-   completos9=people.filter(s=>keys.every(k=>norm(s.requisitos?.[k])==='CUMPLE')).length;
- }
- return {...base,careers,people,notes:uniqueNotes,finals,N,requisitos,completos8,completos9,excludedConflicts:unresolved.size+invalidKeys.size,fullRoster,source:fullRoster?'base-local-completa':'agregado-publico'};
+ const careers=fallback.carreras.map(([name,n])=>({name,n,passed:mode==='presencial'?presencialCompletes[name]??null:null}));
+ const N=(name,k)=>{
+  const source=mode==='presencial'?(window.InformetitNucleos?.datos?.[name]||[])[k-1]:null;
+  return source?{n:source[0],mean:source[1],min:source[2],max:source[3],
+     aggregate:true,provisional:false,source:'word_resumen_sin_individuos'}:
+    {n:0,mean:null,min:null,max:null,aggregate:false,provisional:false,source:'no_disponible'};
+ };
+ return {...fallback,careers,people:[],notes:[],finals:[],N,fullRoster:false,
+  source:'resumen_publico_sin_identificacion'};
 }
 const STYLES='@page{size:A4;margin:2.54cm}@page:first{margin:1.5cm}*{box-sizing:border-box}body{font:12pt/2 "Times New Roman",serif;color:#121212;margin:0}p{text-align:justify;margin:0 0 9pt;orphans:3;widows:3}h2{font:bold 13pt/1.4 "Times New Roman",serif;text-align:center;margin:18pt 0 10pt;break-after:avoid}h3{font:bold 12pt/1.4 "Times New Roman",serif;margin:15pt 0 8pt;break-after:avoid}ol{padding-left:27pt;margin:4pt 0 12pt}li{padding-left:2pt;margin:3pt 0}table{border-collapse:collapse;width:100%}th,td{padding:5pt 4pt;text-align:left;border-bottom:.5pt solid #888;overflow-wrap:anywhere}th{border-top:1pt solid #222;border-bottom:1pt solid #222}tr{break-inside:avoid}.cover{font-family:Arial;line-height:1.35;min-height:245mm;break-after:page;position:relative}.cover .header{font:8pt Arial;table-layout:fixed}.cover .header td{border:1px solid #777;text-align:center}.cover .logo{max-width:70pt;max-height:44pt}.cover h1{font:bold 18pt Arial;text-align:center}.cover-title{margin-top:105pt;text-align:center}.cover-title p{text-align:center;font:bold 13pt/1.5 Arial}.cover-title small{font:9pt Arial}.sign{margin-top:125pt;font:8pt Arial}.sign th,.sign td{border:1px solid #888;vertical-align:top}.sign td{height:55pt}.tbl,.fig{margin:13pt 0 17pt;break-inside:auto}.tbl table{font:9pt/1.3 Arial,sans-serif}.tbl tr{break-inside:avoid}.tlabel,.flabel{font:bold 10pt/1.2 "Times New Roman",serif;text-align:left;break-after:avoid}.tname,.fname{font:italic 10pt/1.25 "Times New Roman",serif;text-align:left;break-after:avoid}.note{font:8pt/1.3 Arial,sans-serif;margin-top:5pt}.fig{break-inside:avoid}.fig svg{display:block;width:100%;height:auto;max-height:360pt;line-height:1}.toc{font:11pt/1.7 "Times New Roman",serif}.privacy{font:9pt Arial;color:#444}@media screen{body{max-width:840px;margin:auto;padding:24px;background:#fff}}';
 function makeReport(state,mode){

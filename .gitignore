@@ -17,3 +17,7 @@ Informetit_base_local_*.json
 # Base GPT PRIVADA: no subir estudiantes o calificaciones a GitHub
 private/
 base-gpt.json
+
+# Evita publicar accidentalmente la base nominal en código
+base-gpt.cjs
+**/base-gpt.cjs

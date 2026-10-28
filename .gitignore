@@ -13,3 +13,7 @@ package-lock.json
 *.pdf
 Informetit_base_*.json
 Informetit_base_local_*.json
+
+# Base GPT PRIVADA: no subir estudiantes o calificaciones a GitHub
+private/
+base-gpt.json

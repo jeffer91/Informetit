@@ -217,7 +217,7 @@ function renderReport(data,{Table,Figure,H,para,F,P}){
    ['No presentados (ordinario o supletorio)',c.noPresentado,num(percent(c.noPresentado,c.eligible))+' %'],
    ['Pendientes de evaluación o supletorio',c.pending,num(percent(c.pending,c.eligible))+' %'],
    ['Aprobados totales calculados',c.approved,num(percent(c.approved,c.eligible))+' %'],
-   ['Con resultado final y acta referenciada',c.verified,num(percent(c.verified,c.eligible))+' %']
+   ['Con referencia de acta registrada',c.verified,num(percent(c.verified,c.eligible))+' %']
   ],'Se separan resultados calculados y actas disponibles; un pendiente no equivale a reprobado');
   out+=Figure('Resultados del Examen Complexivo — '+data.mode,[
     ['Aprobados en ordinario',c.ordinaryApproved],['Recuperados',c.recovered],['Reprobados',c.failed],
@@ -227,7 +227,7 @@ function renderReport(data,{Table,Figure,H,para,F,P}){
    ' cuentan con un ordinario calculable. A partir de las calificaciones registradas, '+c.ordinaryApproved+
    ' aprobaron directamente y '+c.recovered+' aprobaron mediante supletorio. Permanecen '+c.pending+
    ' sin resultado completo, '+c.noPresentado+' con una ausencia explícita y '+c.duplicate+
-   ' con registros duplicados. '+c.verified+' resultados cuentan con los respaldos de acta necesarios para considerarlos documentados.');
+   ' con registros duplicados. '+c.verified+' resultados tienen referencias de acta registradas; su autenticidad y contenido aún deben contrastarse con los documentos institucionales.');
   out+=H(3,'7.3. Resultados por carrera');
   const rows=data.careers.map(x=>[x.name,x.stats.eligible,x.stats.ordinaryComplete,x.stats.ordinaryApproved,
     x.stats.recovered,x.stats.failed,x.stats.noPresentado,x.stats.pending,x.stats.approved,
@@ -244,7 +244,7 @@ function renderReport(data,{Table,Figure,H,para,F,P}){
    out+=H(3,'7.4. '+c.name);
    out+=Table('Ordinario, supletorio y resultado definitivo — '+c.name,
     ['Estudiante','Cédula','Teoría ord.','Práctica ord.','Ordinario','Supletorio','Definitivo','Estado','Acta'],
-    c.records.map(x=>[x.name,x.studentId,
+    c.records.filter(x=>x.evaluation&&!x.duplicate&&x.evaluation.hasRecordedOrdinary||x.evaluation?.hasRecordedRecovery).map(x=>[x.name,x.studentId,
       x.evaluation?num(grade(x.evaluation.ordinario.teoria)):'—',
       x.evaluation?num(grade(x.evaluation.ordinario.practica)):'—',
       x.ordinary===null?'—':num(x.ordinary),
@@ -266,15 +266,15 @@ function renderReport(data,{Table,Figure,H,para,F,P}){
   }
   out+=H(3,'7.5. Conciliación y control de actas');
   out+=Table('Estado de evidencias del Examen Complexivo',
-   ['Control','Registros'],[['Resultados calculados y respaldados con actas',c.verified],
+   ['Control','Registros'],[['Resultados con referencias de acta registradas',c.verified],
     ['Notas finales calculadas sin evidencia completa',c.withoutEvidence],
     ['Evaluaciones sin registro',c.pendingIncludesNotRecorded],['Registros duplicados',c.duplicate],
     ['Casos con advertencias',data.issues.length]],
-   'Un cálculo sin acta puede presentarse en borrador, pero no debe declararse aprobado institucionalmente');
+   'La presencia de una referencia no verifica el documento ni equivale a su aprobación formal; los cálculos sin acta permanecen en borrador');
  }
  out+=H(3,'7.6. Interpretación y límites');
  out+=para('El cumplimiento de requisitos, las notas de los núcleos estructurantes y los estados CUMPLE/NO CUMPLE en Firebase no sustituyen el resultado del Examen Complexivo. Las cifras de aprobación se calculan únicamente desde los componentes teórico y práctico o desde la nota de recuperación registrada en las actas.');
- out+=para('Para cerrar esta fase como definitiva se requiere comprobar la totalidad de las actas ordinarias y supletorias, resolver duplicados, registrar las inasistencias e identificar de forma explícita a quienes siguen pendientes.');
+ out+=para('Las referencias de actas son datos declarados, no documentos autenticados. Para cerrar esta fase como definitiva se requiere comprobar la totalidad de las actas ordinarias y supletorias, resolver duplicados, registrar las inasistencias e identificar de forma explícita a quienes siguen pendientes.');
  return out;
 }
 const api=Object.freeze({WEIGHTS,PASS,grade,inputGrade,weighted,normalize,evaluate,analyze,upsert,renderReport,

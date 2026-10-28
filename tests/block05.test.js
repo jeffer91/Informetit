@@ -142,6 +142,13 @@ test('PDF agregado no muestra notas individuales de estudiantes que no estén di
  assert.doesNotMatch(html,/Calificaciones finales nominales/);
  assert.match(html,/19 combinaciones carrera/);
 });
+test('el cronograma de cuatro núcleos se conserva como planificación, no como ejecución',()=>{
+ const html=window.InformetitFullReport.makeReport(M.empty(),'presencial');
+ assert.match(html,/Cronograma planificado de los núcleos estructurantes/);
+ assert.match(html,/30\/03\/2026/);
+ assert.match(html,/18\/04\/2026/);
+ assert.match(html,/no prueban por sí solas/);
+});
 test('media inferior a 7 en un núcleo no declara reprobado el complexivo',()=>{
  const s=state();s.notas=[{studentId:'0000000001',nucleo:1,nota:5.5}];
  const c=get(s),n=c.nuclei[0],p=N.narrative(c,n);

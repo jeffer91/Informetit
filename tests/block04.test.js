@@ -136,3 +136,31 @@ test('archivo sin nómina nunca produce una nota inventada',()=>{
  assert.equal(a.summary.unmatched,1);
  assert.equal(Import.plan(s,a,'2026-10-28').stats.added,0);
 });
+
+test('vinculación manual exige carrera, modalidad y nota final válida',()=>{
+ const base=state();
+ base.sinVincular=[{tipo:'nota_moodle',nucleo:1,carrera:'Enfermería',modalidad:'presencial',
+  registro:{name:'Nombre de otra fuente',email:'sincoincidencia@example.org',nota:7.5,parciales:[7,8]}}];
+ const linked=Import.linkPending(base,0,'0000000001','2026-10-28');
+ assert.equal(linked.status,'added');
+ assert.equal(linked.next.notas.length,1);
+ assert.equal(linked.next.notas[0].nota,7.5);
+ assert.deepEqual(linked.next.notas[0].parciales,[7,8]);
+ assert.equal(linked.next.sinVincular.length,0);
+ assert.equal(linked.next.auditoria.length,1);
+ assert.equal(base.sinVincular.length,1);
+ const other=state();other.estudiantes[0].carrera='Contabilidad';
+ other.sinVincular=base.sinVincular;
+ assert.throws(()=>Import.linkPending(other,0,'0000000001','2026-10-28'));
+});
+test('vinculación manual conflictiva conserva la nota Word y solicita decisión',()=>{
+ const base=state();
+ base.sinVincular=[{tipo:'nota_moodle',nucleo:1,carrera:'Enfermería',modalidad:'presencial',
+  registro:{nota:8.7,email:'otra@example.org',parciales:[]}}];
+ base.notasBorrador=[{id:'0000000001|1',studentId:'0000000001',nucleo:1,nota:9.2}];
+ const result=Import.linkPending(base,0,'0000000001','2026-10-28');
+ assert.equal(result.status,'conflict');
+ assert.equal(result.next.conflictos.length,1);
+ assert.equal(result.next.notasBorrador[0].nota,9.2);
+ assert.equal(result.next.notas.length,0);
+});

@@ -69,6 +69,7 @@ const STYLES='@page{size:A4;margin:2.54cm}@page:first{margin:1.5cm}*{box-sizing:
 function makeReport(state,mode){
  tables=0;figs=0;const d=getData(state,mode),n=d.total,desc=mode==='online'?'online':'presencial',cfg=state?.config||{};
  const DOC=window.InformetitDocument;if(!DOC)throw Error('Módulo de formato INF no disponible');
+ if(!window.InformetitNuclei)throw Error('Motor de núcleos no disponible');
  const phaseReq=window.InformetitRequirements.analyze(state,mode);
  const totalChecks=phaseReq.checks.applicable,done=phaseReq.checks.ok;
  const pending=phaseReq.source==='individual'?phaseReq.checks.fail+phaseReq.checks.unknown:phaseReq.checks.unclassified;
@@ -79,7 +80,13 @@ function makeReport(state,mode){
  out+=H(2,'Resumen ejecutivo');
  out+=para('El presente informe documenta la cohorte octubre de 2025 a marzo de 2026 del Instituto Superior Tecnológico Quito Metropolitano, modalidad '+desc+'. Organiza el seguimiento en requisitos, núcleos estructurantes y evaluación final, distinguiendo Examen Complexivo y Trabajo de Titulación.');
  out+=para('En esta modalidad se registran '+n+' estudiantes. '+d.completos8+' cumplen los ocho requisitos previos ('+F(P(d.completos8,n))+' %) y '+d.completos9+' presentan los nueve controles completos ('+F(P(d.completos9,n))+' %). Este último resultado es administrativo y no representa aprobación académica del examen.');
- out+=para('Se dispone de '+notesCount+' registros de calificaciones correspondientes a núcleos en forma individual o agregada según fuente. Las notas no entregadas figuran como pendientes y no se convierten en calificaciones cero.');
+ const academicOverview=window.InformetitNuclei.build(state,mode);
+ out+=para(academicOverview.individual?'Se han vinculado '+academicOverview.individualGrades+
+  ' calificaciones individuales de núcleos para estudiantes de Examen Complexivo. Existen '+academicOverview.pendingSlots+
+  ' casillas sin nota y '+academicOverview.unresolvedSlots+' en conflicto, sin interpretarlas como calificaciones cero. '+
+  academicOverview.wordOnlyNuclei+' núcleos cuentan solo con un agregado documental del Word, separado de las notas individuales.':
+  'Se han documentado '+academicOverview.nucleiWithResults+
+  ' núcleos con estadísticas del Word institucional, sin información nominal asociada en la modalidad. Las calificaciones no disponibles permanecen pendientes.');
  out+=DOC.introduction();
  out+=DOC.legal(Table);
  out+=H(2,'3. Planificación y organización');
@@ -87,26 +94,8 @@ function makeReport(state,mode){
  out+=Table('Cronograma de Examen Complexivo',['Actividad','Inicio','Fin'],nucleus,'Cronograma de la cohorte comunicado por la coordinación');
  const phase1=window.InformetitRequirements.analyze(state,mode);
  out+=window.InformetitRequirements.renderReport(phase1,{Table,Figure,H,para,F,P});
- out+=H(2,'5. Fase II. Núcleos estructurantes');
- out+=para('Los cuatro núcleos son actividades de preparación académica y deben analizarse por carrera. La aplicación conserva las notas finales disponibles y, cuando corresponda, las evaluaciones parciales y talleres. Los promedios se calculan con las notas individuales disponibles o con estadísticas procedentes del Word institucional de trabajo. Conforme al criterio de la coordinación, las notas del Word se utilizan como resultados de referencia; su procedencia se conserva y cualquier discrepancia con Moodle se registra para revisión. Una nota faltante no equivale a cero.');
- out+=Table('Cronograma de núcleos estructurantes',['Núcleo','Inicio','Fin'],nucleus.slice(0,4),'Fechas programadas');
- out+=H(3,'5.1. Cobertura global por carrera y núcleo');
- const allRows=d.careers.map(c=>[c.name,...[1,2,3,4].map(k=>{let x=d.N(c.name,k);return x.n+' / '+(x.mean==null?'Pend.':F(x.mean));})]);
- out+=Table('Cantidad de registros y promedio por núcleo (n / media)',['Carrera','N1','N2','N3','N4'],allRows,'Las casillas pendientes no representan reprobación');
- out+=H(3,'5.2. Análisis por carrera');
- for(const c of d.careers){
-  out+=H(3,'Resultados de '+c.name);
-  const rs=[1,2,3,4].map(k=>({k,...d.N(c.name,k)}));
-  out+=Table('Resultados por núcleo: '+c.name,['Núcleo','Registros','Promedio','Mínimo','Máximo'],rs.map(r=>['Núcleo '+r.k,r.n,r.mean==null?'Pendiente':F(r.mean),r.min==null?'No disponible':F(r.min),r.max==null?'No disponible':F(r.max)]),'Datos individuales locales o estadísticas del Word de trabajo aceptadas para el período; divergencias con Moodle sujetas a revisión');
-  const avail=rs.filter(r=>r.mean!==null);
-  if(!avail.length)out+=para('No se han incorporado calificaciones verificadas de '+c.name+' en los cuatro núcleos. Las tablas están preparadas y permanecen pendientes hasta recibir los registros correspondientes.');
-  else{
-   out+=para('Las calificaciones disponibles en '+c.name+' cubren '+avail.length+' de cuatro núcleos. '+avail.map(r=>'En el núcleo '+r.k+' hay '+r.n+' registros y una media de '+F(r.mean)).join('; ')+'. Los tamaños de muestra deben revisarse antes de comparar los resultados con los de otras carreras.');
-   out+=Figure('Promedio de núcleos disponibles: '+c.name,avail.map(r=>['Núcleo '+r.k,r.mean]),{max:10,decimals:2,note:'Escala 0 a 10; cada dato representa únicamente la muestra con calificación disponible.'});
-  }
- }
- out+=H(3,'5.3. Interpretación y limitaciones');
- out+=para('Las 19 tablas de núcleos extraídas del Word de trabajo corresponden a Enfermería, Educación Inicial, Marketing, Redes y Contabilidad. Se emplean conforme al criterio de la coordinación, conservando su fuente y controles de coherencia frente a registros de Moodle. La aplicación no debe copiar sus notas a la cohorte nominal sin comprobar cédulas, cursos y modalidades. Comparar medias de aulas con coberturas distintas requiere identificar previamente esas diferencias.');
+ const nucleiData=window.InformetitNuclei.build(state,mode);
+ out+=window.InformetitNuclei.renderReport(nucleiData,{Table,Figure,H,para,F,P});
  out+=H(2,'6. Trabajo de Titulación');
  out+=para('El mecanismo de Trabajo de Titulación dispone de un cronograma distinto, que comprende formulación de temas, tutorías, revisión de borradores, informe antiplagio, defensa y supletorio. No se fusionan sus calificaciones con los cuatro núcleos del Examen Complexivo.');
  for(const [fase,rows] of Object.entries(thesis)){out+=H(3,fase);out+=Table('Actividades programadas: '+fase,['Actividad','Inicio','Fin'],rows,'Cronograma proporcionado para el período octubre 2025–marzo 2026');}

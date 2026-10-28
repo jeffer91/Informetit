@@ -8,6 +8,7 @@ require('../nucleos_agregados.js');
 require('../document/institutional.js');
 const Req=require('../analysis/requirements.js');
 require('../analysis/nuclei.js');
+require('../analysis/complexivo.js');
 require('../report_institucional.js');
 const all=()=>Object.fromEntries(Model.REQUIREMENTS.map(f=>[f,'CUMPLE']));
 const student=(id,career='ENFERMERIA',mode='presencial')=>({

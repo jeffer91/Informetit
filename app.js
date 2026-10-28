@@ -8,6 +8,7 @@ if(!Data||!Store)throw new Error("Faltan los módulos data/model.js y data/stora
 const initial=()=>Data.empty();
 let state=initial(), page="inicio", tab="presencial", query="", inputText="", draft="", ready=false, lastParse=null;
 let reqFilter="todos",reqStatus="todos";
+let nucleusCareerKey="";
 const $=x=>document.querySelector(x), el=id=>document.getElementById(id), h=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])), normal=Data.key, compact=s=>normal(s).replace(/\s/g,""), getNum=Data.grade, num=s=>s===null||s===undefined?"—":Number(s).toLocaleString("es-EC",{minimumFractionDigits:2,maximumFractionDigits:2}), today=()=>new Date().toISOString().slice(0,10);
 function notify(t){const node=el("toast");node.textContent=t;node.style.display="block";clearTimeout(notify.timer);notify.timer=setTimeout(()=>node.style.display="none",4300)}
 const sanitize=d=>Data.migrate(d);
@@ -256,22 +257,50 @@ function grades(){
     +table(["Carrera","Núcleo","Registros","Promedio"],Object.entries(publicStats).flatMap(([name,ns])=>ns.map((v,i)=>'<tr>'+td(name)+td("N"+(i+1))+td(v[0])+td(num(v[1]))+'</tr>')))+'</section>';
   return out;
  }
- const g=a.grades,rows=careers.flatMap(c=>[1,2,3,4].map(n=>{
-  const notes=g.filter(x=>Data.career(x.carrera)===Data.career(c)&&x.nucleo===n);
-  const students=a.students.filter(st=>Data.career(st.carrera)===Data.career(c)&&st.tipoTitulacion!=="trabajo");
-  const avg=notes.length?notes.reduce((sum,x)=>sum+x.nota,0)/notes.length:null;
-  return '<tr>'+td(c)+td("Núcleo "+n)+td(students.length)+td(notes.length)
-   +td(Math.max(0,students.length-notes.length))+td(num(avg))+'</tr>';
- }));
- out+='<section class="panel"><h2>Cobertura de los núcleos</h2><p class="hint">Los campos sin nota permanecen pendientes. No son calificaciones cero ni reprobaciones.</p>'
-   +table(["Carrera","Núcleo","Complexivo","Con nota","Sin nota","Promedio observado"],rows)+'</section>';
- out+='<section class="panel"><h2>Calificaciones disponibles</h2>'
-   +table(["Estudiante","Carrera","Núcleo","Parciales (base)","Nota final","Fuente"],g.slice()
-    .sort((x,y)=>x.carrera.localeCompare(y.carrera,"es")||x.nucleo-y.nucleo).map(x=>{
-      const student=state.estudiantes.find(st=>st.id===x.studentId);
-      return '<tr>'+td(student?.nombre||x.studentId)+td(x.carrera)+td("N"+x.nucleo)
-       +td((x.parciales||[]).map(num).join(" / ")||"—")+td(num(x.nota))
-       +td(x.sourceType==="word"?"Word":"Moodle")+'</tr>'}))+'</section>';
+ const academic=window.InformetitNuclei?.build(state,tab);
+ if(!academic)throw Error("Motor de análisis de núcleos no disponible");
+ const defaultCareer=academic.careers.find(c=>c.key===nucleusCareerKey)||academic.careers[0];
+ if(defaultCareer)nucleusCareerKey=defaultCareer.key;
+ const selected=academic.careers.find(c=>c.key===nucleusCareerKey);
+ out+='<div class="cards">'
+  +card("Carreras",academic.careers.length)
+  +card("Notas individuales",academic.individualGrades)
+  +card("Casillas sin nota",academic.pendingSlots??"Sin nómina")
+  +card("Casillas en conflicto",academic.unresolvedSlots??"Sin nómina")
+  +'</div>';
+ out+='<section class="panel"><h2>Resumen académico de núcleos</h2>'
+  +'<p class="hint">En cada celda: número de notas / promedio / origen. Las estadísticas del Word se muestran por separado de las notas individuales; una nota sin cargar no se considera cero ni reprobación.</p>'
+  +table(["Carrera","Complexivo","Núcleo 1","Núcleo 2","Núcleo 3","Núcleo 4"],
+   academic.careers.map(c=>'<tr>'+td(c.name)+td(c.eligible??"Sin nómina")
+    +c.nuclei.map(n=>td(n.summary.n?
+       n.summary.n+" notas · "+num(n.summary.mean)+" · "+(n.summary.source==="individual"?"Nominal":"Word")
+       :"Sin datos")).join("")+'</tr>'))+'</section>';
+ if(selected){
+  out+='<section class="panel"><div class="row between"><h2>Detalle por carrera</h2>'
+   +'<label class="field">Seleccionar carrera<select class="control" data-nucleus-career>'
+   +academic.careers.map(c=>'<option value="'+h(c.key)+'"'+(c.key===selected.key?' selected':'')+'>'+h(c.name)+'</option>').join("")
+   +'</select></label></div>'
+   +'<p class="hint">'+h(window.InformetitNuclei.careerNarrative(selected))+'</p>'
+   +table(["Núcleo","Notas nominales","Pendientes","Conflictos","Media","Mediana","Desv. estándar"],
+     selected.nuclei.map(n=>'<tr>'+td("Núcleo "+n.number)+td(n.gradeCount)
+     +td(n.pendingCount)+td(n.conflictCount)+td(num(n.summary.mean))
+     +td(num(n.summary.median))+td(num(n.summary.sd))+'</tr>'));
+  for(const n of selected.nuclei){
+   out+='<h3>Núcleo '+n.number+'</h3><p class="hint">'+h(window.InformetitNuclei.narrative(selected,n))+'</p>';
+   out+=table(["Estudiante","Cédula","Nota final","Fuente"],
+     n.entries.map(x=>'<tr>'+td(x.name)+td(x.id)+td(num(x.grade))+td(x.source)+'</tr>'));
+   if(n.summary.bands)
+     out+=table(["Rango de notas","Estudiantes","Porcentaje"],
+       n.summary.bands.map(x=>'<tr>'+td(x.label)+td(x.count)+td(num(x.pct)+" %")+'</tr>'));
+  }
+  out+='<h3>Estudiantes sin calificación completa · '+h(selected.name)+'</h3>'
+   +'<p class="hint">Esta lista es únicamente de seguimiento de los cuatro núcleos. Los estudiantes de Trabajo de Titulación están excluidos.</p>'
+   +table(["Estudiante","Cédula","Núcleos sin nota","Núcleos en conflicto"],
+    selected.pendingStudents.map(x=>'<tr>'+td(x.name)+td(x.id)
+      +td(x.missing.length?x.missing.map(k=>"N"+k).join(", "):"—")
+      +td(x.conflicts.length?x.conflicts.map(k=>"N"+k).join(", "):"—")+'</tr>'))
+   +'</section>';
+ }
  const pendingEntries=state.sinVincular.map((item,i)=>({item,i})).filter(({item})=>
    item.tipo==="nota_moodle"&&(item.modalidad===tab||!item.modalidad&&a.students.some(st=>Data.career(st.carrera)===Data.career(item.carrera))));
  out+='<section class="panel"><h2>Pendientes de conciliación Moodle</h2><p>'
@@ -445,7 +474,7 @@ let conflict=ev.target.closest("[data-use-conflict], [data-keep-conflict]");if(c
  }catch(e){console.error(e);notify("No se resolvió el conflicto: "+e.message)}
 }});
 document.addEventListener("input",ev=>{if(ev.target.id==="student-search"){query=ev.target.value;let pos=ev.target.selectionStart;draw();let search=el("student-search");search.focus();search.setSelectionRange(pos,pos)}if(ev.target.id==="moodle-text"){inputText=ev.target.value;lastParse=null}});
-document.addEventListener("change",async ev=>{let field=ev.target;if(field.dataset.studentType){let s=state.estudiantes.find(x=>x.id===field.dataset.studentType);if(s){s.tipoTitulacion=field.value;await persist();notify("Modalidad de titulación actualizada.")}}else if(field.hasAttribute("data-requirement-filter")){reqFilter=field.value;draw()}else if(field.hasAttribute("data-status-filter")){reqStatus=field.value;draw()}else if(field.dataset.schedule){state.ejecucion[field.dataset.schedule]=field.value;await persist();notify("Ejecución registrada.")}else if(field.dataset.config){state.config[field.dataset.config]=field.type==="checkbox"?field.checked:field.value;await persist();draw()}});
+document.addEventListener("change",async ev=>{let field=ev.target;if(field.dataset.studentType){let s=state.estudiantes.find(x=>x.id===field.dataset.studentType);if(s){s.tipoTitulacion=field.value;await persist();notify("Modalidad de titulación actualizada.")}}else if(field.hasAttribute("data-nucleus-career")){nucleusCareerKey=field.value;draw()}else if(field.hasAttribute("data-requirement-filter")){reqFilter=field.value;draw()}else if(field.hasAttribute("data-status-filter")){reqStatus=field.value;draw()}else if(field.dataset.schedule){state.ejecucion[field.dataset.schedule]=field.value;await persist();notify("Ejecución registrada.")}else if(field.dataset.config){state.config[field.dataset.config]=field.type==="checkbox"?field.checked:field.value;await persist();draw()}});
 el("student-file").addEventListener("change",handleFiles);el("backup-file").addEventListener("change",handleFiles);
 el("logo-file").addEventListener("change",async ev=>{const file=ev.target.files?.[0];if(!file)return;try{if(!file.type.startsWith("image/"))throw Error("Solo se aceptan imágenes.");if(file.size>2000000)throw Error("La imagen debe tener menos de 2 MB.");const dataURL=await new Promise((res,rej)=>{let fr=new FileReader();fr.onload=()=>res(fr.result);fr.onerror=()=>rej(new Error("No se pudo leer imagen."));fr.readAsDataURL(file)});state.config.logoDataUrl=dataURL;await persist();notify("Logotipo incorporado a los PDF.");}catch(e){notify(e.message)}finally{ev.target.value=""}});
 (async()=>{state=await load();try{const imported=await loadPrivateGPT();if(imported&&!imported.unchanged){console.info("Base GPT privada disponible:",imported.students,"estudiantes nuevos,",imported.grades,"notas nuevas.")}}catch(e){console.error("No se pudo cargar la base GPT privada:",e);notify("No se pudo cargar la base GPT local: "+e.message)}ready=true;draw()})().catch(e=>{el("main").textContent="No fue posible iniciar Informetit: "+e.message});

@@ -240,6 +240,44 @@ function renderReport(dataset,{Table,Figure,H,para,F}){
       fmt(e.record.written),fmt(e.record.practical),fmt(e.record.defense),
       fmt(e.record.oral),fmt(e.grade),STATES[e.status]||e.status]),
     'Calificaciones procedentes de las actas o rúbricas individuales guardadas en Informetit; no se mezclan con los núcleos de Complexivo');
+  for(const entry of career.entries.filter(x=>x.record&&!x.duplicate)){
+   const r=entry.record;
+   out+=H(3,'Detalle de acta de grado — '+entry.name);
+   out+=Table('Identificación y calificación escrita del proyecto — '+entry.name,
+    ['Dato','Registro'],[
+      ['Estudiante',entry.name],['Cédula',entry.id],['Carrera',career.name],
+      ['Número de acta',r.numeroActa||'Pendiente de registrar'],
+      ['Fecha de acta',r.fechaActa||'Por definir'],
+      ['Calificación del tutor',fmt(valid(r.tutor))],
+      ['Calificación del lector',fmt(valid(r.lector))],
+      ['Promedio escrito',fmt(r.written)]
+    ],'Referencia documental declarada en la base local; pendiente de cotejo con el acta firmada');
+   const rubricRows=(criteria,field)=>criteria.map(c=>[
+     c.name,fmt(c.max),
+     ...r.vocales.map(v=>fmt(valid(v[field][c.key])))
+   ]);
+   const rubricHeaders=['Parámetro','Máximo',
+      ...r.vocales.map((v,i)=>'Vocal '+(i+1)+(v.nombre?' · '+v.nombre:''))];
+   out+=Table('Puntajes de evaluación práctica — '+entry.name,rubricHeaders,
+     [...rubricRows(PRACTICA,'practica'),
+     ['Total práctica','10,00',...r.practices.map(fmt)]],
+     'Se muestran los puntajes ingresados por cada vocal, sin completar valores ausentes');
+   out+=Table('Puntajes de defensa del proyecto — '+entry.name,rubricHeaders,
+     [...rubricRows(DEFENSA,'defensa'),
+     ['Total defensa','10,00',...r.defenses.map(fmt)]],
+     'Se muestran los puntajes de los tres vocales; los totales requieren todos los criterios');
+   out+=Table('Cálculo final del proyecto — '+entry.name,
+     ['Elemento','Calificación'],[
+      ['Promedio escrito: tutor + lector',fmt(r.written)],
+      ['Promedio evaluación práctica',fmt(r.practical)],
+      ['Promedio defensa',fmt(r.defense)],
+      ['Promedio oral: práctica + defensa',fmt(r.oral)],
+      ['Nota final ordinaria: escrito 60 % + oral 40 %',fmt(r.ordinary)],
+      ['Supletorio, cuando existe',fmt(r.recovery)],
+      ['Nota final calculada',fmt(r.definitive)],
+      ['Resultado',STATES[entry.status]||entry.status]
+     ],'La ponderación reproduce el acta de ejemplo; confirmar su vigencia y aplicación institucional');
+  }
   out+=Table('Seguimiento de proyectos pendientes — '+career.name,
     ['Estudiante','Cédula','Situación'],
     career.entries.filter(e=>!e.record?.complete||e.duplicate||e.status==='supletorio_pendiente').map(e=>[

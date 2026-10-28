@@ -39,7 +39,7 @@ function getData(state,mode){
  const fallback=window.InformetitPublicSummary?.DATA?.[mode];
  if(!fallback)throw Error('No existe el resumen inicial de '+mode);
  const model=window.InformetitDataModel;
- const hasIndividuals=!!(state?.estudiantes?.length);
+ const hasIndividuals=(state?.estudiantes||[]).some(s=>s.modalidad===mode);
  if(hasIndividuals&&model){
   const a=model.analyze(state,mode),audit=model.audit(state);
   const careers=a.careers.map(c=>({name:c.name,n:c.total,passed:c.complete9}));

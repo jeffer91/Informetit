@@ -9,6 +9,7 @@ const initial=()=>Data.empty();
 let state=initial(), page="inicio", tab="presencial", query="", inputText="", draft="", ready=false, lastParse=null;
 let reqFilter="todos",reqStatus="todos";
 let nucleusCareerKey="";
+let evaluationStudentId="";
 let firebaseComparison=null,firebaseConnection=null,firebaseMessage="";
 const $=x=>document.querySelector(x), el=id=>document.getElementById(id), h=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])), normal=Data.key, compact=s=>normal(s).replace(/\s/g,""), getNum=Data.grade, num=s=>s===null||s===undefined?"—":Number(s).toLocaleString("es-EC",{minimumFractionDigits:2,maximumFractionDigits:2}), today=()=>new Date().toISOString().slice(0,10);
 function notify(t){const node=el("toast");node.textContent=t;node.style.display="block";clearTimeout(notify.timer);notify.timer=setTimeout(()=>node.style.display="none",4300)}
@@ -321,7 +322,92 @@ function grades(){
  out+='</section>';
  return out;
 }
-function evaluations(){let a=aggregates(tab),exam=a.students.filter(s=>s.tipoTitulacion!=="sin_definir"),records=state.evaluaciones.filter(e=>a.students.some(s=>s.id===e.studentId));return head("Evaluaciones finales","Registra resultados respaldados, sin inventar calificaciones.",switcher())+'<section class="panel"><h2>Registrar o actualizar evaluación</h2><div class="field-row"><label class="field">Estudiante<select id="eval-id"><option value="">Selecciona estudiante</option>'+exam.map(s=>'<option value="'+h(s.id)+'">'+h(s.nombre)+' · '+h(typeLabel(s.tipoTitulacion))+'</option>').join("")+'</select></label><label class="field">Calificación del componente 1<input id="eval-one" type="number" min="0" max="10" step="0.01" placeholder="Teoría / escrito"></label><label class="field">Calificación del componente 2<input id="eval-two" type="number" min="0" max="10" step="0.01" placeholder="Práctica / defensa"></label><label class="field">Supletorio<input id="eval-rescue" type="number" min="0" max="10" step="0.01" placeholder="Si aplica"></label><label class="field">Resultado oficial<select id="eval-status"><option value="pendiente">Pendiente</option><option value="aprobado">Aprobado</option><option value="reprobado">Reprobado</option><option value="no_presentado">No presentado</option></select></label><label class="field">Referencia del acta<input id="eval-source" placeholder="Acta / evidencia"></label></div><div class="actions block"><button class="btn primary" data-action="save-eval">Guardar evaluación</button></div><p class="hint">No se calcula la nota final automáticamente hasta confirmar las ponderaciones normativas. El estado se registra desde el acta oficial.</p></section><section class="panel"><h2>Evaluaciones guardadas · '+modeLabel(tab)+'</h2>'+table(["Estudiante","Componente 1","Componente 2","Supletorio","Estado","Evidencia"],records.map(e=>'<tr>'+td((state.estudiantes.find(s=>s.id===e.studentId)||{}).nombre)+td(num(e.one))+td(num(e.two))+td(num(e.rescue))+td(e.status)+td(e.source)+'</tr>'))+'</section>'}
+function evaluations(){
+ const engine=window.InformetitComplexivo;
+ if(!engine)return head("Evaluaciones finales","No se cargó el motor de Examen Complexivo.");
+ const data=engine.analyze(state,tab),c=data.counts;
+ const list=data.records.map(x=>x.student).sort((a,b)=>a.carrera.localeCompare(b.carrera,'es')||a.nombre.localeCompare(b.nombre,'es'));
+ if(!list.some(x=>x.id===evaluationStudentId))evaluationStudentId="";
+ const selected=data.records.find(x=>x.studentId===evaluationStudentId);
+ const record=selected?.evaluation;
+ const numberInput=(name,label,value,placeholder)=>'<label class="field">'+h(label)+
+  '<input id="'+name+'" type="number" min="0" max="10" step="0.01" placeholder="'+h(placeholder||"Sin nota")+
+  '" value="'+(value===null||value===undefined?"":h(value))+'"></label>';
+ const selectAttendance=(id,value)=>{
+   const options=[["pendiente","Pendiente / sin informar"],["presentado","Se presentó"],["no_presentado","No se presentó"]];
+   return '<label class="field">Asistencia<select id="'+id+'">'+options.map(([v,label])=>'<option value="'+v+'"'+(v===value?' selected':'')+'>'+label+'</option>').join('')+'</select></label>';
+ };
+ const inputText=(id,label,value)=>'<label class="field">'+h(label)+'<input id="'+id+'" value="'+h(value||"")+'" placeholder="Número, fecha o referencia del acta"></label>';
+ let out=head("Fase III · Examen Complexivo",
+  "Resultados ordinarios, supletorios, notas ponderadas y verificación de actas, por carrera.",
+  switcher());
+ if(!data.records.length){
+   out+='<section class="panel"><h2>Sin nómina para Examen Complexivo</h2><p>Primero carga la base privada de estudiantes. No se calculan aprobados desde los requisitos o los núcleos.</p></section>';
+   return out;
+ }
+ out+='<div class="cards">'
+   +card("Estudiantes Complexivo",c.eligible)
+   +card("Ordinarios calculados",c.ordinaryComplete)
+   +card("Aprobados ordinarios",c.ordinaryApproved)
+   +card("Aprobados supletorio",c.recovered)
+   +card("Reprobados tras supletorio",c.failed)
+   +card("Pendientes",c.pending)
+   +card("Con acta referenciada",c.verified)
+   +'</div>';
+ out+='<section class="panel"><h2>Registrar evaluación individual</h2>'
+   +'<p class="hint">Ordinario = 40 % teoría + 60 % práctica. Mínimo para aprobar: 7,00/10. El supletorio se calcula con la misma ponderación cuando se dispone de ambos componentes; también puede registrarse su nota final expresa del acta.</p>'
+   +'<label class="field">Estudiante de Examen Complexivo<select id="eval-id" data-eval-select><option value="">Seleccionar estudiante</option>'
+   +list.map(st=>'<option value="'+h(st.id)+'"'+(evaluationStudentId===st.id?' selected':'')+'>'+h(st.nombre)+' · '+h(st.carrera)+' · '+h(st.id)+'</option>').join('')+'</select></label>';
+ if(evaluationStudentId&&selected){
+   out+='<h3>Examen ordinario</h3><div class="field-row">'
+     +selectAttendance("eval-ord-att",record?.ordinario.asistencia||"pendiente")
+     +numberInput("eval-one","Teoría · 40 %",record?.ordinario.teoria)
+     +numberInput("eval-two","Práctica · 60 %",record?.ordinario.practica)
+     +inputText("eval-source","Acta ordinaria",record?.actaOrdinario)
+     +'</div><h3>Examen supletorio</h3><div class="field-row">'
+     +selectAttendance("eval-sup-att",record?.supletorio.asistencia||"pendiente")
+     +numberInput("eval-sup-one","Teoría · 40 %",record?.supletorio.teoria)
+     +numberInput("eval-sup-two","Práctica · 60 %",record?.supletorio.practica)
+     +numberInput("eval-rescue","Nota final expresa del acta",record?.supletorio.notaFinal)
+     +inputText("eval-sup-source","Acta de supletorio",record?.actaSupletorio)
+     +'</div>';
+   out+='<div class="actions block"><button class="btn" data-action="preview-eval">Calcular y revisar</button>'
+     +'<button class="btn primary" data-action="save-eval">Guardar evaluación</button></div>';
+   out+='<p class="hint">Un ordinario insuficiente sin supletorio permanece pendiente de recuperación. Solo se declara reprobación definitiva cuando existe una nota supletoria inferior a 7,00. Las referencias de acta respaldan los resultados, pero no generan firmas electrónicas.</p>';
+   if(record){
+     out+='<div class="cards">'+card("Ordinario",engine.num(selected.ordinary))
+       +card("Supletorio",engine.num(selected.recovery))
+       +card("Definitivo",engine.num(selected.finalGrade))
+       +card("Estado",engine.DESCRIPTIONS[selected.status]||selected.status)
+       +'</div>';
+     if(record.warnings.length)out+='<p class="hint">Revisión necesaria: '+h(record.warnings.join("; "))+'</p>';
+   }
+ }else out+='<p class="hint">Selecciona primero un estudiante para cargar o ingresar su evaluación.</p>';
+ out+='</section>';
+ out+='<section class="panel"><h2>Resultados por carrera</h2>'
+   +table(["Carrera","Complexivo","Ordinarios","Apr. ordinarios","Apr. supletorios","Reprobados","No presentados","Pendientes","Con acta"],
+     data.careers.map(c=>'<tr>'+td(c.name)+td(c.stats.eligible)+td(c.stats.ordinaryComplete)
+       +td(c.stats.ordinaryApproved)+td(c.stats.recovered)+td(c.stats.failed)
+       +td(c.stats.noPresentado)+td(c.stats.pending)+td(c.stats.verified)+'</tr>'))+'</section>';
+ out+='<section class="panel"><h2>Evaluaciones nominales · '+modeLabel(tab)+'</h2>'
+   +table(["Estudiante","Carrera","Teoría","Práctica","Ord. 40/60","Sup.","Definitiva","Estado","Acta"],
+     data.records.map(x=>'<tr>'+td(x.name)+td(x.career)
+       +td(x.evaluation?engine.num(engine.grade(x.evaluation.ordinario.teoria)):"—")
+       +td(x.evaluation?engine.num(engine.grade(x.evaluation.ordinario.practica)):"—")
+       +td(x.ordinary===null?"—":engine.num(x.ordinary))
+       +td(x.recovery===null?"—":engine.num(x.recovery))
+       +td(x.finalGrade===null?"—":engine.num(x.finalGrade))
+       +td(x.duplicate?"Duplicado":engine.DESCRIPTIONS[x.status]||x.status)
+       +td(x.verified?"Respaldada":"Por revisar")+'</tr>'))+'</section>';
+ const pending=data.records.filter(x=>x.duplicate||["pendiente","supletorio_pendiente"].includes(x.status)||x.evaluation?.warnings.length);
+ out+='<section class="panel"><h2>Seguimiento de pendientes y discrepancias</h2><p class="hint">Estos estudiantes requieren información, supletorio o conciliación; no son reprobados por ausencia de notas.</p>'
+   +table(["Estudiante","Carrera","Situación","Observación"],
+     pending.map(x=>'<tr>'+td(x.name)+td(x.career)
+       +td(x.duplicate?"Duplicado":engine.DESCRIPTIONS[x.status]||x.status)
+       +td(x.duplicate?"Conciliar registros":x.evaluation?.warnings.join("; ")||
+          (x.status==="supletorio_pendiente"?"Falta registrar supletorio":"Falta ordinario"))+'</tr>'))+'</section>';
+ return out;
+}
 function schedule(){return head("Cronogramas institucionales","Fechas planificadas cargadas una sola vez para el período.")+['trabajo','complexivo'].map(k=>'<section class="panel"><h2>'+(k==="trabajo"?"Trabajo de Titulación":"Examen Complexivo")+'</h2>'+table(["Actividad","Inicio","Fin","Ejecución verificada"],DATES[k].map((r,i)=>'<tr>'+td(r[0])+td(r[1])+td(r[2])+'<td><select class="control" data-schedule="'+h(k+"|"+i)+'">'+[['pendiente','Pendiente de evidencias'],['cumple','Cumplida'],['no_cumple','No cumplida'],['no_aplica','No aplica']].map(([v,l])=>'<option value="'+v+'"'+((state.ejecucion[k+"|"+i]||"pendiente")===v?" selected":"")+'>'+l+'</option>').join("")+'</select></td></tr>'))+'</section>').join("")+'<p class="hint">Las fechas programadas no constituyen evidencia de actividades realizadas; registra el estado real por separado.</p>'}
 function reportBody(m,exportMode=false){let a=aggregates(m);let members=new Map(a.students.map(s=>[s.id,s]));let grades=a.grades, evals=state.evaluaciones.filter(e=>members.has(e.studentId)),nCompletes=a.completeN;let title="Informe Final del Proceso de Titulación — "+modeLabel(m)+" — "+PERIOD;
 let sections='<div class="report-paper"><h1>'+h(title)+'</h1><p><b>Unidad de Titulación y Eficiencia Terminal</b> · ITSQMET</p><p>Elaborado por: '+h(state.config.elaborado)+' | Revisado por: '+h(state.config.revisado)+' | Aprobado por: '+h(state.config.aprobado)+'</p><p><b>Código:</b> '+h(m==="online"?state.config.codigoOnline:state.config.codigoPresencial||"Pendiente de asignación")+' · <b>Versión:</b> '+h(state.config.version||"1.0")+'</p><h2>1. Caracterización y requisitos</h2><p>La modalidad '+(m==="online"?"online":"presencial")+' registra '+a.students.length+' estudiantes en el archivo institucional del período. De ellos, '+nCompletes+' cumplen los nueve requisitos registrados ('+(a.students.length?num(nCompletes/a.students.length*100):"—")+' %). Estas cifras son datos de cumplimiento y no deben interpretarse como aprobación académica del Examen Complexivo.</p>'+table(["Requisito","Aplicables","Cumplen","Pendientes","Porcentaje"],a.byReq.map(x=>"<tr>"+td(LABEL[x.k])+td(x.all)+td(x.ok)+td(x.pending)+td(num(x.pct)+" %")+"</tr>"))+'<h2>2. Núcleos estructurantes</h2>';
@@ -551,7 +637,28 @@ async function handleFiles(ev){
  }catch(e){console.error(e);notify("Error de importación: "+e.message)}
  finally{ev.target.value=""}
 }
-async function action(code){switch(code){case"student-file":el("student-file").click();break;case"logo-file":el("logo-file").click();break;case"backup-file":el("backup-file").click();break;case"preview-notes":await parseGradeAndSave(false);break;case"save-notes":await parseGradeAndSave(true);break;case"export-json":download("Informetit_base_local_"+today()+".json","application/json;charset=utf-8",JSON.stringify(state,null,2));break;case"clear-db":if(confirm("¿Eliminar todas las notas, estudiantes y demás datos almacenados en ESTE navegador? Asegúrate de haber exportado un respaldo.")){state=initial();await persist();draw();notify("Base local vaciada")}break;case"save-eval":{let id=el("eval-id").value;if(!id){notify("Selecciona primero un estudiante clasificado.");break}let student=state.estudiantes.find(s=>s.id===id);let e={studentId:id,tipo:student.tipoTitulacion,one:getNum(el("eval-one").value),two:getNum(el("eval-two").value),rescue:getNum(el("eval-rescue").value),status:el("eval-status").value,source:el("eval-source").value,updated:today()};let i=state.evaluaciones.findIndex(x=>x.studentId===id);if(i<0)state.evaluaciones.push(e);else state.evaluaciones[i]=e;await persist();draw();notify("Resultado registrado.")}break;case"doc":download("Informe_"+tab+"_"+today()+".doc","application/msword;charset=utf-8",'<html><head><meta charset="utf-8"><style>body{font-family:Arial}table{border-collapse:collapse;width:100%}td,th{border:1px solid #777;padding:6px}h1{text-align:center;font-size:18pt}h2{font-size:14pt}</style></head><body>'+reportBody(tab,true)+'</body></html>');break;case"pdf":if(window.InformetitFullReport){try{await window.InformetitFullReport.download(state,tab)}catch(e){notify("No se pudo generar PDF: "+e.message)}}else notify("Informe institucional no disponible.");break;case"preview-current":case"preview-presencial":case"preview-online":{const m=code==="preview-current"?tab:code==="preview-online"?"online":"presencial";try{showReportPreview(m)}catch(e){notify("No se pudo abrir la vista previa: "+e.message)}break}case"draft-presencial":case"draft-online":{const mode=code==="draft-online"?"online":"presencial";if(window.InformetitFullReport){try{const result=await window.InformetitFullReport.download(state,mode);if(result&&!result.canceled)notify("Borrador institucional guardado en PDF.");}catch(err){notify("Error al generar el informe: "+err.message);console.error(err)}}else notify("Generador institucional no disponible.");break}case"print":if(window.InformetitFullReport){try{await window.InformetitFullReport.download(state,tab)}catch(e){notify("No se pudo generar PDF: "+e.message)}}else notify("Informe institucional no disponible.");break;}}
+async function action(code){switch(code){case"student-file":el("student-file").click();break;case"logo-file":el("logo-file").click();break;case"backup-file":el("backup-file").click();break;case"preview-notes":await parseGradeAndSave(false);break;case"save-notes":await parseGradeAndSave(true);break;case"export-json":download("Informetit_base_local_"+today()+".json","application/json;charset=utf-8",JSON.stringify(state,null,2));break;case"clear-db":if(confirm("¿Eliminar todas las notas, estudiantes y demás datos almacenados en ESTE navegador? Asegúrate de haber exportado un respaldo.")){state=initial();await persist();draw();notify("Base local vaciada")}break;case"preview-eval":case"save-eval":{
+ const id=el("eval-id")?.value;
+ if(!id){notify("Selecciona un estudiante de Examen Complexivo.");break}
+ const i={ordTeoria:el("eval-one")?.value,ordPractica:el("eval-two")?.value,
+   ordAsistencia:el("eval-ord-att")?.value||"pendiente",supTeoria:el("eval-sup-one")?.value,
+   supPractica:el("eval-sup-two")?.value,supFinal:el("eval-rescue")?.value,
+   supAsistencia:el("eval-sup-att")?.value||"pendiente",
+   actaOrdinario:el("eval-source")?.value,actaSupletorio:el("eval-sup-source")?.value};
+ try{
+   const planned=window.InformetitComplexivo.upsert(state,id,i,today());
+   if(code==="preview-eval"){
+     const result=planned.result;
+     notify("Ordinario "+window.InformetitComplexivo.num(result.ordinary)+
+       " · Supletorio "+window.InformetitComplexivo.num(result.recovery)+
+       " · Definitiva "+window.InformetitComplexivo.num(result.finalGrade)+
+       " · "+(window.InformetitComplexivo.DESCRIPTIONS[result.status]||result.status));
+   }else{
+     await Store.save(planned.next);state=planned.next;evaluationStudentId=id;draw();
+     notify("Examen Complexivo guardado. Resultado y antecedentes registrados en auditoría.");
+   }
+ }catch(error){notify("Evaluación: "+error.message)}
+}break;case"doc":download("Informe_"+tab+"_"+today()+".doc","application/msword;charset=utf-8",'<html><head><meta charset="utf-8"><style>body{font-family:Arial}table{border-collapse:collapse;width:100%}td,th{border:1px solid #777;padding:6px}h1{text-align:center;font-size:18pt}h2{font-size:14pt}</style></head><body>'+reportBody(tab,true)+'</body></html>');break;case"pdf":if(window.InformetitFullReport){try{await window.InformetitFullReport.download(state,tab)}catch(e){notify("No se pudo generar PDF: "+e.message)}}else notify("Informe institucional no disponible.");break;case"preview-current":case"preview-presencial":case"preview-online":{const m=code==="preview-current"?tab:code==="preview-online"?"online":"presencial";try{showReportPreview(m)}catch(e){notify("No se pudo abrir la vista previa: "+e.message)}break}case"draft-presencial":case"draft-online":{const mode=code==="draft-online"?"online":"presencial";if(window.InformetitFullReport){try{const result=await window.InformetitFullReport.download(state,mode);if(result&&!result.canceled)notify("Borrador institucional guardado en PDF.");}catch(err){notify("Error al generar el informe: "+err.message);console.error(err)}}else notify("Generador institucional no disponible.");break}case"print":if(window.InformetitFullReport){try{await window.InformetitFullReport.download(state,tab)}catch(e){notify("No se pudo generar PDF: "+e.message)}}else notify("Informe institucional no disponible.");break;}}
 document.addEventListener("click",async ev=>{let nav=ev.target.closest("[data-page]");if(nav){page=nav.dataset.page;query="";lastParse=null;draw();return}let m=ev.target.closest("[data-mode]");if(m){tab=m.dataset.mode;lastParse=null;draw();return}let cmd=ev.target.closest("[data-action]");if(cmd){if(cmd.dataset.action.startsWith("firebase-"))await firebaseAction(cmd.dataset.action);else await action(cmd.dataset.action);return}let pending=ev.target.closest("[data-link-unmatched]");if(pending){
  const idx=Number(pending.dataset.linkUnmatched),record=state.sinVincular[idx];
  if(!record)return;
@@ -578,7 +685,7 @@ let conflict=ev.target.closest("[data-use-conflict], [data-keep-conflict]");if(c
  }catch(e){console.error(e);notify("No se resolvió el conflicto: "+e.message)}
 }});
 document.addEventListener("input",ev=>{if(ev.target.id==="student-search"){query=ev.target.value;let pos=ev.target.selectionStart;draw();let search=el("student-search");search.focus();search.setSelectionRange(pos,pos)}if(ev.target.id==="moodle-text"){inputText=ev.target.value;lastParse=null}});
-document.addEventListener("change",async ev=>{let field=ev.target;if(field.dataset.studentType){let s=state.estudiantes.find(x=>x.id===field.dataset.studentType);if(s){s.tipoTitulacion=field.value;await persist();notify("Modalidad de titulación actualizada.")}}else if(field.hasAttribute("data-nucleus-career")){nucleusCareerKey=field.value;draw()}else if(field.hasAttribute("data-requirement-filter")){reqFilter=field.value;draw()}else if(field.hasAttribute("data-status-filter")){reqStatus=field.value;draw()}else if(field.dataset.schedule){state.ejecucion[field.dataset.schedule]=field.value;await persist();notify("Ejecución registrada.")}else if(field.dataset.config){state.config[field.dataset.config]=field.type==="checkbox"?field.checked:field.value;await persist();draw()}});
+document.addEventListener("change",async ev=>{let field=ev.target;if(field.dataset.studentType){let s=state.estudiantes.find(x=>x.id===field.dataset.studentType);if(s){s.tipoTitulacion=field.value;await persist();notify("Modalidad de titulación actualizada.")}}else if(field.hasAttribute("data-eval-select")){evaluationStudentId=field.value;draw()}else if(field.hasAttribute("data-nucleus-career")){nucleusCareerKey=field.value;draw()}else if(field.hasAttribute("data-requirement-filter")){reqFilter=field.value;draw()}else if(field.hasAttribute("data-status-filter")){reqStatus=field.value;draw()}else if(field.dataset.schedule){state.ejecucion[field.dataset.schedule]=field.value;await persist();notify("Ejecución registrada.")}else if(field.dataset.config){state.config[field.dataset.config]=field.type==="checkbox"?field.checked:field.value;await persist();draw()}});
 el("student-file").addEventListener("change",handleFiles);el("backup-file").addEventListener("change",handleFiles);
 el("firebase-file").addEventListener("change",firebaseLoadFile);
 el("logo-file").addEventListener("change",async ev=>{const file=ev.target.files?.[0];if(!file)return;try{if(!file.type.startsWith("image/"))throw Error("Solo se aceptan imágenes.");if(file.size>2000000)throw Error("La imagen debe tener menos de 2 MB.");const dataURL=await new Promise((res,rej)=>{let fr=new FileReader();fr.onload=()=>res(fr.result);fr.onerror=()=>rej(new Error("No se pudo leer imagen."));fr.readAsDataURL(file)});state.config.logoDataUrl=dataURL;await persist();notify("Logotipo incorporado a los PDF.");}catch(e){notify(e.message)}finally{ev.target.value=""}});

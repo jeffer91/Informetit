@@ -272,10 +272,23 @@ function grades(){
       return '<tr>'+td(student?.nombre||x.studentId)+td(x.carrera)+td("N"+x.nucleo)
        +td((x.parciales||[]).map(num).join(" / ")||"—")+td(num(x.nota))
        +td(x.sourceType==="word"?"Word":"Moodle")+'</tr>'}))+'</section>';
- out+='<section class="panel"><h2>Pendientes de conciliación</h2><p>'
-  +h(state.conflictos.filter(x=>a.students.some(st=>x.id.startsWith(st.id+"|"))).length)+' conflictos sin resolver · '
-  +h(state.sinVincular.filter(x=>x.tipo==="nota_moodle"&&x.modalidad===tab).length)+' registros Moodle sin vincular.</p>'
-  +'<p class="hint">Puedes revisar los conflictos guardados en Datos y respaldo; las notas contradictorias no se promedian.</p></section>';
+ const pendingEntries=state.sinVincular.map((item,i)=>({item,i})).filter(({item})=>
+   item.tipo==="nota_moodle"&&(item.modalidad===tab||!item.modalidad&&a.students.some(st=>Data.career(st.carrera)===Data.career(item.carrera))));
+ out+='<section class="panel"><h2>Pendientes de conciliación Moodle</h2><p>'
+  +h(state.conflictos.filter(x=>a.students.some(st=>x.id.startsWith(st.id+"|"))).length)+' conflictos académicos · '
+  +h(pendingEntries.length)+' registros sin vincular.</p>'
+  +'<p class="hint">Selecciona explícitamente un estudiante de la misma carrera y modalidad. El vínculo se guarda con auditoría y puede generar un conflicto de notas para resolver.</p>';
+ if(pendingEntries.length){
+  out+=table(["Nombre o correo Moodle","Núcleo","Nota","Motivo","Estudiante","Acción"],pendingEntries.map(({item,i})=>{
+   const matches=a.students.filter(st=>Data.career(st.carrera)===Data.career(item.carrera)).sort((x,y)=>x.nombre.localeCompare(y.nombre,"es"));
+   const options='<option value="">Seleccionar estudiante…</option>'+matches.map(st=>'<option value="'+h(st.id)+'">'+h(st.nombre)+' · '+h(st.id)+'</option>').join("");
+   return '<tr>'+td(item.registro?.name||item.registro?.nombre||item.registro?.email||"—")
+    +td("N"+item.nucleo)+td(num(item.registro?.nota))+td(item.motivo||item.estado||"Sin coincidencia")
+    +'<td><select class="control" id="unmatched-student-'+i+'">'+options+'</select></td>'
+    +'<td><button class="btn small" data-link-unmatched="'+i+'">Vincular</button></td></tr>';
+  }));
+ }else out+='<p class="hint">No quedan registros sin vincular en esta modalidad.</p>';
+ out+='</section>';
  return out;
 }
 function evaluations(){let a=aggregates(tab),exam=a.students.filter(s=>s.tipoTitulacion!=="sin_definir"),records=state.evaluaciones.filter(e=>a.students.some(s=>s.id===e.studentId));return head("Evaluaciones finales","Registra resultados respaldados, sin inventar calificaciones.",switcher())+'<section class="panel"><h2>Registrar o actualizar evaluación</h2><div class="field-row"><label class="field">Estudiante<select id="eval-id"><option value="">Selecciona estudiante</option>'+exam.map(s=>'<option value="'+h(s.id)+'">'+h(s.nombre)+' · '+h(typeLabel(s.tipoTitulacion))+'</option>').join("")+'</select></label><label class="field">Calificación del componente 1<input id="eval-one" type="number" min="0" max="10" step="0.01" placeholder="Teoría / escrito"></label><label class="field">Calificación del componente 2<input id="eval-two" type="number" min="0" max="10" step="0.01" placeholder="Práctica / defensa"></label><label class="field">Supletorio<input id="eval-rescue" type="number" min="0" max="10" step="0.01" placeholder="Si aplica"></label><label class="field">Resultado oficial<select id="eval-status"><option value="pendiente">Pendiente</option><option value="aprobado">Aprobado</option><option value="reprobado">Reprobado</option><option value="no_presentado">No presentado</option></select></label><label class="field">Referencia del acta<input id="eval-source" placeholder="Acta / evidencia"></label></div><div class="actions block"><button class="btn primary" data-action="save-eval">Guardar evaluación</button></div><p class="hint">No se calcula la nota final automáticamente hasta confirmar las ponderaciones normativas. El estado se registra desde el acta oficial.</p></section><section class="panel"><h2>Evaluaciones guardadas · '+modeLabel(tab)+'</h2>'+table(["Estudiante","Componente 1","Componente 2","Supletorio","Estado","Evidencia"],records.map(e=>'<tr>'+td((state.estudiantes.find(s=>s.id===e.studentId)||{}).nombre)+td(num(e.one))+td(num(e.two))+td(num(e.rescue))+td(e.status)+td(e.source)+'</tr>'))+'</section>'}
@@ -406,7 +419,22 @@ async function handleFiles(ev){
  finally{ev.target.value=""}
 }
 async function action(code){switch(code){case"student-file":el("student-file").click();break;case"logo-file":el("logo-file").click();break;case"backup-file":el("backup-file").click();break;case"preview-notes":await parseGradeAndSave(false);break;case"save-notes":await parseGradeAndSave(true);break;case"export-json":download("Informetit_base_local_"+today()+".json","application/json;charset=utf-8",JSON.stringify(state,null,2));break;case"clear-db":if(confirm("¿Eliminar todas las notas, estudiantes y demás datos almacenados en ESTE navegador? Asegúrate de haber exportado un respaldo.")){state=initial();await persist();draw();notify("Base local vaciada")}break;case"save-eval":{let id=el("eval-id").value;if(!id){notify("Selecciona primero un estudiante clasificado.");break}let student=state.estudiantes.find(s=>s.id===id);let e={studentId:id,tipo:student.tipoTitulacion,one:getNum(el("eval-one").value),two:getNum(el("eval-two").value),rescue:getNum(el("eval-rescue").value),status:el("eval-status").value,source:el("eval-source").value,updated:today()};let i=state.evaluaciones.findIndex(x=>x.studentId===id);if(i<0)state.evaluaciones.push(e);else state.evaluaciones[i]=e;await persist();draw();notify("Resultado registrado.")}break;case"doc":download("Informe_"+tab+"_"+today()+".doc","application/msword;charset=utf-8",'<html><head><meta charset="utf-8"><style>body{font-family:Arial}table{border-collapse:collapse;width:100%}td,th{border:1px solid #777;padding:6px}h1{text-align:center;font-size:18pt}h2{font-size:14pt}</style></head><body>'+reportBody(tab,true)+'</body></html>');break;case"pdf":if(window.InformetitFullReport){try{await window.InformetitFullReport.download(state,tab)}catch(e){notify("No se pudo generar PDF: "+e.message)}}else notify("Informe institucional no disponible.");break;case"preview-current":case"preview-presencial":case"preview-online":{const m=code==="preview-current"?tab:code==="preview-online"?"online":"presencial";try{showReportPreview(m)}catch(e){notify("No se pudo abrir la vista previa: "+e.message)}break}case"draft-presencial":case"draft-online":{const mode=code==="draft-online"?"online":"presencial";if(window.InformetitFullReport){try{const result=await window.InformetitFullReport.download(state,mode);if(result&&!result.canceled)notify("Borrador institucional guardado en PDF.");}catch(err){notify("Error al generar el informe: "+err.message);console.error(err)}}else notify("Generador institucional no disponible.");break}case"print":if(window.InformetitFullReport){try{await window.InformetitFullReport.download(state,tab)}catch(e){notify("No se pudo generar PDF: "+e.message)}}else notify("Informe institucional no disponible.");break;}}
-document.addEventListener("click",async ev=>{let nav=ev.target.closest("[data-page]");if(nav){page=nav.dataset.page;query="";lastParse=null;draw();return}let m=ev.target.closest("[data-mode]");if(m){tab=m.dataset.mode;lastParse=null;draw();return}let cmd=ev.target.closest("[data-action]");if(cmd){await action(cmd.dataset.action);return}let conflict=ev.target.closest("[data-use-conflict], [data-keep-conflict]");if(conflict){
+document.addEventListener("click",async ev=>{let nav=ev.target.closest("[data-page]");if(nav){page=nav.dataset.page;query="";lastParse=null;draw();return}let m=ev.target.closest("[data-mode]");if(m){tab=m.dataset.mode;lastParse=null;draw();return}let cmd=ev.target.closest("[data-action]");if(cmd){await action(cmd.dataset.action);return}let pending=ev.target.closest("[data-link-unmatched]");if(pending){
+ const idx=Number(pending.dataset.linkUnmatched),record=state.sinVincular[idx];
+ if(!record)return;
+ const studentId=el("unmatched-student-"+idx)?.value;
+ if(!studentId){notify("Selecciona primero un estudiante de la nómina.");return}
+ const chosen=state.estudiantes.find(x=>String(x.id)===String(studentId));
+ if(!chosen)return;
+ if(!confirm("¿Vincular esta nota de Moodle a "+chosen.nombre+" ("+chosen.id+")? Comprueba su identidad antes de continuar."))return;
+ try{
+  const result=window.InformetitMoodle.linkPending(state,idx,studentId,today());
+  await Store.save(result.next);state=result.next;draw();
+  notify(result.status==="conflict"?"Vínculo registrado; existe una discrepancia para resolver en Datos y respaldo.":"Registro vinculado y archivado en auditoría.");
+ }catch(error){console.error(error);notify("No se pudo vincular: "+error.message)}
+ return;
+}
+let conflict=ev.target.closest("[data-use-conflict], [data-keep-conflict]");if(conflict){
  const useNew=conflict.hasAttribute("data-use-conflict"),i=Number(useNew?conflict.dataset.useConflict:conflict.dataset.keepConflict);
  const c=state.conflictos[i];if(!c)return;
  const description=useNew?"¿Utilizar la nueva calificación y conservar la anterior solo en auditoría?":"¿Conservar la calificación anterior y archivar la nueva solo en auditoría?";

@@ -124,6 +124,7 @@ function resolveRow(row,students,context){
  if(matches.length!==1)return {status:'ambiguous',reason:'Identidad duplicada; requiere revisión'};
  const student=matches[0];
  if(student.modalidad!==context.mode)return {status:'wrong_mode',reason:'La identidad pertenece a otra modalidad'};
+ if(student.tipoTitulacion==='trabajo')return {status:'wrong_mechanism',reason:'El estudiante pertenece a Trabajo de Titulación, no a núcleos de Complexivo'};
  if(career(student.carrera)!==career(context.career))return {status:'wrong_career',reason:'La identidad pertenece a otra carrera'};
  if(!sameIdentity(student,row))return {status:'identity_conflict',reason:'La cédula, el correo o el nombre contradicen la ficha'};
  return {status:'matched',student,reason:'Coincidencia exacta'};
@@ -140,7 +141,7 @@ function contextualize(parsed,ctx){
  return {mode,nucleus,career:selected,errors};
 }
 function assess(parsed,context,state){
- const records=[],summary={ready:0,duplicate:0,conflict:0,unmatched:0,ambiguous:0,wrong_mode:0,wrong_career:0,identity_conflict:0,missing_grade:0,already_conflicted:0,repeat_in_paste:0};
+ const records=[],summary={ready:0,duplicate:0,conflict:0,unmatched:0,ambiguous:0,wrong_mode:0,wrong_career:0,wrong_mechanism:0,identity_conflict:0,missing_grade:0,already_conflicted:0,repeat_in_paste:0};
  const seen=new Map();
  const notes=state?.notas||[],word=state?.notasBorrador||[],conflicts=new Set((state?.conflictos||[]).map(x=>String(x.id)));
  for(const row of parsed.records){
@@ -196,7 +197,7 @@ function plan(state,assessment,stamp){
     next.conflictos.push({id:r.noteId,anterior:before,nuevo:n,fuente:'Moodle',fecha:stamp});
     conflictIds.add(r.noteId);stats.conflict++;
    }
-  }else if(['unmatched','ambiguous','wrong_career','wrong_mode','identity_conflict'].includes(r.status)){
+  }else if(['unmatched','ambiguous','wrong_career','wrong_mode','wrong_mechanism','identity_conflict'].includes(r.status)){
    const normalized=[r.name,r.email,r.id].filter(Boolean).join(' · ');
    const key=['nota_moodle',assessment.context.nucleus,assessment.context.career,r.email,r.name].join('|');
    if(!unlinked.has(key)){
@@ -245,6 +246,7 @@ function linkPending(state,index,studentId,stamp){
  if(!student)throw Error('Selecciona un estudiante de la nómina');
  if(pending.modalidad&&pending.modalidad!==student.modalidad)throw Error('El estudiante pertenece a otra modalidad');
  if(career(student.carrera)!==career(pending.carrera))throw Error('La carrera del estudiante no coincide con la del registro');
+ if(student.tipoTitulacion==='trabajo')throw Error('El estudiante corresponde a Trabajo de Titulación, no a núcleos de Complexivo');
  const grade=validGrade(pending.registro?.nota),nucleus=Number(pending.nucleo);
  if(grade===null)throw Error('No hay calificación final válida para vincular');
  if(!Number.isInteger(nucleus)||nucleus<1||nucleus>4)throw Error('Núcleo inválido');

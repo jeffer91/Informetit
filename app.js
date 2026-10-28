@@ -152,10 +152,24 @@ return exportMode?sections:'<section class="panel">'+sections+'</section>'}
 function reports(){
  const d=window.InformetitFullReport?.getData(state,tab),hasPrivate=state.estudiantes.length>0;
  if(!d)return head("Informe institucional","No se encontró la cohorte.");
+ const validNuclei=d.careers.flatMap(c=>[1,2,3,4].map(k=>d.N(c.name,k)));
+ const provisionalCount=validNuclei.filter(g=>g.n>0&&g.provisional).length;
+ const officialCount=validNuclei.filter(g=>g.n>0&&!g.provisional).length;
+ const pendingCount=validNuclei.filter(g=>!g.n).length;
+ const inconsistent=(state.conflictos||[]).length+(state.sinVincular||[]).length;
+ const qaRows=[
+  ["Base nominal de estudiantes",d.fullRoster?"Nómina completa: cálculos desde datos individuales":"Solo resumen agregado: no permite comprobar casos individuales"],
+  ["Calificaciones de núcleos",officialCount+" núcleos sin transcripción provisional · "+provisionalCount+" provisionales · "+pendingCount+" sin notas"],
+  ["Conflictos y registros sin vincular",inconsistent+" incidencias por revisar antes de aprobación"],
+  ["Evaluaciones y defensas",d.finals.length+" resultados ingresados; verificar actas y universo de convocados"],
+  ["Formato institucional y marco legal","Código, firmas, normativa y paginación sujetos a revisión"],
+  ["Estado de emisión","BORRADOR · No apto para cierre institucional sin validar evidencias"]
+ ];
  const coverage=d.careers.reduce((v,c)=>v+[1,2,3,4].filter(k=>d.N(c.name,k).n>0).length,0);
  const notes=d.careers.reduce((v,c)=>v+[1,2,3,4].reduce((x,k)=>x+d.N(c.name,k).n,0),0);
  let out=head("Informe institucional · "+modeLabel(tab),"Borrador por fases y carreras, con tablas y gráficos APA 7.",switcher()+'<button class="btn" data-action="preview-current">Vista previa</button><button class="btn primary" data-action="print">Descargar PDF completo</button>');
  out+='<div class="cards">'+card("Estudiantes",d.total)+card("Requisitos completos",d.completos9,num(100*d.completos9/d.total)+" %")+card("Núcleos con datos",coverage+" / "+(d.careers.length*4),"Notas de Word por verificar: "+state.notasBorrador.length)+card("Resultados finales",d.finals.length,"Actas registradas")+'</div>';
+ out+='<section class="panel"><h2>Control de calidad antes de emitir el PDF</h2>'+table(["Control","Resultado"],qaRows.map(row=>'<tr>'+row.map(td).join("")+'</tr>'))+'<p class="hint">Los conflictos, las notas provisionales y las actas faltantes se muestran como pendientes. La descarga es un borrador hasta validar esas fuentes.</p></section>';
  out+='<section class="panel"><h2>Avance del informe</h2><div class="goodbox">Se incluyen introducción, metodología, objetivos, referencia normativa por validar, cronogramas, Fase I completa, estructura de núcleos por carrera, ruta de Trabajo de Titulación, fase evaluativa, recomendaciones y referencias.</div><p class="hint">Las notas ausentes y los resultados sin actas no se rellenan con estimaciones.</p><div class="actions"><button class="btn" data-action="preview-current">Vista previa del informe</button><button class="btn primary" data-action="print">Descargar PDF de esta modalidad</button><button class="btn" data-action="draft-presencial">PDF presencial</button><button class="btn" data-action="draft-online">PDF online</button></div></section>';
  out+='<section class="panel"><h2>Control de notas por carrera y núcleo</h2><p class="hint">Se conservan por separado las calificaciones oficiales y las extraídas del Word de trabajo. Estas últimas requieren validación con Moodle; no se promocionan automáticamente a oficiales.</p>'+table(["Carrera","Núcleo 1","Núcleo 2","Núcleo 3","Núcleo 4"],d.careers.map(c=>'<tr>'+td(c.name)+[1,2,3,4].map(k=>{const g=d.N(c.name,k);return '<td><span class="tag '+(g.n?"ok":"warn")+'">'+(g.n?g.n+" notas · "+num(g.mean):"Pendiente")+'</span></td>'}).join("")+'</tr>'))+'<p class="hint">'+notes+' calificaciones registradas como datos individuales o resúmenes agregados. Los núcleos sin datos quedan pendientes, no reprobados.</p></section>';
  out+='<section class="panel"><h2>Control documental</h2><div class="field-row"><label class="field">Código presencial<input data-config="codigoPresencial" value="'+h(state.config.codigoPresencial)+'"></label><label class="field">Código online<input data-config="codigoOnline" value="'+h(state.config.codigoOnline)+'"></label><label class="field">Versión<input data-config="version" value="'+h(state.config.version)+'"></label><label class="field">Fecha<input type="date" data-config="fechaElaboracion" value="'+h(state.config.fechaElaboracion)+'"></label></div><div class="actions block"><button class="btn" data-action="logo-file">Cargar logotipo para portada</button></div><p class="hint">El código, la versión, el marco normativo y las firmas deberán validarse antes de emitir la versión definitiva.</p></section>';

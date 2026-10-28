@@ -45,8 +45,13 @@ function getData(state,mode){
   const passed=group.filter(s=>keys.every(k=>String(s.requisitos?.[k]||'').trim().toUpperCase()==='CUMPLE')).length;
   return {name,n,passed:people.length?passed:mode==='presencial'?presencialCompletes[name]??null:null};
  });
- function N(name,k){const found=notes.filter(x=>x.carrera===name&&Number(x.nucleo)===k);if(!found.length&&!people.length&&mode==='presencial'&&name==='Enfermería'&&k===1)return {n:11,mean:8.87,min:null,max:null,aggregate:true};
-  const xs=found.map(x=>Number(x.nota));return {n:xs.length,mean:avg(xs),min:xs.length?Math.min(...xs):null,max:xs.length?Math.max(...xs):null,aggregate:false};}
+ function N(name,k){const found=notes.filter(x=>x.carrera===name&&Number(x.nucleo)===k);
+  const xs=found.map(x=>Number(x.nota));
+  const documented=(mode==='presencial'&&window.InformetitNucleos?.datos?.[name]||[])[k-1];
+  if(documented && documented[0]>xs.length){
+    return {n:documented[0],mean:documented[1],min:documented[2],max:documented[3],aggregate:true,provisional:true,individual:xs.length};
+  }
+  return {n:xs.length,mean:avg(xs),min:xs.length?Math.min(...xs):null,max:xs.length?Math.max(...xs):null,aggregate:false,provisional:false};}
  return {...base,careers,people,notes,finals,N};
 }
 const STYLES='@page{size:A4;margin:2.54cm}@page:first{margin:1.5cm}*{box-sizing:border-box}body{font:12pt/2 "Times New Roman",serif;color:#121212;margin:0}p{text-align:justify;margin:0 0 9pt;orphans:3;widows:3}h2{font:bold 13pt/1.4 "Times New Roman",serif;text-align:center;margin:18pt 0 10pt;break-after:avoid}h3{font:bold 12pt/1.4 "Times New Roman",serif;margin:15pt 0 8pt;break-after:avoid}ol{padding-left:27pt;margin:4pt 0 12pt}li{padding-left:2pt;margin:3pt 0}table{border-collapse:collapse;width:100%}th,td{padding:5pt 4pt;text-align:left;border-bottom:.5pt solid #888;overflow-wrap:anywhere}th{border-top:1pt solid #222;border-bottom:1pt solid #222}tr{break-inside:avoid}.cover{font-family:Arial;line-height:1.35;min-height:245mm;break-after:page;position:relative}.cover .header{font:8pt Arial;table-layout:fixed}.cover .header td{border:1px solid #777;text-align:center}.cover .logo{max-width:70pt;max-height:44pt}.cover h1{font:bold 18pt Arial;text-align:center}.cover-title{margin-top:105pt;text-align:center}.cover-title p{text-align:center;font:bold 13pt/1.5 Arial}.cover-title small{font:9pt Arial}.sign{margin-top:125pt;font:8pt Arial}.sign th,.sign td{border:1px solid #888;vertical-align:top}.sign td{height:55pt}.tbl,.fig{margin:13pt 0 17pt;break-inside:auto}.tbl table{font:9pt/1.3 Arial,sans-serif}.tbl tr{break-inside:avoid}.tlabel,.flabel{font:bold 10pt/1.2 "Times New Roman",serif;text-align:left;break-after:avoid}.tname,.fname{font:italic 10pt/1.25 "Times New Roman",serif;text-align:left;break-after:avoid}.note{font:8pt/1.3 Arial,sans-serif;margin-top:5pt}.fig{break-inside:avoid}.fig svg{display:block;width:100%;height:auto;max-height:360pt;line-height:1}.toc{font:11pt/1.7 "Times New Roman",serif}.privacy{font:9pt Arial;color:#444}@media screen{body{max-width:840px;margin:auto;padding:24px;background:#fff}}';
@@ -62,7 +67,7 @@ function makeReport(state,mode){
  out+=H(2,'Resumen ejecutivo');
  out+=para('El informe caracteriza y analiza el proceso de titulación de la cohorte octubre de 2025 a marzo de 2026 del Instituto Superior Tecnológico Quito Metropolitano, para la modalidad '+desc+'. La información comprende la verificación de requisitos institucionales, la planificación de los núcleos estructurantes y las evaluaciones finales que cuentan con evidencias cargadas.');
  out+=para('En el registro de esta modalidad constan '+n+' estudiantes. De ellos, '+d.completos8+' cumplen conjuntamente los ocho requisitos previos ('+F(P(d.completos8,n))+' %) y '+d.completos9+' cumplen los nueve controles incluidos en la matriz ('+F(P(d.completos9,n))+' %). La categoría Titulación se considera preparación académica, y no equivale a aprobación final del Examen Complexivo.');
- out+=para('Este borrador incorpora '+notesCount+' calificaciones de núcleos en forma individual o agregada, según la fuente disponible. Las notas ausentes no se interpolan y los indicadores de evaluación final quedan pendientes cuando no existen actas oficiales.');
+ out+=para('Este borrador presenta '+notesCount+' calificaciones de núcleos en forma individual o agregada, según la fuente disponible. Las notas ausentes no se interpolan y los indicadores de evaluación final quedan pendientes cuando no existen actas oficiales.');
  out+=H(2,'1. Introducción');
  out+=para('La titulación permite verificar competencias y resultados de aprendizaje al culminar la formación tecnológica superior. Su planificación exige coordinación académica, verificación documental y financiera, acompañamiento estudiantil y evaluación transparente. Para valorar adecuadamente el proceso, los resultados se presentan en tres fases diferenciadas.');
  out+=H(3,'1.1. Antecedentes y justificación');
@@ -102,7 +107,7 @@ function makeReport(state,mode){
   out+=Table('Continuidad de la cohorte presencial',['Condición','Estudiantes','Denominador','Porcentaje'],[['Inicialmente registrados',267,267,'100,00 %'],['Activos',262,267,F(P(262,267))+' %'],['Retirados',5,267,F(P(5,267))+' %'],['Llegaron a fase final',255,267,F(P(255,267))+' %'],['No llegaron a fase final',12,267,F(P(12,267))+' %']],'Indicadores del Word institucional de referencia; no se deducen del Excel de estudiantes activos');
  }else out+=para('Para online no se recibió una matriz de matrícula inicial y retiros equivalente a la presencial. Se mantiene pendiente este indicador, sin trasladar al informe online las cifras del presencial.');
  out+=H(2,'5. Fase II. Núcleos estructurantes');
- out+=para('Los cuatro núcleos son actividades de preparación académica y deben analizarse por carrera. La aplicación conserva las notas finales disponibles y, cuando corresponda, las evaluaciones parciales y talleres. Los promedios solo se calculan sobre registros verificados; una nota faltante no equivale a cero.');
+ out+=para('Los cuatro núcleos son actividades de preparación académica y deben analizarse por carrera. La aplicación conserva las notas finales disponibles y, cuando corresponda, las evaluaciones parciales y talleres. Los promedios se calculan sobre registros individuales disponibles o se transcriben provisionalmente de las tablas del Word de trabajo, según su procedencia. Una nota faltante no equivale a cero; las cifras del Word requieren conciliación con Moodle.');
  out+=Table('Cronograma de núcleos estructurantes',['Núcleo','Inicio','Fin'],nucleus.slice(0,4),'Fechas programadas');
  out+=H(3,'5.1. Cobertura global por carrera y núcleo');
  const allRows=d.careers.map(c=>[c.name,...[1,2,3,4].map(k=>{let x=d.N(c.name,k);return x.n+' / '+(x.mean==null?'Pend.':F(x.mean));})]);
@@ -111,7 +116,7 @@ function makeReport(state,mode){
  for(const c of d.careers){
   out+=H(3,'Resultados de '+c.name);
   const rs=[1,2,3,4].map(k=>({k,...d.N(c.name,k)}));
-  out+=Table('Resultados por núcleo: '+c.name,['Núcleo','Registros','Promedio','Mínimo','Máximo'],rs.map(r=>['Núcleo '+r.k,r.n,r.mean==null?'Pendiente':F(r.mean),r.min==null?'No disponible':F(r.min),r.max==null?'No disponible':F(r.max)]),'Registros oficiales disponibles; extremos omitidos si solo hay resumen agregado');
+  out+=Table('Resultados por núcleo: '+c.name,['Núcleo','Registros','Promedio','Mínimo','Máximo'],rs.map(r=>['Núcleo '+r.k,r.n,r.mean==null?'Pendiente':F(r.mean),r.min==null?'No disponible':F(r.min),r.max==null?'No disponible':F(r.max)]),'Datos individuales de Electron o estadísticas extraídas del Word institucional en elaboración; estas últimas requieren conciliación con Moodle');
   const avail=rs.filter(r=>r.mean!==null);
   if(!avail.length)out+=para('No se han incorporado calificaciones verificadas de '+c.name+' en los cuatro núcleos. Las tablas están preparadas y permanecen pendientes hasta recibir los registros correspondientes.');
   else{
@@ -120,7 +125,7 @@ function makeReport(state,mode){
   }
  }
  out+=H(3,'5.3. Interpretación y limitaciones');
- out+=para('El documento de referencia ya desarrolla varios núcleos de Enfermería, Educación Inicial, Marketing, Redes y Contabilidad, pero se encuentra inconcluso. La aplicación no debe copiar sus notas a la cohorte nominal sin comprobar cédulas, cursos y modalidades. Comparar medias de aulas con coberturas distintas requiere identificar previamente esas diferencias.');
+ out+=para('Las 19 tablas de núcleos extraídas del Word de trabajo corresponden a Enfermería, Educación Inicial, Marketing, Redes y Contabilidad. Son resultados provisionales hasta la verificación de sus aulas y calificaciones. La aplicación no debe copiar sus notas a la cohorte nominal sin comprobar cédulas, cursos y modalidades. Comparar medias de aulas con coberturas distintas requiere identificar previamente esas diferencias.');
  out+=H(2,'6. Trabajo de Titulación');
  out+=para('El mecanismo de Trabajo de Titulación dispone de un cronograma distinto, que comprende formulación de temas, tutorías, revisión de borradores, informe antiplagio, defensa y supletorio. No se fusionan sus calificaciones con los cuatro núcleos del Examen Complexivo.');
  for(const [fase,rows] of Object.entries(thesis)){out+=H(3,fase);out+=Table('Actividades programadas: '+fase,['Actividad','Inicio','Fin'],rows,'Cronograma proporcionado para el período octubre 2025–marzo 2026');}

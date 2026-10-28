@@ -172,7 +172,7 @@ ipcMain.handle('informetit:save-pdf', async (event, payload) => {
   });
   if (selection.canceled || !selection.filePath) return { canceled: true };
   await fs.writeFile(selection.filePath, content);
-  return { canceled: false, name: path.basename(selection.filePath) };
+  return { canceled: false, name: path.basename(selection.filePath), indexStatus };
 });
 
 
@@ -180,6 +180,36 @@ ipcMain.handle('informetit:save-pdf', async (event, payload) => {
  * Genera el PDF APA 7 con la propia impresión de Chromium/Electron.
  * Respeta la fuente Times New Roman y las reglas CSS @page.
  */
+/* Números reales para índices generados: extraídos del primer PDF impreso. */
+async function extractIndexPages(pdfBytes) {
+  const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs');
+  const task = pdfjs.getDocument({
+    data: new Uint8Array(pdfBytes),
+    useSystemFonts: true,
+    disableFontFace: true
+  });
+  const doc = await task.promise;
+  const pages = {};
+  try {
+    for (let n = 1; n <= doc.numPages; n++) {
+      const page = await doc.getPage(n);
+      const result = await page.getTextContent();
+      const joined = result.items.map(x => x.str || '').join('');
+      const matcher = /\[\[INF:([a-z0-9-]+)\]\]/g;
+      let match;
+      while ((match = matcher.exec(joined))) pages[match[1]] = n;
+      page.cleanup();
+    }
+  } finally {
+    await doc.destroy();
+  }
+  return pages;
+}
+function fillIndexPages(html, pages) {
+  return html.replace(/(<span class="inf-index-page" data-page=")([^"]+)(">)(?:—|\d+)(<\/span>)/g,
+    (whole, a, id, c, d) => a + id + c + (Number.isInteger(pages[id]) ? pages[id] : '—') + d);
+}
+
 ipcMain.handle('informetit:save-apa-pdf', async (event, payload) => {
   if (!mainWindow || event.sender !== mainWindow.webContents) {
     throw new Error('Solicitud de impresión no autorizada');
@@ -190,6 +220,9 @@ ipcMain.handle('informetit:save-apa-pdf', async (event, payload) => {
       !/^<!doctype html>/i.test(html) || typeof providedName !== 'string') {
     throw new Error('Documento APA 7 inválido');
   }
+  const opts = payload?.options || {};
+  const template = typeof opts.headerTemplate === 'string' && opts.headerTemplate.length < 800000
+    && /^<!doctype html>/i.test(opts.headerTemplate) ? opts.headerTemplate : '';
   const preview = new BrowserWindow({
     show: false,
     width: 1024,
@@ -202,13 +235,44 @@ ipcMain.handle('informetit:save-apa-pdf', async (event, payload) => {
     }
   });
   try {
-    await preview.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(html));
-    await preview.webContents.executeJavaScript('document.fonts.ready.then(() => true)');
-    const pdf = await preview.webContents.printToPDF({
+    const printOptions = {
       printBackground: true,
       preferCSSPageSize: true,
-      margins: { marginType: 'none' }
-    });
+      pageSize: 'A4',
+      displayHeaderFooter: !!template,
+      headerTemplate: template,
+      footerTemplate: '<span></span>',
+      generateDocumentOutline: true
+    };
+    const render = async source => {
+      await preview.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(source));
+      await preview.webContents.executeJavaScript(
+        'Promise.all([document.fonts.ready, ...Array.from(document.images).map(img => img.decode().catch(() => null))]).then(() => true)'
+      );
+      return Buffer.from(await preview.webContents.printToPDF(printOptions));
+    };
+    let pdf = await render(html), indexStatus = 'sin_indice';
+    if (opts.indexPageNumbers && html.includes('data-page="inf-sec-')) {
+      try {
+        let previous = null;
+        for (let round = 0; round < 3; round++) {
+          const pages = await extractIndexPages(pdf);
+          if (!Object.keys(pages).length) {
+            indexStatus = 'sin_marcadores';
+            break;
+          }
+          const mapped = fillIndexPages(html, pages);
+          indexStatus = 'paginado';
+          const serialized = JSON.stringify(pages);
+          if (serialized === previous) break;
+          previous = serialized;
+          pdf = await render(mapped);
+        }
+      } catch (error) {
+        indexStatus = 'sin_paginacion';
+        console.error('No se pudo completar el índice de páginas:', error);
+      }
+    }
     if (!Buffer.isBuffer(pdf) || pdf.length < 10) throw new Error('No se pudo renderizar el PDF.');
     const cleanName = path.basename(providedName).replace(/[^\\p{L}\\p{N}_. -]/gu, '_').slice(0, 100);
     const selection = await dialog.showSaveDialog(mainWindow, {

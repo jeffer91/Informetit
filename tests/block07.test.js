@@ -159,3 +159,16 @@ test('no se convierte una referencia de acta en graduación formal',()=>{
  assert.match(html,/no certifican incorporación/);
  assert.match(html,/normativa vigente/);
 });
+
+test('las rúbricas nominales de los tres vocales y la fecha del acta aparecen en el PDF',()=>{
+ const d=state();d.trabajos=[rubric()];
+ const html=window.InformetitFullReport.makeReport(d,'presencial');
+ for(const value of ['4134','2026-04-14','VOCAL 1','VOCAL 2','VOCAL 3',
+  'Sustento del marco teórico','Solventar preguntas','Promedio oral',
+  'Nota final ordinaria: escrito 60 % + oral 40 %'])
+   assert.ok(html.includes(value),value);
+});
+test('inasistencia expresa con nota de proyecto es una contradicción y no se guarda',()=>{
+ const d=state(),r=rubric();r.asistencia='no_presentado';
+ assert.throws(()=>T.upsert(d,'0000000001',r,'2026-10-28'),/no presentado/);
+});

@@ -95,7 +95,7 @@ ipcMain.handle('informetit:read-master', async event => {
     app.getPath('userData')
   ];
   const selectedFiles = [];
-  const namePattern = /^(?:base-gpt|informetit_base(?:_[\w-]+)*)\.(?:json|cjs)$/i;
+  const namePattern = /^(?:base-gpt(?: \(\d+\))?|informetit_base(?:_[\w-]+)*(?: \(\d+\))?)\.(?:json|cjs)$/i;
   for (const directory of sourceDirs) {
     try {
       const items = await fs.readdir(directory, { withFileTypes: true });

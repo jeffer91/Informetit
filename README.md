@@ -1,3 +1,36 @@
+## INTEGRACIÓN FIREBASE UTET · octubre 2026
+
+**Conexión implementada en Electron, solo lectura.** La app utiliza el proyecto Google **`utet-4387a`** y la base Firestore **`(default)`**. Los datos no se descargan ni se publican en GitHub.
+
+### Lo que confirma la exportación recibida
+
+El archivo de respaldo UTET del 28/10/2026 tiene **1.387** fichas en `Estudiante` (singular), **1.396** matrículas y **1.396** registros de requisitos para varios períodos. La cohorte `2025-10__2026-03` contiene **371 matrículas**, repartidas en **266 presencial y 105 online**. Al cotejar la nómina privada anterior, **los 363 estudiantes originales aparecen en Firebase** y quedan **8 adicionales**. Los nueve requisitos existentes de esos 363 estudiantes no presentan diferencias en ese respaldo.
+
+Los campos `AprobacionComplexivoProyecto` y `AprobacionTitulacion` contienen **CUMPLE / NO CUMPLE**, no notas numéricas. La exportación no contiene la colección `nucleos`. La conexión en vivo también consulta `nucleos` y `cronogramas` para descubrir sus campos, sin imputar notas.
+
+### Seguridad y acceso
+
+- La conexión Google se implementa en `firebase/reader.js` y se ejecuta **solo en el proceso principal Electron**, mediante Firestore REST API y solicitudes **GET** a una lista cerrada de colecciones: `Estudiante`, `matriculas`, `requisitos`, `periodos`, `nucleos` y `cronogramas`. No hay métodos para modificar documentos remotos.
+- Se autentica con credenciales locales **Application Default Credentials (ADC)** o con un archivo JSON de **cuenta de servicio de solo lectura** seleccionado desde una ventana nativa en el equipo. La clave privada **nunca se copia al renderer, al JSON de la app ni a GitHub**.
+- **Recomendado:** utilizar `gcloud auth application-default login` en el mismo Windows con una identidad que tenga permiso de visualización de Firestore. Si la institución usa cuenta de servicio, asignarle **solo `roles/datastore.viewer`** (o permisos equivalentes mínimos), guardar su clave JSON fuera del repositorio y seleccionarla desde la app. No enviar esa clave a ChatGPT ni adjuntarla a correos.
+- La configuración web Firebase (`apiKey`, `appId`, `projectId`) identifica el proyecto, pero **no permite eludir reglas ni permisos** para leer datos privados.
+- La app no cambia reglas de seguridad ni habilita lectura pública.
+
+### Flujo operativo
+
+1. Cerrar Informetit; actualizar con `git pull origin main`, `npm install`, `npm run check`, `npm test` y abrir con `npm start`.
+2. Entrar en **Firebase UTET** del menú lateral.
+3. Para conectarse en vivo, elegir **Conectar con Google (credenciales locales)** después de `gcloud auth application-default login`, o **Elegir credencial de lectura** con una cuenta de servicio específica. Luego pulsar **Consultar Firestore ahora**.
+4. Alternativamente, pulsar **Analizar respaldo JSON/TXT** para usar la exportación proporcionada sin conexión en vivo.
+5. Revisar estudiantes coincidentes, adicionales, faltantes y discrepancias de requisitos.
+6. Pulsar **Incorporar datos faltantes de coincidentes** para completar solamente los campos vacíos. Los 8 adicionales **no se agregan** en esta operación.
+7. Si la coordinación confirma que los adicionales pertenecen a la cohorte del informe, puede pulsar **Incorporar también los adicionales**. El aumento de la población requiere confirmación explícita.
+8. La importación nunca modifica notas Moodle, Word, exámenes, actas, tipos de titulación previamente elegidos ni datos de Firebase. Las contradicciones de requisitos se almacenan en `firebaseDiferencias` para revisión, sin sobrescribir los valores locales.
+
+**Importante:** esta implementación está integrada al repositorio, pero la conexión real requiere iniciar sesión o seleccionar las credenciales **en tu propio equipo**; la clave web suministrada no autoriza el acceso a datos protegidos. El proyecto `main` no contiene ninguna clave privada ni datos nominales de Firestore.
+
+Archivos del cambio: `firebase/reader.js` (lectura de nube), `firebase/sync.js` (conciliación), `tests/firebase-sync.test.js` (pruebas), `electron-main.js`, `electron-preload.js`, `app.js`, `data/model.js`, `index.html` y `package.json`.
+
 ## BLOQUE 05 · Fase II — Motor de análisis académico de núcleos (octubre 2026)
 
 **Implementado directamente en `main`.** El capítulo **5. Fase II. Resultados de núcleos estructurantes** se genera dentro de Electron, junto con el informe presencial u online; no se entregan PDF por separado desde ChatGPT.

@@ -115,7 +115,7 @@ function makeReport(state,mode){
  out+=H(2,'9. Conclusiones');
  out+=para('En Examen Complexivo, el total de aprobaciones calculadas asciende a '+complexivoData.counts.approved+
  ' entre '+complexivoData.counts.eligible+' estudiantes asignados a este mecanismo, y '+complexivoData.counts.verified+
- ' resultados cuentan con referencias de actas completas. '+complexivoData.counts.pending+
+ ' resultados contienen referencias de actas cuya autenticidad debe comprobarse. '+complexivoData.counts.pending+
  ' evaluaciones siguen pendientes; estos casos no pueden reportarse como reprobados.');
  out+='<ol><li>En la modalidad '+desc+' constan '+n+' estudiantes, de los que '+d.completos9+' cumplen íntegramente los nueve controles ('+F(P(d.completos9,n))+' %).</li><li>En los ocho requisitos previos se identifican '+pending+' verificaciones pendientes; no representan necesariamente a '+pending+' personas.</li><li>El análisis académico de los cuatro núcleos debe completarse con registros verificados y muestras comparables.</li><li>Los resultados definitivos de titulación están pendientes de actas suficientes para establecer un cierre institucional.</li></ol>';
  out+=H(2,'10. Recomendaciones');

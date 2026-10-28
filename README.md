@@ -39,25 +39,15 @@ preparar_offline.bat          Instala dependencias una sola vez
 clonar_windows.bat            Descarga código e instala Electron
 ```
 
-## Base GPT privada: carga automática al iniciar Electron
+## Base GPT incluida en código privado: sin importar archivos
 
-**No se publica la nómina en GitHub.** El código de `main` lee automáticamente el archivo privado `private/base-gpt.json` al iniciar Electron. La primera carga se importa a IndexedDB; después solo se incorporan estudiantes y notas nuevos sin sobrescribir modificaciones locales. Si aparece una nota oficial distinta a una ya existente, queda en la lista de conflictos para revisión.
+Para la cohorte octubre 2025 – marzo 2026, ChatGPT ha preparado un archivo privado de **código JavaScript** llamado `base-gpt.cjs`, que incluye 363 estudiantes y 11 notas verificadas del Núcleo 1 de Enfermería. Se distribuye como archivo descargable privado de ChatGPT (no por GitHub).
 
-### Instalar la base privada (una sola vez)
+**Pasos mínimos:** descarga `base-gpt.cjs` desde el chat y déjalo en **Descargas**, ejecuta `git pull origin main` y `npm start`. Electron lo descubre, lee el objeto como JSON sin ejecutar código, lo registra en su base local y muestra los datos en el panel. No hay botón de importación, ni instalador PowerShell, ni servidor ni configuración de base de datos. También puedes colocarlo en `Informetit/private/base-gpt.cjs` para mantenerlo junto al proyecto.
 
-1. Descarga el archivo privado `Instalar_Base_GPT_Informetit.ps1` proporcionado en el chat de ChatGPT.
-2. Abre VS Code en `Informetit`, ejecuta `git pull origin main` y después, en PowerShell:
+La aplicación también reconoce automáticamente respaldos JSON de Informetit descargados anteriormente. Si el perfil ya tiene modificaciones, conserva las notas anteriores, agrega nuevas y registra diferencias como conflictos sin sobrescribir calificaciones originales.
 
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File "$env:USERPROFILE\Downloads\Instalar_Base_GPT_Informetit.ps1"
-npm start
-```
-
-El instalador crea `private/base-gpt.json` y verifica la integridad de los datos. Si ya había una versión, crea un respaldo. Si Windows descarga en otra carpeta, reemplaza la ruta del comando por la ubicación real del archivo.
-
-**Alternativa:** extrae `Paquete_Privado_Base_GPT_Informetit.zip` en la carpeta del proyecto; verifica que exista `Informetit/private/base-gpt.json`.
-
-Para actualizaciones futuras, el asistente prepara un nuevo archivo privado con los datos aportados por el usuario. Al instalar el archivo actualizado y reiniciar Electron, la aplicación incorpora las novedades. **No existe sincronización automática directa entre ChatGPT y Electron** y no debe afirmarse lo contrario.
+**Privacidad:** `private/` está excluida del control de versiones. No uses `git add -f` ni publiques el archivo de código con cédulas y calificaciones. El archivo privado contiene datos reales de estudiantes. Para futuras actualizaciones, ChatGPT debe proporcionarte el archivo de código actualizado y tú descargarlo a tu equipo: no hay sincronización remota automática.
 
 ## Base de datos privada
 

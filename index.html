@@ -20,6 +20,7 @@
   <script src="./report_institucional.js" defer></script>
   <script src="./report_pdf.js" defer></script>
   <script src="./moodle/importer.js" defer></script>
+  <script src="./firebase/sync.js" defer></script>
   <script src="./app.js" defer></script>
 </head>
 <body>
@@ -39,6 +40,7 @@
         <button class="nav" data-page="evaluaciones"><span>◉</span> Evaluación final</button>
         <button class="nav" data-page="cronogramas"><span>▣</span> Cronogramas</button>
         <button class="nav" data-page="informes"><span>▤</span> Dos informes</button>
+        <button class="nav" data-page="firebase"><span>☁</span> Firebase UTET</button>
         <button class="nav" data-page="datos"><span>↧</span> Datos y respaldo</button>
       </nav>
       <div class="side-note">Las calificaciones sin fuente se guardan como <b>pendientes</b>. Las estimaciones se muestran por separado.</div>
@@ -46,6 +48,7 @@
     <main id="main" tabindex="-1" aria-live="polite"></main>
   </div>
   <div id="toast" role="status" aria-live="polite"></div>
+  <input hidden id="firebase-file" type="file" accept=".json,.txt,application/json,text/plain">
   <input hidden id="student-file" type="file" accept=".xls,.xlsx,.csv,.html,.htm">
   <input hidden id="backup-file" type="file" accept=".json">
   <input hidden id="logo-file" type="file" accept="image/png,image/jpeg,image/webp">

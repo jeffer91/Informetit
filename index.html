@@ -7,7 +7,10 @@
   <meta name="description" content="Informetit: elaboración local de informes institucionales de titulación UTET, presencial y online.">
   <title>Informetit · UTET</title>
   <link rel="stylesheet" href="./styles.css">
-  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
+  <script src="./vendor/xlsx.full.min.js" onerror="this.onerror=null;this.src='https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js'" defer></script>
+  <script src="./vendor/pdfmake.min.js" onerror="this.onerror=null;this.src='https://cdn.jsdelivr.net/npm/pdfmake@0.2.20/build/pdfmake.min.js'" defer></script>
+  <script src="./vendor/vfs_fonts.js" onerror="this.onerror=null;this.src='https://cdn.jsdelivr.net/npm/pdfmake@0.2.20/build/vfs_fonts.js'" defer></script>
+  <script src="./report_pdf.js" defer></script>
   <script src="./app.js" defer></script>
 </head>
 <body>

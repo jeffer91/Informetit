@@ -341,6 +341,8 @@ async function parseGradeAndSave(save){
   if(!assessed.total){notify(assessed.warnings.join("; ")||"No se identificaron estudiantes. Revisa el formato.");lastParse=null;return}
   lastParse={assessment:assessed,raw,mode:tab,nucleus:selectedN,career:selectedC};
   draw();
+  el("nucleo-select").value=selectedN;
+  el("career-select").value=selectedC;
   notify("Analizados "+assessed.total+" registros. Revisa los resultados antes de guardar.");
   return;
  }

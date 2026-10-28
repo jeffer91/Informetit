@@ -72,6 +72,7 @@ function makeReport(state,mode){
  const DOC=window.InformetitDocument;if(!DOC)throw Error('Módulo de formato INF no disponible');
  if(!window.InformetitNuclei)throw Error('Motor de núcleos no disponible');
  if(!window.InformetitComplexivo)throw Error('Motor de Examen Complexivo no disponible');
+ if(!window.InformetitTrabajo||!window.InformetitConsolidado)throw Error('Motores de Trabajo de Titulación y consolidación no disponibles');
  const phaseReq=window.InformetitRequirements.analyze(state,mode);
  const totalChecks=phaseReq.checks.applicable,done=phaseReq.checks.ok;
  const pending=phaseReq.source==='individual'?phaseReq.checks.fail+phaseReq.checks.unknown:phaseReq.checks.unclassified;
@@ -95,24 +96,46 @@ function makeReport(state,mode){
   ' aprobados ordinarios calculados, '+examPreview.counts.recovered+
   ' aprobados tras supletorio y '+examPreview.counts.pending+
   ' resultados pendientes. Los cálculos y su respaldo en actas se informan por separado.');
+ const projectSummary=window.InformetitTrabajo.analyze(state,mode);
+ out+=para('En Trabajo de Titulación se identifican '+projectSummary.counts.eligible+
+  ' estudiantes, '+projectSummary.counts.complete+' rúbricas completas, '+
+  projectSummary.counts.approved+' aprobaciones calculadas y '+projectSummary.counts.pending+
+  ' pendientes. Se requiere comprobar actas y normativa antes de emitir una conclusión institucional definitiva.');
  out+=DOC.introduction();
  out+=DOC.legal(Table);
  out+=H(2,'3. Planificación y organización');
  out+=para('La planificación de Examen Complexivo contempla cuatro núcleos estructurantes y las etapas ordinaria y supletoria. Las fechas que se presentan son programadas y no deben interpretarse como constancia de ejecución. Los procesos de Trabajo de Titulación se registran separadamente.');
- out+=Table('Cronograma de Examen Complexivo',['Actividad','Inicio','Fin'],nucleus,'Cronograma de la cohorte comunicado por la coordinación');
+ out+=Table('Cronograma de Examen Complexivo',['Actividad','Inicio','Fin'],
+  nucleus.map((row,i)=>{const over=state?.cronogramaPersonalizado?.['complexivo|'+i]||{};
+    return [row[0],over.inicio||row[1],over.fin||row[2]]}),
+  'Cronograma editable del período, no evidencia de ejecución');
  const phase1=window.InformetitRequirements.analyze(state,mode);
  out+=window.InformetitRequirements.renderReport(phase1,{Table,Figure,H,para,F,P});
  const nucleiData=window.InformetitNuclei.build(state,mode);
  out+=window.InformetitNuclei.renderReport(nucleiData,{Table,Figure,H,para,F,P});
- out+=H(2,'6. Trabajo de Titulación');
- out+=para('El mecanismo de Trabajo de Titulación dispone de un cronograma distinto, que comprende formulación de temas, tutorías, revisión de borradores, informe antiplagio, defensa y supletorio. No se fusionan sus calificaciones con los cuatro núcleos del Examen Complexivo.');
- for(const [fase,rows] of Object.entries(thesis)){out+=H(3,fase);out+=Table('Actividades programadas: '+fase,['Actividad','Inicio','Fin'],rows,'Cronograma proporcionado para el período octubre 2025–marzo 2026');}
- out+=para('La Guía institucional para la formulación y aprobación de títulos de titulación (octubre de 2026) requiere una sola acción central, un objeto único, neutralidad, delimitación y viabilidad. La revisión puede finalizar en Aprobado, Corregir o Reformular. La guía debe considerarse un instrumento de validación de propuestas y no evidencia de ejecución del cronograma 2025–2026.');
+ const trabajosData=window.InformetitTrabajo.analyze(state,mode);
+ out+=window.InformetitTrabajo.renderReport(trabajosData,{Table,Figure,H,para,F,P});
+ out+=H(3,'6.5. Cronograma de Trabajo de Titulación');
+ out+=para('Las siguientes fechas representan la programación institucional y pueden modificarse en la pantalla Cronogramas. Los estados de ejecución y las actas se controlan por separado.');
+ let workIndex=0;
+ for(const [fase,rows] of Object.entries(thesis)){
+   out+=H(3,fase);
+   const plan=rows.map(row=>{
+     const override=state?.cronogramaPersonalizado?.['trabajo|'+(workIndex++)]||{};
+     return [row[0],override.inicio||row[1],override.fin||row[2]];
+   });
+   out+=Table('Actividades programadas: '+fase,['Actividad','Inicio','Fin'],plan,
+     'Cronograma editable de octubre 2025–marzo 2026; no acredita ejecución');
+ }
  const complexivoData=window.InformetitComplexivo.analyze(state,mode);
  out+=window.InformetitComplexivo.renderReport(complexivoData,{Table,Figure,H,para,F,P});
- out+=H(2,'8. Síntesis general de la cohorte');
- out+=para('El cumplimiento de requisitos, los núcleos y las evaluaciones definitivas se interpretan por separado. En la modalidad '+desc+' se registran '+complexivoData.counts.approved+' aprobaciones calculadas de Examen Complexivo, de las cuales '+complexivoData.counts.verified+' tienen referencias de actas completas. La eficiencia terminal de toda la cohorte no se cierra hasta integrar los resultados de Trabajo de Titulación y resolver las actas pendientes. No se comparan otros períodos.');
+ const cierre=window.InformetitConsolidado.analyze(state,mode);
+ out+=window.InformetitConsolidado.renderReport(cierre,{Table,Figure,H,para,F,P});
  out+=H(2,'9. Conclusiones');
+ out+=para('La cohorte '+desc+' registra '+cierre.counts.complexivo+' estudiantes en Examen Complexivo y '+
+ cierre.counts.trabajo+' en Trabajo de Titulación. Con las calificaciones disponibles, '+
+ cierre.counts.approved+' presentan aprobación calculada y '+cierre.counts.pending+
+ ' permanecen pendientes. Las aprobaciones calculadas requieren contrastar actas e información de títulos antes de calificarlas como graduaciones.');
  out+=para('En Examen Complexivo, el total de aprobaciones calculadas asciende a '+complexivoData.counts.approved+
  ' entre '+complexivoData.counts.eligible+' estudiantes asignados a este mecanismo, y '+complexivoData.counts.verified+
  ' resultados contienen referencias de actas cuya autenticidad debe comprobarse. '+complexivoData.counts.pending+

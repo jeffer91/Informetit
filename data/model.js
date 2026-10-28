@@ -100,6 +100,7 @@ function analyze(state,mod){
     const nk=Number(rec.nucleo),value=grade(rec.nota);
     if(!Number.isInteger(nk)||nk<1||nk>4||value===null)return;
     const s=studentMap.get(id(rec.studentId)),recordId=id(rec.studentId)+'|'+nk;
+    if(s.tipoTitulacion==='trabajo')return; // Trabajo de Titulación se analiza por separado.
     if(unresolved.has(recordId)||contradictory.has(recordId))return;
     const entry={...rec,nota:value,nucleo:nk,studentId:s.id,carrera:s.carrera,modalidad:s.modalidad,
       sourceType:src,sourceDetail:text(rec.source||rec.fuente||'')};

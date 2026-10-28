@@ -1,3 +1,37 @@
+## BLOQUE 05 · Fase II — Motor de análisis académico de núcleos (octubre 2026)
+
+**Implementado directamente en `main`.** El capítulo **5. Fase II. Resultados de núcleos estructurantes** se genera dentro de Electron, junto con el informe presencial u online; no se entregan PDF por separado desde ChatGPT.
+
+### Motor académico independiente
+
+- Nuevo archivo `analysis/nuclei.js`: calcula **media, mediana, mínima, máxima, desviación estándar poblacional y cuatro rangos de nota (0–6,99; 7–7,99; 8–8,99; 9–10)** exclusivamente sobre notas finales individuales disponibles. Una nota cero real se incorpora; una nota vacía no es cero.
+- Para cada carrera se distinguen los estudiantes de **Examen Complexivo**, excluyendo a los clasificados como **Trabajo de Titulación** del denominador y los listados de núcleos.
+- Cada uno de los cuatro núcleos incluye tabla de estudiantes **con calificación individual**, estadísticos, distribución de frecuencias, gráfico e interpretación. **Las notas que faltan aparecen en una tabla de seguimiento separada**, por estudiante y núcleo, diferenciadas de las notas en conflicto; nunca se atribuyen como reprobaciones.
+- Los **19 resúmenes agregados del Word** se aceptan como fuente del período y se conservan incluso sin nómina local. Cuando no existe nota individual para un núcleo, la app puede presentar la cantidad, promedio, mínimo y máximo del Word, señalando su fuente. Un agregado **no permite** inventar nombres, medianas, desviaciones ni distribuciones individuales.
+- Si existen notas individuales de un núcleo, **solo ellas** se utilizan para calcular sus estadísticos; el resumen agregado del Word permanece como referencia independiente, jamás se promedian conjuntamente.
+- El análisis distingue la cobertura nominal, las muestras incompletas, las diferencias de tamaño y los posibles conflictos. Las calificaciones del núcleo **no equivalen** a la aprobación final del Examen Complexivo.
+- Se conserva el cronograma previsto de los cuatro núcleos (30 de marzo a 18 de abril de 2026) como **planificación**, no como prueba de ejecución.
+
+### Integración
+
+- `report_institucional.js`: reemplaza el antiguo capítulo breve de promedios por el análisis completo por carrera y núcleo, con tablas, gráficos, interpretaciones, pendientes y control de fuentes.
+- `app.js`: incorpora la pantalla de análisis por carrera y detalle de cuatro núcleos dentro de **Notas de núcleos**; los controles de calidad de **Dos informes** se calculan con el mismo motor.
+- `index.html`: carga `analysis/nuclei.js` antes del generador y la interfaz.
+- `nucleos_agregados.js`: identifica la procedencia del Word como fuente aceptada, con las limitaciones de un agregado.
+- `tests/block05.test.js`: validaciones de estadísticos, límites de rangos, carreras, modalidades, pendientes, conflictos, fuente Word y generación institucional.
+- `package.json`: añade los tests y las comprobaciones del Bloque 05.
+
+### Actualizar en Windows
+
+```powershell
+git pull origin main
+npm run check
+npm test
+npm start
+```
+
+El código se puede actualizar desde GitHub; los datos identificables de estudiantes y calificaciones permanecen en IndexedDB y en respaldos privados de la instalación local. **El siguiente bloque (06)** abordará teoría 40 %, práctica 60 %, examen ordinario, supletorio y resultados finales de Examen Complexivo.
+
 ## BLOQUE 04 · Importación inteligente de calificaciones Moodle (octubre 2026)
 
 **Implementado directamente en `main`.** La carga y conciliación se realizan dentro de **Notas de núcleos** en Electron; los informes siguen generándose exclusivamente desde la app.

@@ -152,7 +152,8 @@ function assess(parsed,context,state){
    else if(seen.has(id)){
     status='repeat_in_paste';reason='Este estudiante aparece más de una vez en el pegado';
     const prior=seen.get(id);
-    if(prior.grade!==row.grade){prior.status='repeat_in_paste';prior.reason='El pegado contiene notas distintas para la misma identidad'}
+    prior.status='repeat_in_paste';
+    prior.reason=prior.grade!==row.grade?'El pegado contiene notas distintas para la misma identidad':'El estudiante aparece dos veces en el mismo pegado';
    }else{
     const grade=row.grade;
     const official=notes.find(x=>String(x.studentId)+'|'+Number(x.nucleo)===id);

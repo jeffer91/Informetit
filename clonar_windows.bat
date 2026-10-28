@@ -1,8 +1,9 @@
 @echo off
 chcp 65001 >nul
+setlocal
 cd /d "%~dp0"
-set "DEST=%USERPROFILE%\Desktop\Informetit"
-echo Descargando Informetit al escritorio...
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$ErrorActionPreference = 'Stop'; $zip = Join-Path $env:TEMP 'Informetit-main.zip'; Invoke-WebRequest -Uri 'https://github.com/jeffer91/Informetit/archive/refs/heads/main.zip' -OutFile $zip -UseBasicParsing; $dest = Join-Path $env:USERPROFILE 'Desktop\Informetit'; if(Test-Path $dest){Write-Host 'La carpeta Informetit ya existe. Guarda un respaldo antes de reemplazarla.'; exit 2}; New-Item -ItemType Directory -Force -Path $dest | Out-Null; Expand-Archive -LiteralPath $zip -DestinationPath $env:TEMP\Informetit-Descarga -Force; Copy-Item -Path $env:TEMP\Informetit-Descarga\Informetit-main\* -Destination $dest -Recurse -Force; Write-Host ('Carpeta creada: '+$dest)"
-if errorlevel 1 (echo No se pudo descargar o ya existe una carpeta Informetit en el escritorio. & pause & exit /b 1)
-start "" "%DEST%\index.html"
+echo Descargando Informetit desde GitHub (rama main)...
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$ErrorActionPreference = 'Stop'; $desktop = [Environment]::GetFolderPath('DesktopDirectory'); $dest = Join-Path $desktop 'Informetit'; if (Test-Path $dest) { Write-Host 'La carpeta Informetit ya existe. No se sobrescribe para proteger tus datos.'; exit 2 }; $zip = Join-Path $env:TEMP 'Informetit-main.zip'; $scratch = Join-Path $env:TEMP ('Informetit-descarga-'+[guid]::NewGuid().ToString('N')); Invoke-WebRequest -Uri 'https://github.com/jeffer91/Informetit/archive/refs/heads/main.zip' -OutFile $zip -UseBasicParsing; Expand-Archive -LiteralPath $zip -DestinationPath $scratch -Force; Copy-Item -Path (Join-Path $scratch 'Informetit-main') -Destination $dest -Recurse; Write-Host ('Creado: '+$dest); Start-Process (Join-Path $dest 'index.html')"
+if errorlevel 1 (echo No se completo la descarga. Comprueba Internet y que no exista la carpeta Informetit en el escritorio. & pause & exit /b 1)
+echo Informetit descargado e iniciado.
+pause

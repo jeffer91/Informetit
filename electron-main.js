@@ -89,6 +89,7 @@ ipcMain.handle('informetit:read-master', async event => {
     throw new Error('Solicitud de base GPT no autorizada');
   }
   const sourceDirs = [
+    path.join(__dirname, 'data'),
     path.join(__dirname, 'private'),
     app.getPath('downloads'),
     app.getPath('desktop'),

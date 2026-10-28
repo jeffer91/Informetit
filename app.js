@@ -10,6 +10,7 @@ let state=initial(), page="inicio", tab="presencial", query="", inputText="", dr
 let reqFilter="todos",reqStatus="todos";
 let nucleusCareerKey="";
 let evaluationStudentId="";
+let examImportText="",examImportStage=null;
 let firebaseComparison=null,firebaseConnection=null,firebaseMessage="";
 const $=x=>document.querySelector(x), el=id=>document.getElementById(id), h=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])), normal=Data.key, compact=s=>normal(s).replace(/\s/g,""), getNum=Data.grade, num=s=>s===null||s===undefined?"—":Number(s).toLocaleString("es-EC",{minimumFractionDigits:2,maximumFractionDigits:2}), today=()=>new Date().toISOString().slice(0,10);
 function notify(t){const node=el("toast");node.textContent=t;node.style.display="block";clearTimeout(notify.timer);notify.timer=setTimeout(()=>node.style.display="none",4300)}
@@ -384,6 +385,23 @@ function evaluations(){
    }
  }else out+='<p class="hint">Selecciona primero un estudiante para cargar o ingresar su evaluación.</p>';
  out+='</section>';
+ out+='<section class="panel"><h2>Importación masiva desde Excel o Moodle</h2>'
+   +'<p class="hint">Pega una tabla con encabezados: Cédula, Teoría y Práctica. Opcionalmente: Teoría supletorio, Práctica supletorio, Nota supletorio, Acta ordinaria y Acta supletorio. Acepta tabulaciones de Excel o punto y coma. La coincidencia es por cédula exacta. No modifica evaluaciones previamente guardadas.</p>'
+   +'<label class="field">Tabla de evaluaciones<textarea id="exam-import-text" placeholder="Cédula&#9;Teoría&#9;Práctica&#9;Nota supletorio&#10;0000000001&#9;8,00&#9;9,00">'+h(examImportText)+'</textarea></label>'
+   +'<div class="actions"><button class="btn" data-action="preview-eval-import">1. Analizar tabla</button>'
+   +'<button class="btn primary" data-action="apply-eval-import"'+(examImportStage?'':' disabled')+'>2. Incorporar registros revisados</button></div>'
+   +'<p class="hint">Sin revisión previa, no se guarda ninguna nota. Las filas con identidad dudosa, repetida, inválida o ya existente no se incorporan.</p>';
+ if(examImportStage?.mode===tab){
+   const preview=examImportStage.result;
+   out+='<div class="cards">'+card("Filas detectadas",preview.counts.total)
+     +card("Listas para guardar",preview.counts.ready)
+     +card("Por revisar",preview.counts.skipped)+'</div>';
+   out+=table(["Fila","Cédula","Estudiante","Teoría","Práctica","Resultado"],
+     preview.rows.map(x=>'<tr>'+td(x.line)+td(x.studentId)+td(x.person?.nombre||"—")
+       +td(x.ordTeoria||"—")+td(x.ordPractica||"—")
+       +td(x.status==="ready"?"Lista para guardar":x.reason)+'</tr>'));
+ }
+ out+='</section>';
  out+='<section class="panel"><h2>Resultados por carrera</h2>'
    +table(["Carrera","Complexivo","Ordinarios","Apr. ordinarios","Apr. supletorios","Reprobados","No presentados","Pendientes","Con acta"],
      data.careers.map(c=>'<tr>'+td(c.name)+td(c.stats.eligible)+td(c.stats.ordinaryComplete)
@@ -658,8 +676,28 @@ async function action(code){switch(code){case"student-file":el("student-file").c
      notify("Examen Complexivo guardado. Resultado y antecedentes registrados en auditoría.");
    }
  }catch(error){notify("Evaluación: "+error.message)}
+}break;case"preview-eval-import":{
+ try{
+  const raw=el("exam-import-text")?.value||"";
+  const result=window.InformetitExamImport.assess(raw,state,tab);
+  examImportText=raw;examImportStage={text:raw,mode:tab,result};
+  draw();
+  notify("Tabla revisada: "+result.counts.ready+" registros listos y "+result.counts.skipped+" por revisar.");
+ }catch(error){examImportStage=null;notify("Importación de exámenes: "+error.message)}
+}break;
+case"apply-eval-import":{
+ if(!examImportStage||examImportStage.mode!==tab||examImportStage.text!==(el("exam-import-text")?.value||"")){
+  notify("La tabla o modalidad cambió. Analiza de nuevo antes de guardar.");break;
+ }
+ try{
+  const latest=window.InformetitExamImport.assess(examImportStage.text,state,tab);
+  const results=window.InformetitExamImport.apply(state,latest,today());
+  await Store.save(results.next);state=results.next;
+  examImportStage=null;examImportText="";draw();
+  notify("Complexivo: "+results.stats.added+" evaluaciones incorporadas; "+results.stats.skipped+" filas sin modificar.");
+ }catch(error){console.error(error);notify("No se guardó el lote: "+error.message)}
 }break;case"doc":download("Informe_"+tab+"_"+today()+".doc","application/msword;charset=utf-8",'<html><head><meta charset="utf-8"><style>body{font-family:Arial}table{border-collapse:collapse;width:100%}td,th{border:1px solid #777;padding:6px}h1{text-align:center;font-size:18pt}h2{font-size:14pt}</style></head><body>'+reportBody(tab,true)+'</body></html>');break;case"pdf":if(window.InformetitFullReport){try{await window.InformetitFullReport.download(state,tab)}catch(e){notify("No se pudo generar PDF: "+e.message)}}else notify("Informe institucional no disponible.");break;case"preview-current":case"preview-presencial":case"preview-online":{const m=code==="preview-current"?tab:code==="preview-online"?"online":"presencial";try{showReportPreview(m)}catch(e){notify("No se pudo abrir la vista previa: "+e.message)}break}case"draft-presencial":case"draft-online":{const mode=code==="draft-online"?"online":"presencial";if(window.InformetitFullReport){try{const result=await window.InformetitFullReport.download(state,mode);if(result&&!result.canceled)notify("Borrador institucional guardado en PDF.");}catch(err){notify("Error al generar el informe: "+err.message);console.error(err)}}else notify("Generador institucional no disponible.");break}case"print":if(window.InformetitFullReport){try{await window.InformetitFullReport.download(state,tab)}catch(e){notify("No se pudo generar PDF: "+e.message)}}else notify("Informe institucional no disponible.");break;}}
-document.addEventListener("click",async ev=>{let nav=ev.target.closest("[data-page]");if(nav){page=nav.dataset.page;query="";lastParse=null;draw();return}let m=ev.target.closest("[data-mode]");if(m){tab=m.dataset.mode;lastParse=null;draw();return}let cmd=ev.target.closest("[data-action]");if(cmd){if(cmd.dataset.action.startsWith("firebase-"))await firebaseAction(cmd.dataset.action);else await action(cmd.dataset.action);return}let pending=ev.target.closest("[data-link-unmatched]");if(pending){
+document.addEventListener("click",async ev=>{let nav=ev.target.closest("[data-page]");if(nav){page=nav.dataset.page;query="";lastParse=null;draw();return}let m=ev.target.closest("[data-mode]");if(m){tab=m.dataset.mode;lastParse=null;examImportStage=null;evaluationStudentId="";draw();return}let cmd=ev.target.closest("[data-action]");if(cmd){if(cmd.dataset.action.startsWith("firebase-"))await firebaseAction(cmd.dataset.action);else await action(cmd.dataset.action);return}let pending=ev.target.closest("[data-link-unmatched]");if(pending){
  const idx=Number(pending.dataset.linkUnmatched),record=state.sinVincular[idx];
  if(!record)return;
  const studentId=el("unmatched-student-"+idx)?.value;
@@ -684,7 +722,7 @@ let conflict=ev.target.closest("[data-use-conflict], [data-keep-conflict]");if(c
   await Store.save(candidate);state=candidate;draw();notify("Conflicto resuelto y registrado en la auditoría.");
  }catch(e){console.error(e);notify("No se resolvió el conflicto: "+e.message)}
 }});
-document.addEventListener("input",ev=>{if(ev.target.id==="student-search"){query=ev.target.value;let pos=ev.target.selectionStart;draw();let search=el("student-search");search.focus();search.setSelectionRange(pos,pos)}if(ev.target.id==="moodle-text"){inputText=ev.target.value;lastParse=null}});
+document.addEventListener("input",ev=>{if(ev.target.id==="student-search"){query=ev.target.value;let pos=ev.target.selectionStart;draw();let search=el("student-search");search.focus();search.setSelectionRange(pos,pos)}if(ev.target.id==="moodle-text"){inputText=ev.target.value;lastParse=null}if(ev.target.id==="exam-import-text"){examImportText=ev.target.value;examImportStage=null}});
 document.addEventListener("change",async ev=>{let field=ev.target;if(field.dataset.studentType){let s=state.estudiantes.find(x=>x.id===field.dataset.studentType);if(s){s.tipoTitulacion=field.value;await persist();notify("Modalidad de titulación actualizada.")}}else if(field.hasAttribute("data-eval-select")){evaluationStudentId=field.value;draw()}else if(field.hasAttribute("data-nucleus-career")){nucleusCareerKey=field.value;draw()}else if(field.hasAttribute("data-requirement-filter")){reqFilter=field.value;draw()}else if(field.hasAttribute("data-status-filter")){reqStatus=field.value;draw()}else if(field.dataset.schedule){state.ejecucion[field.dataset.schedule]=field.value;await persist();notify("Ejecución registrada.")}else if(field.dataset.config){state.config[field.dataset.config]=field.type==="checkbox"?field.checked:field.value;await persist();draw()}});
 el("student-file").addEventListener("change",handleFiles);el("backup-file").addEventListener("change",handleFiles);
 el("firebase-file").addEventListener("change",firebaseLoadFile);

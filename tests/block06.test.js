@@ -182,7 +182,7 @@ test('Fase III del PDF presenta ordinarios, recuperación, notas y pendientes no
   assert.ok(html.includes(fragment),fragment);
  }
  assert.match(html,/8,60/);
- assert.match(html,/Supletorio pendiente/);
+ assert.match(html,/Evaluación pendiente/);
  assert.equal((html.match(/class="inf-index"/g)||[]).length,3);
 });
 test('si falta nómina privada no se deducen aprobados desde requisitos ni Firebase',()=>{

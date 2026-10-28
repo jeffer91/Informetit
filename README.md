@@ -1,3 +1,53 @@
+## BLOQUE 06 · Examen Complexivo — ordinario, supletorio y resultados (28/10/2026)
+
+**Implementado directamente en `main`.** Esta es la primera de tres entregas finales acordadas (Bloques 06, 07 y 08). No se genera un PDF externo desde ChatGPT: las tablas y análisis alimentan el generador de los dos informes en Electron.
+
+### Motor de Examen Complexivo
+
+- `analysis/complexivo.js`: **nota ordinaria = teoría × 0,40 + práctica × 0,60**, con dos decimales, escala 0–10 y umbral de 7,00. Las notas vacías no equivalen a cero; un cero registrado es válido.
+- Si el ordinario es 7,00 o superior, el resultado calculado es **aprobado ordinario**. Si es inferior a 7,00, queda **supletorio pendiente**, no reprobado definitivo.
+- El supletorio se registra de manera independiente: con teoría/práctica ponderadas 40/60 o con **nota final explícita del acta**, cuando esa sea la información disponible. Si existe una contradicción entre el total escrito y el calculado, se bloquea el guardado hasta revisarla.
+- Un supletorio registrado de 7,00 o más produce **aprobado por supletorio**. Si está por debajo de 7,00 y existe ordinario previo insuficiente, produce **reprobado definitivo calculado**. Las ausencias explícitas se muestran separadas de notas faltantes.
+- Los respaldos se consignan mediante **referencias a actas de ordinario y supletorio**. Una referencia escrita por sí sola no verifica la autenticidad de un acta: el PDF diferencia notas calculadas, referencias registradas y evidencias pendientes de validación.
+- El motor tolera los registros antiguos `one`, `two`, `rescue`, `status`, `source` sin descartarlos ni asumir que una decisión manual equivale a una nota. Si falta un componente o el estado antiguo contradice el cálculo, genera una advertencia.
+- Se excluye a todos los estudiantes con `tipoTitulacion="trabajo"` de la población y los cálculos del Examen Complexivo.
+- Se detectan y aíslan evaluaciones duplicadas por cédula, resultados con información incompleta y falta de actas. Los cambios manuales se añaden a la **auditoría privada** de la base de datos.
+
+### Interfaz dentro de la app
+
+En **Evaluaciones finales** hay un selector de estudiante, controles separados del ordinario y supletorio, referencias de las dos actas, botón **Calcular y revisar** y botón **Guardar evaluación**. El estado se calcula, no se elige manualmente.
+
+En esa misma pantalla, el motor **`analysis/complexivo_import.js`** permite pegar desde Excel o Moodle una tabla CSV/TSV con las columnas obligatorias `Cédula`, `Teoría` y `Práctica`; opcionalmente `Nota supletorio`, `Teoría supletorio`, `Práctica supletorio`, `Acta ordinaria` y `Acta supletorio`. Se aplica **Analizar tabla → Incorporar registros revisados**. Se exige coincidencia exacta de cédula y modalidad; el lote nunca reemplaza evaluaciones ya guardadas y bloquea duplicados, estudiantes no encontrados o proyectos de titulación.
+
+### Fase III del informe institucional
+
+`report_institucional.js` incorpora la nueva sección 7:
+- **7.1** Cobertura y población de Examen Complexivo.
+- **7.2** Ordinarios, supletorios y resultados definitivos calculados.
+- **7.3** Resultados, porcentajes y figura por carrera.
+- **7.4** Tablas nominales por carrera de notas disponibles y seguimiento **separado** de registros pendientes o contradictorios.
+- **7.5** Conciliación y controles de referencias de actas.
+- **7.6** Interpretación y límites de los resultados.
+
+El resumen ejecutivo, la síntesis y las conclusiones se actualizan desde el motor de Complexivo. No se mezclan los resultados con los nueve requisitos, las notas de núcleos ni los estados de aprobación de Firebase.
+
+### Pruebas y actualización
+
+- `tests/block06.test.js` prueba ponderación, límites, recuperación, ausencia, compatibilidad, duplicados, actas, modalidades y generación del PDF.
+- `tests/block06-import.test.js` verifica TSV, CSV, identificación, conservación de ceros, filas conflictivas y no sobrescritura.
+- Se agregaron nuevas pruebas a los archivos de regresión de los bloques anteriores.
+
+En Windows, cerrar Informetit y ejecutar:
+
+```powershell
+git pull origin main
+npm run check
+npm test
+npm start
+```
+
+Los datos individuales y actas permanecen en el almacenamiento local privado. **Pendiente de validar en Windows:** impresión completa del PDF y el comportamiento con las nóminas y actas reales. El Bloque 07 implementará Trabajo de Titulación y consolidación institucional; el Bloque 08 cerrará la maquetación y validación total de los dos informes.
+
 ## INTEGRACIÓN FIREBASE UTET · octubre 2026
 
 **Conexión implementada en Electron, solo lectura.** La app utiliza el proyecto Google **`utet-4387a`** y la base Firestore **`(default)`**. Los datos no se descargan ni se publican en GitHub.

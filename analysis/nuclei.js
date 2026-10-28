@@ -141,6 +141,11 @@ function renderReport(dataset,helpers){
  const v=x=>x===null?'No disponible':F(x);
  let out=H(2,'5. Fase II. Resultados de núcleos estructurantes');
  out+=para('Los cuatro núcleos forman parte de la preparación del Examen Complexivo. Los análisis presentan únicamente las notas finales disponibles, con sus denominadores y fuentes. Se conservan los parciales en la base local sin incorporarlos a estas tablas. Los estudiantes de Trabajo de Titulación se analizan en su capítulo correspondiente.');
+ out+=Table('Cronograma planificado de los núcleos estructurantes',
+   ['Núcleo','Fecha de inicio','Fecha de finalización'],
+   [['Núcleo 1','30/03/2026','02/04/2026'],['Núcleo 2','06/04/2026','09/04/2026'],
+    ['Núcleo 3','10/04/2026','14/04/2026'],['Núcleo 4','15/04/2026','18/04/2026']],
+   'Fechas de la planificación de Examen Complexivo del período; no prueban por sí solas que las sesiones se hayan ejecutado');
  out+=H(3,'5.1. Cobertura y fuentes');
  out+=para('Se consideran '+dataset.careers.length+' carreras en la modalidad '+dataset.mode+'. Existen '+dataset.nucleiWithResults+
    ' combinaciones carrera–núcleo con resultados entre '+dataset.nucleiExpected+' posibles. '+

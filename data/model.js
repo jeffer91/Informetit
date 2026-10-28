@@ -21,7 +21,7 @@ const career=s=>{
   let v=key(s).replace(/\bONLINE\b|\bEN LINEA\b/g,'').replace(/\s+/g,' ').trim();
   if(v==='ADMINISTRACION DE EMPRESAS')v='ADMINISTRACION';
   if(v==='GESTION DE TALENTO HUMANO')v='GESTION DEL TALENTO HUMANO';
-  if(v.startsWith('TECNOLOGIA SUPERIOR EN '))v=v.slice(22);
+  if(v.startsWith('TECNOLOGIA SUPERIOR EN '))v=v.slice('TECNOLOGIA SUPERIOR EN '.length).trim();
   return v;
 };
 const grade=x=>{

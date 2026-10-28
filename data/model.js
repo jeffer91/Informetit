@@ -65,9 +65,18 @@ function audit(state){
     else if(seen.has(sid))problems.push({type:'cedula_repetida',student:sid});
     else seen.set(sid,s);
     if(s.modalidad!==mode(s))problems.push({type:'modalidad_inconsistente',student:sid});
+    const careerOnline=/\bONLINE\b|\bEN LINEA\b/.test(key(s.NombreCarrera||s.carrera));
+    const codeOnline=/-L-/i.test(text(s.codigo||s.CodigoCarrera));
+    const codePresencial=/-P-/i.test(text(s.codigo||s.CodigoCarrera));
+    if((careerOnline&&codePresencial)||(!careerOnline&&codeOnline&&text(s.NombreCarrera||s.carrera)))
+      problems.push({type:'carrera_codigo_discrepante',student:sid});
     if(!text(s.nombre))problems.push({type:'nombre_vacio',student:sid});
     if(!text(s.carrera))problems.push({type:'carrera_vacia',student:sid});
   }
+  const masterIds=new Set(students.map(s=>id(s.id)));
+  for(const score of [...state.notas||[],...state.notasBorrador||[]])
+    if(score?.studentId&&!masterIds.has(id(score.studentId)))
+      problems.push({type:'nota_sin_estudiante',student:id(score.studentId)});
   return {students:students.length,unique:seen.size,issues:problems,
     canUseIndividual:students.length>0&&problems.every(p=>p.type!=='cedula_repetida'&&p.type!=='id_vacio')};
 }

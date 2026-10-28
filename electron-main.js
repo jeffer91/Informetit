@@ -10,6 +10,7 @@ const fs = require('node:fs/promises');
 const path = require('node:path');
 const crypto = require('node:crypto');
 const { pathToFileURL } = require('node:url');
+const firestoreReader = require('./firebase/reader.js');
 
 app.setAppUserModelId('ec.itsqmet.informetit');
 const singleInstance = app.requestSingleInstanceLock();
@@ -287,6 +288,26 @@ ipcMain.handle('informetit:save-apa-pdf', async (event, payload) => {
   } finally {
     if (!preview.isDestroyed()) preview.destroy();
   }
+});
+
+
+/* Firebase: conexiones OAuth locales y lectura exclusivamente de colecciones permitidas. */
+ipcMain.handle('informetit:firebase-connect',async(event,method)=>{
+ if(!mainWindow||event.sender!==mainWindow.webContents)throw Error('Ventana no autorizada');
+ return firestoreReader.connect({method,selectFile:async()=>{
+  const picked=await dialog.showOpenDialog(mainWindow,{
+   title:'Seleccionar cuenta de servicio de solo lectura para UTET (sin subirla)',
+   properties:['openFile'],filters:[{name:'Credencial Google JSON',extensions:['json']}]});
+  return picked.canceled?null:picked.filePaths[0];
+ }});
+});
+ipcMain.handle('informetit:firebase-read',async(event)=>{
+ if(!mainWindow||event.sender!==mainWindow.webContents)throw Error('Ventana no autorizada');
+ return firestoreReader.readAll();
+});
+ipcMain.handle('informetit:firebase-status',async(event)=>{
+ if(!mainWindow||event.sender!==mainWindow.webContents)throw Error('Ventana no autorizada');
+ return firestoreReader.status();
 });
 
 if (singleInstance) {

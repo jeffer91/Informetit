@@ -1,3 +1,14 @@
+## Generación de informes dentro de Electron
+
+La generación y descarga se realiza **dentro de la app**, nunca se requiere recibir PDF por ChatGPT.
+
+1. En **Resumen**, usa **Vista previa presencial** o **Vista previa online** para inspeccionar en la misma ventana el documento con su portada, capítulos, tablas y figuras.
+2. En la vista previa, pulsa **Guardar informe en PDF**, o usa directamente **Descargar PDF presencial / online**.
+3. Electron genera el documento mediante impresión nativa y abre el diálogo de Windows para elegir la carpeta y el nombre del archivo.
+4. En **Dos informes**, selecciona la modalidad, comprueba la cobertura de núcleos y usa **Vista previa** o **Descargar PDF completo**.
+
+Los documentos son borradores hasta incorporar y verificar todos los resultados. Las estadísticas de notas de Word mantienen estado provisional; las notas oficiales de Moodle permanecen en su registro distinto. Los datos nominales nunca se publican en la rama pública.
+
 ## Informe institucional ampliado (28 de octubre de 2026)
 
 A partir del PDF de 6 páginas y del Word de 131 páginas de referencia, se implementó `report_institucional.js` con las siguientes secciones: resumen ejecutivo, introducción, objetivos, metodología, marco normativo referencial, cronogramas, Fase I, cumplimiento y continuidad por carrera, Fase II con cuatro núcleos para cada carrera, Trabajo de Titulación, Fase III, conclusiones, recomendaciones y referencias. Los botones de descarga PDF se dirigen a este generador.

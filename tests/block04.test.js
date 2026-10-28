@@ -164,3 +164,14 @@ test('vinculación manual conflictiva conserva la nota Word y solicita decisión
  assert.equal(result.next.notasBorrador[0].nota,9.2);
  assert.equal(result.next.notas.length,0);
 });
+
+test('estudiantes de Trabajo de Titulación no se incluyen en núcleos Complexivo',()=>{
+ const st=state();st.estudiantes[0].tipoTitulacion='trabajo';
+ const p=Import.parse(vertical),assessment=Import.assess(p,ctx(p),st);
+ assert.equal(assessment.summary.wrong_mechanism,1);
+ assert.equal(Import.plan(st,assessment,'2026-10-28').stats.added,0);
+ st.notas=[{studentId:'0000000001',nucleo:1,nota:8.2}];
+ assert.equal(M.analyze(st,'presencial').notes.length,0);
+ st.sinVincular=[{tipo:'nota_moodle',nucleo:1,carrera:'Enfermería',modalidad:'presencial',registro:{nota:8.2}}];
+ assert.throws(()=>Import.linkPending(st,0,'0000000001','2026-10-28'));
+});

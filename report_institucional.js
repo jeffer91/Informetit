@@ -117,7 +117,7 @@ function makeReport(state,mode){
   out+=Table('Continuidad de la cohorte presencial',['Condición','Estudiantes','Denominador','Porcentaje'],[['Inicialmente registrados',267,267,'100,00 %'],['Activos',262,267,F(P(262,267))+' %'],['Retirados',5,267,F(P(5,267))+' %'],['Llegaron a fase final',255,267,F(P(255,267))+' %'],['No llegaron a fase final',12,267,F(P(12,267))+' %']],'Indicadores del Word institucional de referencia; no se deducen del Excel de estudiantes activos');
  }else out+=para('Para online no se recibió una matriz de matrícula inicial y retiros equivalente a la presencial. Se mantiene pendiente este indicador, sin trasladar al informe online las cifras del presencial.');
  out+=H(2,'5. Fase II. Núcleos estructurantes');
- out+=para('Los cuatro núcleos son actividades de preparación académica y deben analizarse por carrera. La aplicación conserva las notas finales disponibles y, cuando corresponda, las evaluaciones parciales y talleres. Los promedios se calculan sobre registros individuales disponibles o se transcriben provisionalmente de las tablas del Word de trabajo, según su procedencia. Una nota faltante no equivale a cero; las cifras del Word requieren conciliación con Moodle.');
+ out+=para('Los cuatro núcleos son actividades de preparación académica y deben analizarse por carrera. La aplicación conserva las notas finales disponibles y, cuando corresponda, las evaluaciones parciales y talleres. Los promedios se calculan con las notas individuales disponibles o con estadísticas procedentes del Word institucional de trabajo. Conforme al criterio de la coordinación, las notas del Word se utilizan como resultados de referencia; su procedencia se conserva y cualquier discrepancia con Moodle se registra para revisión. Una nota faltante no equivale a cero.');
  out+=Table('Cronograma de núcleos estructurantes',['Núcleo','Inicio','Fin'],nucleus.slice(0,4),'Fechas programadas');
  out+=H(3,'5.1. Cobertura global por carrera y núcleo');
  const allRows=d.careers.map(c=>[c.name,...[1,2,3,4].map(k=>{let x=d.N(c.name,k);return x.n+' / '+(x.mean==null?'Pend.':F(x.mean));})]);
@@ -126,7 +126,7 @@ function makeReport(state,mode){
  for(const c of d.careers){
   out+=H(3,'Resultados de '+c.name);
   const rs=[1,2,3,4].map(k=>({k,...d.N(c.name,k)}));
-  out+=Table('Resultados por núcleo: '+c.name,['Núcleo','Registros','Promedio','Mínimo','Máximo'],rs.map(r=>['Núcleo '+r.k,r.n,r.mean==null?'Pendiente':F(r.mean),r.min==null?'No disponible':F(r.min),r.max==null?'No disponible':F(r.max)]),'Datos individuales de Electron o estadísticas extraídas del Word institucional en elaboración; estas últimas requieren conciliación con Moodle');
+  out+=Table('Resultados por núcleo: '+c.name,['Núcleo','Registros','Promedio','Mínimo','Máximo'],rs.map(r=>['Núcleo '+r.k,r.n,r.mean==null?'Pendiente':F(r.mean),r.min==null?'No disponible':F(r.min),r.max==null?'No disponible':F(r.max)]),'Datos individuales locales o estadísticas del Word de trabajo aceptadas para el período; divergencias con Moodle sujetas a revisión');
   const avail=rs.filter(r=>r.mean!==null);
   if(!avail.length)out+=para('No se han incorporado calificaciones verificadas de '+c.name+' en los cuatro núcleos. Las tablas están preparadas y permanecen pendientes hasta recibir los registros correspondientes.');
   else{
@@ -135,7 +135,7 @@ function makeReport(state,mode){
   }
  }
  out+=H(3,'5.3. Interpretación y limitaciones');
- out+=para('Las 19 tablas de núcleos extraídas del Word de trabajo corresponden a Enfermería, Educación Inicial, Marketing, Redes y Contabilidad. Son resultados provisionales hasta la verificación de sus aulas y calificaciones. La aplicación no debe copiar sus notas a la cohorte nominal sin comprobar cédulas, cursos y modalidades. Comparar medias de aulas con coberturas distintas requiere identificar previamente esas diferencias.');
+ out+=para('Las 19 tablas de núcleos extraídas del Word de trabajo corresponden a Enfermería, Educación Inicial, Marketing, Redes y Contabilidad. Se emplean conforme al criterio de la coordinación, conservando su fuente y controles de coherencia frente a registros de Moodle. La aplicación no debe copiar sus notas a la cohorte nominal sin comprobar cédulas, cursos y modalidades. Comparar medias de aulas con coberturas distintas requiere identificar previamente esas diferencias.');
  out+=H(2,'6. Trabajo de Titulación');
  out+=para('El mecanismo de Trabajo de Titulación dispone de un cronograma distinto, que comprende formulación de temas, tutorías, revisión de borradores, informe antiplagio, defensa y supletorio. No se fusionan sus calificaciones con los cuatro núcleos del Examen Complexivo.');
  for(const [fase,rows] of Object.entries(thesis)){out+=H(3,fase);out+=Table('Actividades programadas: '+fase,['Actividad','Inicio','Fin'],rows,'Cronograma proporcionado para el período octubre 2025–marzo 2026');}

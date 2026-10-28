@@ -1,3 +1,40 @@
+## BLOQUE 01 · Base maestra y motor único de datos (octubre 2026)
+
+**Implementado en main**. Este bloque no cambia el mecanismo de ejecución: sigue siendo una app de escritorio Electron y abre con `npm start`.
+
+### Archivos nuevos
+- `data/model.js`: esquema de datos versión 2, migración de bases anteriores, normalización de carreras/cédulas/modalidad, regla **Complexivo por defecto**, indicadores de requisitos, conciliación Moodle–Word y detección de notas contradictorias.
+- `data/storage.js`: persistencia de la misma base local `informetit-v1` / `data/master` (IndexedDB), escritura transaccional y copia de respaldo interno cuando migra desde esquema 1.
+- `tests/block01.test.js`: pruebas de integridad, migración, modalidades, requisitos, notas, discrepancias y generador.
+
+### Archivos actualizados
+- `app.js`: carga y guardado con los módulos nuevos; importación Excel/JSON validada antes de sustituir registros; conserva notas y las excepciones de Trabajo de Titulación; añade indicadores de integridad en Datos y respaldo.
+- `report_institucional.js`: consulta el mismo motor de análisis nominal de la app. Si se cargó una cohorte parcial, no mezcla sus indicadores con los 262/101 fijos; si no hay registros nominales, identifica el resumen público agregado como fuente distinta.
+- `index.html`: carga modelo y persistencia antes del resto de la interfaz.
+- `package.json`: agrega `npm test` y amplía `npm run check`.
+
+### Reglas de calidad
+1. **Sin datos personales en el repositorio público**. La matriz nominal reside en la instalación privada de Electron. `git pull` actualiza el código; no sincroniza automáticamente datos privados.
+2. Las cédulas permanecen como texto para conservar ceros iniciales.
+3. Todos los estudiantes se clasifican inicialmente como Examen Complexivo; `trabajo` se conserva cuando fue asignado expresamente.
+4. Una nota vacía no equivale a cero. Cero es válido si fue registrado como nota.
+5. Una nota de Word igual a la de Moodle no se duplica. Una contradicción se excluye del promedio hasta revisarla. Se conserva la procedencia.
+6. Una base parcial jamás debe presentarse como matrícula completa. El motor identifica sus fuentes.
+7. No se declara como aprobado un examen a partir de una matriz de requisitos.
+
+### Verificación local
+
+```powershell
+git pull origin main
+npm run check
+npm test
+npm start
+```
+
+No se borran los datos actuales al actualizar el código. Se recomienda descargar un respaldo JSON privado antes de importar un reemplazo de la base.
+
+**Siguientes bloques:** estructura documental institucional (02), análisis de requisitos (03), importación robusta Moodle (04), núcleos (05), Complexivo (06), Trabajo de Titulación (07) y los motores restantes.
+
 ## Generación de informes dentro de Electron
 
 La generación y descarga se realiza **dentro de la app**, nunca se requiere recibir PDF por ChatGPT.

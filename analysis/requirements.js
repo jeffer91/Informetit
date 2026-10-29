@@ -162,13 +162,11 @@ function insight(a){
 function renderReport(report,helper){
  const {Table,Figure,H,para,F,P}=helper;
  const n=report.total,individual=report.source==='individual',p=x=>x===null?'Por verificar':F(x);
- const rows=report.careers.map(c=>[c.name,c.total,n?pct(c.total,n).toFixed(2).replace('.',',')+' %':'—',
-   c.complete8===null?'Por conciliar':c.complete8,
-   c.complete9===null?'Por conciliar':c.complete9]);
+ const rows=report.careers.map(c=>[c.name,c.total,n?pct(c.total,n).toFixed(2).replace('.',',')+' %':'—']);
  let out=H(2,'4. Fase I. Verificación de requisitos');
  out+=H(3,'4.1. Caracterización de la cohorte');
  out+=para('La Fase I identifica la población de la modalidad '+(report.mode==='online'?'online':'presencial')+' y verifica el cumplimiento documental y académico de la matriz de requisitos. No se confunde el cumplimiento de requisitos con la aprobación de las evaluaciones de titulación.');
- out+=Table('Distribución por carrera y cumplimiento integral',['Carrera','Estudiantes','Participación','Ocho controles','Nueve controles'],rows,
+ out+=Table('Distribución de estudiantes por carrera',['Carrera','Estudiantes','Participación'],rows,
   individual?'Cálculos desde la nómina local, desagregados por carrera':'Cifras por carrera de la matriz agregada. No se infieren estados individuales por carrera');
  out+=Figure('Distribución de la cohorte por carrera',report.careers.map(c=>[c.name,c.total]),{note:'Total de estudiantes registrado para la modalidad.'});
  if(report.sites.rows.length){
@@ -185,13 +183,11 @@ function renderReport(report,helper){
   out+=para('La clasificación por sede u horario está incompleta: '+report.sites.missing+' estudiantes no tienen sede registrada y '+report.schedules.missing+' no tienen horario. Estos campos no se rellenan con estimaciones.');
 
  out+=H(3,'4.2. Cumplimiento por requisito');
- const reqRows=report.requirements.map(r=>individual?
-  [r.label,r.applicable,r.ok,r.fail,r.unknown,r.na,p(r.pct)+' %']:
-  [r.label,r.applicable,r.ok,'Sin desglose','Sin desglose','Sin desglose',p(r.pct)+' %']);
+ const reqRows=report.requirements.map(r=>[r.label,r.applicable,r.ok,p(r.pct)+' %']);
  out+=Table('Estado de los nueve controles de titulación',
-  ['Requisito','Aplicables','Cumplen','No cumplen','Sin verificar','No aplica','Cumplimiento'],reqRows,
-  individual?'Los estados sin verificar no se presentan como incumplimientos. El porcentaje se calcula sobre requisitos aplicables':
-  'El resumen agregado permite comprobar el cumplimiento, pero no separa los otros estados administrativos');
+  ['Requisito','Aplicables','Cumplen','Cumplimiento'],reqRows,
+  individual?'El cumplimiento utiliza únicamente los registros aplicables; el detalle por carrera se presenta en el apartado 4.4':
+  'La matriz agregada permite verificar totales, pero no determina estados individuales por carrera');
  out+=Figure('Cumplimiento por tipo de requisito',report.requirements.map(x=>[x.label,x.pct??0]),{
   max:100,percentage:true,decimals:2,note:'Porcentajes sobre el total de verificaciones aplicables; en la fuente agregada se utiliza el total registrado.'});
  out+=H(3,'4.3. Incidencias y priorización');
@@ -202,15 +198,25 @@ function renderReport(report,helper){
   'Se contabilizan verificaciones; una persona puede tener varios requisitos pendientes');
  if(report.priorities.length)out+=Figure('Incidencias por requisito',report.priorities.map(x=>[x.label,individual?x.fail+x.unknown:x.unclassified]),{
   note:'Incidencias de verificaciones, no estudiantes únicos.'});
- out+=H(3,'4.4. Incidencias por carrera');
+ out+=H(3,'4.4. Desglose de requisitos por carrera');
  if(individual){
-  const matrix=report.careers.map(c=>[
-    c.name,c.total,...c.requirementCounts.slice(0,8).map(x=>x.fail+' / '+x.unknown)
-  ]);
-  out+=Table('Incumplimientos y estados no verificados por carrera',
-   ['Carrera','n',...REQUIREMENTS.slice(0,8).map(x=>x.short)],matrix,
-   'Cada celda contiene incumplimientos confirmados / sin verificar. ACA: Académico; DOC: Documentación; FIN: Financiero; PRA: Prácticas; VIN: Vinculación; SEG: Seguimiento; ING: Inglés; DAT: Actualización de datos');
- }else out+=para('La fuente agregada no permite determinar cuántas incidencias pertenecen a cada carrera o estudiante sin examinar su nómina. Se conserva el apartado para completarlo con la base privada.');
+  report.careers.forEach((career,index)=>{
+   out+=H(3,'4.4.'+(index+1)+'. '+career.name);
+   const careerRows=career.requirementCounts.map(req=>{
+    const applicable=career.total-req.na,compliant=applicable-req.fail-req.unknown;
+    return [req.label,applicable,compliant,req.fail,req.unknown,p(P(compliant,applicable))+' %'];
+   });
+   out+=Table('Cumplimiento de los nueve requisitos — '+career.name,
+    ['Requisito','Aplicables','Cumplen','No cumplen','Sin verificar','Cumplimiento'],
+    careerRows,'Cifras nominales correspondientes exclusivamente a '+career.name+
+    '. Una verificación ausente no se considera automáticamente incumplimiento');
+   const cases=report.cases.filter(item=>item.careerKey===career.key);
+   if(cases.length)out+=Table('Estudiantes con requisitos por resolver — '+career.name,
+    ['Estudiante','Cédula','No cumple','Sin verificar'],
+    cases.map(item=>[item.name,item.id,item.fail9.join('; ')||'—',item.unknown9.join('; ')||'—']),
+    'Seguimiento de esta carrera: cada estado debe comprobarse con la unidad responsable');
+  });
+ }else out+=para('No se dispone de desglose por carrera en la fuente agregada. La importación de la nómina nominal genera las nueve verificaciones y los casos por carrera sin imputar resultados individuales a partir de totales.');
  out+=H(3,'4.5. Cumplimiento integral y preparación para la evaluación');
  out+=Table('Cumplimiento conjunto de los controles',
   ['Indicador','Estudiantes','Porcentaje'],

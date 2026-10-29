@@ -3,6 +3,14 @@
    Usa únicamente registros sintéticos en memoria; no lee ni escribe datos privados. */
 const {app,BrowserWindow}=require('electron');
 const path=require('node:path');
+const fs=require('node:fs');
+const os=require('node:os');
+const isolatedProfile=fs.mkdtempSync(path.join(os.tmpdir(),'informetit-pdf-smoke-'));
+app.setPath('userData',isolatedProfile);
+app.on('quit',()=>{try{fs.rmSync(isolatedProfile,{recursive:true,force:true})}catch(error){
+ console.warn('[Informetit PDF smoke] No se pudo limpiar perfil temporal:',error.message);
+}});
+
 if(process.platform==='linux'&&process.getuid?.()===0)app.commandLine.appendSwitch('no-sandbox');
 const label='[Informetit PDF smoke]';
 async function makeInput(win,mode){

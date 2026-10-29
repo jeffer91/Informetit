@@ -110,7 +110,7 @@ const DESCRIPTIONS=Object.freeze({
 function analyze(state,mode='presencial'){
  const actual=mode==='online'?'online':'presencial',M=root.InformetitDataModel;
  if(!M)throw Error('Motor central de estudiantes no disponible');
- const students=(state?.estudiantes||[]).filter(s=>s.modalidad===actual&&s.tipoTitulacion!=='trabajo');
+ const students=(state?.estudiantes||[]).filter(s=>s.modalidad===actual&&s.tipoTitulacion==='complexivo');
  const grouped=new Map();for(const raw of state?.evaluaciones||[]){
   if(!raw?.studentId||raw.tipo==='trabajo')continue;
   const student=students.find(x=>String(x.id)===String(raw.studentId));

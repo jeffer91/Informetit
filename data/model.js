@@ -40,7 +40,7 @@ const scoreSignature=x=>JSON.stringify({nota:grade(x.nota),parciales:(x.parciale
 function normalizeStudent(student){
   const s={...student},studentID=id(s.id||s.numeroIdentificacion);
   return {...s,id:studentID,modalidad:mode(s),
-    tipoTitulacion:s.tipoTitulacion==='trabajo'?'trabajo':'complexivo',
+    tipoTitulacion:['trabajo','complexivo'].includes(s.tipoTitulacion)?s.tipoTitulacion:'sin_definir',
     nombre:text(s.nombre||s.Nombres),carrera:text(s.carrera||s.NombreCarrera),
     correo:text(s.correo||s.CorreoInstitucional).toLowerCase(),
     requisitos:s.requisitos&&typeof s.requisitos==='object'?{...s.requisitos}:{}};
@@ -122,7 +122,8 @@ function analyze(state,mod){
     if(['ESTIMADO','PROVISIONAL','SIMULADO'].includes(key(g.status)))continue;
     admit(g,'moodle');
   }
-  for(const g of state.notasBorrador||[])admit(g,'word');
+  // Las notas del Word permanecen provisionales: nunca se promocionan automáticamente al consolidado oficial.
+  // Deben conciliarse con Moodle y guardarse en notas con evidencia de validación.
   const notes=[...index.values()].sort((a,b)=>career(a.carrera).localeCompare(career(b.carrera))||a.nucleo-b.nucleo||a.studentId.localeCompare(b.studentId));
   const conflicts=[...new Set([...unresolved,...contradictory])];
   const byNucleus=new Map();

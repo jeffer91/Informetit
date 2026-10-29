@@ -36,7 +36,7 @@ function build(state,mode='presencial'){
  const conflictIds=new Set((individual?raw.conflicts:[]).map(String));
  const careers=items.map(({name,key:careerKey})=>{
    const members=students.filter(s=>key(s.carrera)===careerKey),
-     complexivo=members.filter(s=>s.tipoTitulacion!=='trabajo'),
+     complexivo=members.filter(s=>s.tipoTitulacion==='complexivo'),
      projects=members.filter(s=>s.tipoTitulacion==='trabajo');
    const wordNuclei=wordMap.get(careerKey)||[];
    const nuclei=NUCLEI.map(n=>{

@@ -51,6 +51,14 @@ function analyze(state,mode='presencial'){
  if(unlinked.length)push('warning','UNLINKED','Registros sin vincular',unlinked.length+' registros',
    'Existen notas o fuentes externas sin asociación nominal segura.',
    'Conciliar con cédula y carrera de la nómina.');
+ const noMechanism=local.filter(x=>!['complexivo','trabajo'].includes(x.tipoTitulacion));
+ if(noMechanism.length)push('critical','MECHANISM_UNCLASSIFIED','Mecanismo de titulación sin confirmar',noMechanism.length+' estudiantes',
+ 'Estos estudiantes no pueden atribuirse por defecto a Examen Complexivo.',
+ 'Clasificar expresamente por acta o nómina de mecanismo y conservar la evidencia.',true);
+ const provisional=(state?.notasBorrador||[]).filter(x=>localIds.has(String(x.studentId)));
+ if(provisional.length)push('warning','WORD_PROVISIONAL','Calificaciones provisionales sin cotejar',provisional.length+' registros',
+ 'El Word transcrito no constituye una calificación oficial de Moodle o de acta.',
+ 'Cotejar los registros antes de aprobarlos e incorporarlos al consolidado oficial.');
  if(nuclei.individual){
   if(nuclei.pendingSlots)push('warning','NUCLEI_MISSING','Calificaciones de núcleos faltantes',
    nuclei.pendingSlots+' casillas','No equivalen a notas cero ni a reprobaciones.',

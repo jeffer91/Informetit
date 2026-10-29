@@ -84,7 +84,7 @@ function createIndividual(state,mode){
   nine.items.forEach((x,i)=>{if(x.state==='fail')row.requirementCounts[i].fail++;if(x.state==='unknown')row.requirementCounts[i].unknown++;if(x.state==='na')row.requirementCounts[i].na++});
   if(nine.reviewRequired)cases.push({
    id:String(st.id),name:String(st.nombre||'Nombre pendiente'),
-   career:label,careerKey:key,mechanism:st.tipoTitulacion==='trabajo'?'Trabajo de Titulación':'Examen Complexivo',
+   career:label,careerKey:key,mechanism:st.tipoTitulacion==='trabajo'?'Trabajo de Titulación':st.tipoTitulacion==='complexivo'?'Examen Complexivo':'Mecanismo por definir',
    fail8:eight.fail.map(x=>x.label),unknown8:eight.unknown.map(x=>x.label),
    fail9:nine.fail.map(x=>x.label),unknown9:nine.unknown.map(x=>x.label),
    onlyTitulacion:!eight.reviewRequired&&nine.reviewRequired

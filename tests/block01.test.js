@@ -6,6 +6,7 @@ global.window=global;
 const Model=require('../data/model.js');
 require('../public_summary.js');
 require('../nucleos_agregados.js');
+require('../document/codigo.js');
 require('../document/institutional.js');
 require('../analysis/requirements.js');
 require('../analysis/nuclei.js');

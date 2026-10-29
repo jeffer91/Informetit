@@ -1018,43 +1018,43 @@ async function handleTrabajoFile(ev){
 async function handleFiles(ev){
  const file=ev.target.files?.[0];if(!file)return;
  try{
-  let candidate,caption;
-  if(ev.target.id==="backup-file"){
-   const obj=JSON.parse(await file.text());
-   if(!obj||!Array.isArray(obj.estudiantes)||!Array.isArray(obj.notas))
-     throw Error("Este respaldo JSON no tiene la estructura de Informetit.");
-   if(state.estudiantes.length&&!confirm("¿Reemplazar toda la base local? Descarga antes un respaldo si ya tienes notas o correcciones."))return;
-   candidate=Data.migrate(obj);
-   caption="Respaldo cargado: "+candidate.estudiantes.length+" estudiantes y "+candidate.notas.length+" notas.";
-  }else{
-   const rows=await readExcel(file),seen=new Set();
-   for(const x of rows){
-    if(seen.has(x.id))throw Error("El archivo contiene cédulas repetidas. Corrige la nómina antes de importarla.");
-    seen.add(x.id);
-   }
-   const previous=new Map(state.estudiantes.map(s=>[s.id,s]));
-   for(const x of rows){
-    const old=previous.get(x.id);
-    if(old) {
-     // Conservar decisiones manuales de titulación y campos de seguimiento.
-     previous.set(x.id,{...old,...x,
-       tipoTitulacion:old.tipoTitulacion==="trabajo"?"trabajo":"complexivo",
-       observaciones:old.observaciones??x.observaciones});
-    }else previous.set(x.id,Data.normalizeStudent(x));
-   }
-   candidate=Data.migrate({...state,estudiantes:[...previous.values()],
-      importaciones:[...state.importaciones,{nombre:file.name,tipo:"estudiantes",filas:rows.length,fecha:today()}]});
-   caption="Excel incorporado: "+rows.length+" estudiantes. Se conservaron notas y clasificaciones anteriores.";
+  if(ev.target.id==='student-file'){
+   const rows=await readExcel(file);
+   const preview=window.InformetitStudentImport.plan(state,rows,file.name);
+   studentImportStage={fileName:file.name,rows,preview};page='estudiantes';draw();
+   notify('Excel revisado: '+preview.counts.added+' nuevos, '+preview.counts.updated+
+    ' estudiantes con cambios y '+preview.counts.blocked+' bloqueados. No se ha guardado.');
+   return;
   }
-  const problems=Data.audit(candidate).issues.filter(p=>["id_vacio","cedula_repetida"].includes(p.type));
-  if(problems.length)throw Error("Se detectaron "+problems.length+" identificaciones vacías o duplicadas. No se modificó la base.");
-  // Primero se confirma el guardado; luego se cambia el estado visible.
-  await Store.save(candidate);
-  state=candidate;draw();notify(caption);
- }catch(e){console.error(e);notify("Error de importación: "+e.message)}
- finally{ev.target.value=""}
+  const obj=JSON.parse(await file.text());
+  if(!obj||!Array.isArray(obj.estudiantes)||!Array.isArray(obj.notas))
+   throw Error('El respaldo no tiene la estructura de Informetit.');
+  if(state.estudiantes.length&&!confirm('¿Reemplazar toda la base local? Descarga antes un respaldo si tienes notas o correcciones.'))return;
+  const candidate=Data.migrate(obj);
+  const problems=Data.audit(candidate).issues.filter(p=>['id_vacio','cedula_repetida'].includes(p.type));
+  if(problems.length)throw Error('Existen identificaciones vacías o duplicadas. No se importó el respaldo.');
+  await Store.save(candidate);state=candidate;studentImportStage=null;draw();
+  notify('Respaldo cargado: '+candidate.estudiantes.length+' estudiantes y '+candidate.notas.length+' notas.');
+ }catch(e){console.error(e);notify('Error de importación: '+e.message)}
+ finally{ev.target.value=''}
 }
-async function action(code){switch(code){case"student-file":el("student-file").click();break;case"trabajo-file":el("trabajo-file").click();break;case"cursos-file":el("cursos-file").click();break;case"logo-file":el("logo-file").click();break;case"remove-logo":{
+
+async function action(code){switch(code){case"apply-student-import":{
+ if(!studentImportStage){notify('Primero selecciona y revisa un Excel.');break}
+ try{
+  const stage=studentImportStage,preview=window.InformetitStudentImport.plan(state,stage.rows,stage.fileName);
+  if(preview.baseline!==stage.preview.baseline)
+   throw Error('La nómina cambió; vuelve a analizar el Excel.');
+  if(!preview.updates.length){studentImportStage=null;draw();notify('Sin cambios: la base GPT ya está actualizada.');break}
+  if(!confirm('¿Aplicar '+preview.counts.added+' estudiantes nuevos y actualizar '+
+    preview.counts.updated+' existentes? '+preview.counts.blocked+
+    ' casos bloqueados permanecerán intactos. No se escribirán requisitos ni contactos en Firebase.'))break;
+  const result=window.InformetitStudentImport.apply(state,preview,today());
+  await Store.save(result.next);state=result.next;studentImportStage=null;draw();
+  notify('Base GPT actualizada: '+result.stats.added+' nuevos, '+
+   result.stats.updated+' modificados y '+result.stats.blocked+' bloqueados para revisión.');
+ }catch(error){console.error(error);notify('No se aplicó la importación: '+error.message)}
+}break;case"cancel-student-import":studentImportStage=null;draw();break;case"student-file":el("student-file").click();break;case"trabajo-file":el("trabajo-file").click();break;case"cursos-file":el("cursos-file").click();break;case"logo-file":el("logo-file").click();break;case"remove-logo":{
  if(state.config.logoDataUrl&&confirm("¿Quitar el logotipo institucional de ambos informes?")){
   const next=Data.migrate(state);delete next.config.logoDataUrl;
   await Store.save(next);state=next;draw();notify("Logotipo quitado de ambos informes.");
@@ -1142,7 +1142,7 @@ let conflict=ev.target.closest("[data-use-conflict], [data-keep-conflict]");if(c
  }catch(e){console.error(e);notify("No se resolvió el conflicto: "+e.message)}
 }});
 document.addEventListener("input",ev=>{if(ev.target.id==="student-search"){query=ev.target.value;let pos=ev.target.selectionStart;draw();let search=el("student-search");search.focus();search.setSelectionRange(pos,pos)}if(ev.target.id==="moodle-text"){inputText=ev.target.value;lastParse=null}if(ev.target.id==="exam-import-text"){examImportText=ev.target.value;examImportStage=null}});
-document.addEventListener("change",async ev=>{let field=ev.target;if(field.dataset.studentType){let s=state.estudiantes.find(x=>x.id===field.dataset.studentType);if(s){s.tipoTitulacion=field.value;await persist();notify("Modalidad de titulación actualizada.")}}else if(field.hasAttribute("data-work-student")){trabajoStudentId=field.value;draw()}else if(field.hasAttribute("data-eval-select")){evaluationStudentId=field.value;draw()}else if(field.hasAttribute("data-nucleus-career")){nucleusCareerKey=field.value;draw()}else if(field.hasAttribute("data-requirement-filter")){reqFilter=field.value;draw()}else if(field.hasAttribute("data-status-filter")){reqStatus=field.value;draw()}else if(field.hasAttribute('data-program-date')){
+document.addEventListener("change",async ev=>{let field=ev.target;if(field.dataset.studentType){let s=state.estudiantes.find(x=>x.id===field.dataset.studentType);if(s){if(!["sin_definir","complexivo","trabajo"].includes(field.value)){notify("Mecanismo inválido");draw();return}if(s.tipoTitulacion!==field.value){s.tipoTitulacion=field.value;studentImportStage=null;await persist();draw();notify("Mecanismo de titulación actualizado.")}}}else if(field.hasAttribute("data-work-student")){trabajoStudentId=field.value;draw()}else if(field.hasAttribute("data-eval-select")){evaluationStudentId=field.value;draw()}else if(field.hasAttribute("data-nucleus-career")){nucleusCareerKey=field.value;draw()}else if(field.hasAttribute("data-requirement-filter")){reqFilter=field.value;draw()}else if(field.hasAttribute("data-status-filter")){reqStatus=field.value;draw()}else if(field.hasAttribute('data-program-date')){
  const index=field.dataset.programDate,fieldName=field.dataset.programType;
  if(!['inicio','fin'].includes(fieldName)||!index)return;
  if(!state.cronogramaPersonalizado)state.cronogramaPersonalizado={};

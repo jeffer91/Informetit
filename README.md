@@ -1,3 +1,48 @@
+## BLOQUE 07 · Trabajo de Titulación y consolidación (28/10/2026)
+
+**Implementado directamente en `main`**, sin crear ramas ni publicar nóminas, cédulas o calificaciones institucionales.
+
+### Motor de Trabajo de Titulación
+
+- Nuevo `analysis/trabajo.js`: registra número y fecha del acta de grado, calificación del **tutor**, calificación del **lector**, asistencia, nombres de los **tres vocales**, sus puntuaciones individuales de práctica y defensa, acta y nota de supletorio.
+- Rúbrica de **evaluación práctica** por vocal: Diseño (máximo 2,50), Construcción (2,50), Funcionamiento (2,50) y Aplicación (2,50). Rúbrica de **defensa** por vocal: Sustento del marco teórico (2), Sustento de la propuesta (2), Uso de recursos (2) y Solventar preguntas (4). Las ocho valoraciones de cada vocal son independientes; todas se validan contra su escala.
+- Cálculo: promedio escrito = (tutor + lector) / 2; promedio práctico = promedio de los tres totales prácticos; promedio defensa = promedio de los tres totales de defensa; promedio oral = (práctica + defensa) / 2; **nota final = escrito × 0,60 + oral × 0,40**, redondeada a dos decimales. **Reproduce el ejemplo del acta 4134:** 9,00 escrito, 7,00 práctica, 8,00 defensa, 7,50 oral y **8,40 final**. Esta ponderación procede del acta de ejemplo facilitada y **debe contrastarse con la normativa institucional vigente** antes de aprobar el informe definitivo.
+- No se transforma en nota un campo vacío. Un cero registrado es válido; puntajes fuera del máximo, inasistencia contradictoria o un proyecto sin ordinario completo con supletorio aislado se detienen o quedan señalados para revisión.
+- Para la nota final ordinaria inferior a 7,00: **supletorio pendiente**, sin declaración automática de reprobación. La recuperación final consignada permite calcular aprobación o reprobación posterior. Una referencia de acta no equivale a documento verificado, firma o titulación formal.
+- Las evaluaciones antiguas guardadas bajo `evaluaciones` con `tipo="trabajo"` **se conservan para conciliación**, pero no se convierten automáticamente en puntuaciones inexistentes de los tres vocales.
+- Los proyectos y sus cambios se almacenan en la nueva colección local `trabajos`, incluida en el JSON maestro con auditoría. Nunca se registran como notas de Examen Complexivo.
+
+### Pantalla y cronogramas
+
+- Nuevo módulo lateral **Trabajo de Titulación** para los pocos estudiantes clasificados con ese mecanismo en **Estudiantes y requisitos**. Incluye formulario, rúbrica por vocal, cálculo, registro y listado de seguimiento por carrera.
+- La pantalla **Cronogramas** permite editar fechas de inicio y fin de todas las actividades de **Complexivo** y **Trabajo de Titulación**, preservando de manera independiente su estado de ejecución y las fechas previamente propuestas. Los cambios se guardan en `cronogramaPersonalizado` y se incorporan a los PDF; no se escriben en Firebase.
+- Los datos de estudiantes, notas del Word, Moodle, actas, modalidades y evaluaciones anteriores permanecen intactos en sus secciones.
+
+### Informes y motor de consolidación
+
+- El capítulo **6. Trabajo de Titulación** ahora presenta matriz de ponderaciones, parámetros de rúbrica, indicadores, resultados por carrera, resultados por estudiante, el detalle completo de cada acta (tutor, lector, tres vocales, parámetros y resultados) y los casos pendientes por separado.
+- Se mantienen las fases del cronograma de Trabajo de Titulación, con las fechas personalizadas registradas por el usuario. La programación **no** se presenta como prueba de ejecución.
+- Nuevo `analysis/consolidado.js`: integra ambos mecanismos dentro de cada modalidad, por carrera, con aprobaciones calculadas, supletorios, reprobaciones, ausencias, pendientes, referencias de actas y duplicados. Concilia que la suma de estudiantes de Complexivo y Trabajo de Titulación corresponda a la nómina local de la modalidad.
+- La sección **8. Síntesis general** de cada PDF y las conclusiones utilizan esta consolidación. **No confunden aprobación académica calculada con graduación, emisión de título o eficiencia terminal oficial.**
+- La pantalla **Dos informes** muestra controles adicionales de ambos mecanismos y sus pendientes de validación.
+
+### Archivos del bloque
+
+Nuevos: `analysis/trabajo.js`, `analysis/consolidado.js`, `tests/block07.test.js`.
+
+Actualizados: `data/model.js`, `app.js`, `index.html`, `report_institucional.js`, `analysis/nuclei.js`, `package.json`, las pruebas de regresión anteriores y este README.
+
+### Instalación y comprobación en Windows
+
+```powershell
+git pull origin main
+npm run check
+npm test
+npm start
+```
+
+Las pruebas de código de los bloques 01–07 y Firebase pasaron en la comprobación simulada disponible; la ejecución nativa de Electron y la exportación/inspección visual de PDF siguen requiriendo verificación en Windows con la base privada. El siguiente **Bloque 08** cerrará formato institucional, referencias y normativa, integridad estadística, índice/paginación, anexos, errores de impresión y la validación exhaustiva de los dos informes.
+
 ## BLOQUE 06 · Examen Complexivo — ordinario, supletorio y resultados (28/10/2026)
 
 **Implementado directamente en `main`.** Esta es la primera de tres entregas finales acordadas (Bloques 06, 07 y 08). No se genera un PDF externo desde ChatGPT: las tablas y análisis alimentan el generador de los dos informes en Electron.

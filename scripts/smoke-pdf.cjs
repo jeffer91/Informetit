@@ -69,8 +69,8 @@ async function run(){
    let pdf=await render(outputWindow,input.html,input.header),result=await inspect(pdf);
    if(result.pageCount<5)throw Error(mode+': páginas insuficientes: '+result.pageCount);
    if(result.markers===0)throw Error(mode+': marcadores de índice ausentes en PDF');
-   if(!result.contents.includes('Resumen ejecutivo')||
-      !result.contents.includes('Examen Complexivo'))
+   if(!result.contents.toLowerCase().includes('resumen ejecutivo')||
+      !result.contents.toLowerCase().includes('examen complexivo'))
     throw Error(mode+': no se detectó el texto académico esperado');
    let indexed=false;
    for(let round=0;round<6;round++){

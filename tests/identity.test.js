@@ -13,6 +13,7 @@ require('../analysis/complexivo.js');
 require('../analysis/trabajo.js');
 require('../analysis/consolidado.js');
 require('../analysis/quality.js');
+require('../analysis/executive.js');
 require('../report_institucional.js');
 test('octubre 2025–marzo 2026: el código utiliza mayo 2026, nunca el mes de cierre',()=>{
  const c=C.issuance(M.PERIOD);
@@ -39,12 +40,12 @@ test('el código online conserva un prefijo independiente',()=>{
  assert.equal(D.fields(s,'presencial').code,'UTET-INF-01-PRO-95-2026-05');
  assert.equal(D.fields(s,'online').code,'UTET-INF-02-PRO-95-2026-05');
 });
-test('no inventa consecutivo ni proceso cuando faltan prefijos institucionales',()=>{
+test('aplica los dos códigos institucionales autorizados por defecto',()=>{
  const s=M.empty();
- assert.equal(D.fields(s,'presencial').code,'POR ASIGNAR');
- assert.equal(D.fields(s,'online').code,'POR ASIGNAR');
+ assert.equal(D.fields(s,'presencial').code,'UTET-INF-01-PRO-95-2026-05');
+ assert.equal(D.fields(s,'online').code,'UTET-INF-02-PRO-95-2026-05');
  assert.equal(C.forMode(s,'presencial').stamp,'2026-05');
- assert.ok(D.pending(s,'online').some(x=>x.includes('consecutivo')));
+ assert.ok(D.pending(s,'online').some(x=>x.includes('Día de elaboración')));
 });
 test('logo subido localmente aparece en portada y encabezado de ambos informes',()=>{
  const s=M.empty();

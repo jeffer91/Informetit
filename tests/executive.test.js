@@ -8,7 +8,7 @@ require('../analysis/trabajo.js');require('../analysis/consolidado.js');require(
 require('../analysis/executive.js');require('../report_institucional.js');
 test('resumen ejecutivo aparece después de resultados y antes de conclusiones',()=>{
  const h=global.InformetitFullReport.makeReport(M.empty(),'presencial');
- assert.ok(h.indexOf('8. Síntesis general de la cohorte')<h.indexOf('Resumen ejecutivo'));
+ assert.ok(h.indexOf('8. Síntesis general de la cohorte')<h.indexOf('<h2>Resumen ejecutivo</h2>'));
  assert.ok(h.indexOf('Resumen ejecutivo')<h.indexOf('9. Conclusiones'));
  for(const x of ['Diagrama de Ishikawa','Matriz FODA','Árbol de clasificación'])assert.ok(h.includes(x),x);
 });

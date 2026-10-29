@@ -118,7 +118,7 @@ function makeReport(state,mode){
  out+=window.InformetitComplexivo.renderReport(complexivoData,{Table,Figure,H,para,F,P});
  const cierre=window.InformetitConsolidado.analyze(state,mode);
  out+=window.InformetitConsolidado.renderReport(cierre,{Table,Figure,H,para,F,P});
- out+=window.InformetitExecutive.render(state,mode,{requirements:phaseReq,nuclei:academicOverview,quality,cierre},{Table,Figure,H,para,F,P});
+ out+=window.InformetitExecutive.render(state,mode,{requirements:phaseReq,nuclei:nucleiData,quality,cierre},{Table,Figure,H,para,F,P});
  out+=H(2,'9. Conclusiones');
  if(!cierre.counts.total){
   out+=para('La fuente agregada identifica '+n+' estudiantes de la modalidad '+desc+', pero no se dispone en esta ejecución de una nómina nominal que permita distribuirlos entre Examen Complexivo y Trabajo de Titulación. Por esa razón, las tasas de aprobación, reprobación y recuperación no son calculables y no se presentan como cero.');

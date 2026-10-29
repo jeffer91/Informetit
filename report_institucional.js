@@ -85,16 +85,16 @@ function makeReport(state,mode){
  out+=DOC.cover(state,mode);
  out+='<!--INFORMETIT_INDEX-->';
  out+=DOC.introduction();
- out+=DOC.introduction();
  out+=DOC.legal(Table);
  out+=H(2,'3. Planificación y organización');
- out+=para('La planificación de Examen Complexivo contempla cuatro núcleos estructurantes y las etapas ordinaria y supletoria. Las fechas que se presentan son programadas y no deben interpretarse como constancia de ejecución. Los procesos de Trabajo de Titulación se registran separadamente.');
- const statusPlan={pendiente:'Ejecución por verificar',cumple:'Cumplida (declarado)',no_cumple:'No cumplida',no_aplica:'No aplica'};
+ out+=para('La planificación de Examen Complexivo comprende cuatro núcleos estructurantes, evaluación ordinaria y supletorio. Según lo comunicado por la coordinación, todas estas actividades se realizaron. Su realización declarada se distingue de la revisión documental de actas y evidencias. Los procesos de Trabajo de Titulación se informan por separado.');
+ const statusPlan={pendiente:'Por revisar',cumple:'Realizado (declarado)',no_cumple:'No realizado',no_aplica:'No aplica'};
+ const statusFor=key=>Object.prototype.hasOwnProperty.call(state?.ejecucion||{},key)?statusPlan[state.ejecucion[key]]||statusPlan.pendiente:statusPlan.cumple;
  out+=Table('Cronograma de Examen Complexivo',['Actividad','Inicio','Fin','Estado declarado'],
   nucleus.map((row,i)=>{const key='complexivo|'+i,over=state?.cronogramaPersonalizado?.[key]||{};
     return [row[0],dateText(over.inicio??row[1]),dateText(over.fin??row[2]),
-      statusPlan[state?.ejecucion?.[key]]||statusPlan.pendiente]}),
-  'Estado comunicado en el seguimiento local; no constituye evidencia de ejecución ni acta verificada');
+      statusFor(key)]}),
+  'Realización declarada por coordinación. La verificación de actas y evidencias es un control documental independiente');
  const phase1=window.InformetitRequirements.analyze(state,mode);
  out+=window.InformetitRequirements.renderReport(phase1,{Table,Figure,H,para,F,P});
  const nucleiData=window.InformetitNuclei.build(state,mode);
@@ -102,17 +102,17 @@ function makeReport(state,mode){
  const trabajosData=window.InformetitTrabajo.analyze(state,mode);
  out+=window.InformetitTrabajo.renderReport(trabajosData,{Table,Figure,H,para,F,P});
  out+=H(3,'6.5. Cronograma de Trabajo de Titulación');
- out+=para('Las siguientes fechas representan la programación institucional y pueden modificarse en la pantalla Cronogramas. Los estados de ejecución y las actas se controlan por separado.');
+ out+=para('Según lo comunicado por la coordinación, las actividades de Trabajo de Titulación se realizaron. Sus fechas se mantienen editables y el soporte de cada actividad debe revisarse por separado.');
  let workIndex=0;
  for(const [fase,rows] of Object.entries(thesis)){
    out+=H(3,fase);
    const plan=rows.map(row=>{
      const key='trabajo|'+(workIndex++),override=state?.cronogramaPersonalizado?.[key]||{};
      return [row[0],dateText(override.inicio??row[1]),dateText(override.fin??row[2]),
-       statusPlan[state?.ejecucion?.[key]]||statusPlan.pendiente];
+       statusFor(key)];
    });
    out+=Table('Actividades programadas: '+fase,['Actividad','Inicio','Fin','Estado declarado'],plan,
-     'Planificación y estado registrado por coordinación; la ejecución requiere soporte documental');
+     'Realización declarada por coordinación; los documentos y actas de respaldo requieren cotejo independiente');
  }
  const complexivoData=window.InformetitComplexivo.analyze(state,mode);
  out+=window.InformetitComplexivo.renderReport(complexivoData,{Table,Figure,H,para,F,P});

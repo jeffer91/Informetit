@@ -538,11 +538,11 @@ function schedule(){
  const iso=x=>{const s=String(x||'');const m=/^(\d{2})\/(\d{2})\/(\d{4})$/.exec(s);
   return m?m[3]+'-'+m[2]+'-'+m[1]:/^\d{4}-\d{2}-\d{2}$/.test(s)?s:''};
  let out=head("Cronogramas institucionales",
-   "Fechas programadas editables del período octubre 2025–marzo 2026. El estado de ejecución es independiente.");
+   "Fechas del período octubre 2025–marzo 2026. Actividades realizadas según coordinación; las actas y evidencias se revisan por separado.");
  for(const k of ['trabajo','complexivo']){
   out+='<section class="panel"><h2>'+(k==='trabajo'?'Trabajo de Titulación':'Examen Complexivo')+'</h2>'
-    +'<p class="hint">Modifica las fechas de inicio y fin del cronograma según tus evidencias. Las fechas iniciales se toman de la planificación histórica y no demuestran su ejecución.</p>';
-  out+=table(['Actividad','Fecha inicio','Fecha fin','Ejecución verificada'],
+    +'<p class="hint">La coordinación declara realizadas las actividades del cronograma. Puedes modificar sus fechas y estados; el soporte documental se valida por separado.</p>';
+  out+=table(['Actividad','Fecha inicio','Fecha fin','Estado declarado'],
    DATES[k].map((row,i)=>{
     const index=k+'|'+i,custom=state.cronogramaPersonalizado?.[index]||{};
     const dateField=(type,value)=>'<td><input class="control" type="date" data-program-date="'+h(index)+'" data-program-type="'+type+
@@ -550,8 +550,8 @@ function schedule(){
     const start=Object.prototype.hasOwnProperty.call(custom,'inicio')?custom.inicio:row[1];
     const finish=Object.prototype.hasOwnProperty.call(custom,'fin')?custom.fin:row[2];
     const status=['pendiente','cumple','no_cumple','no_aplica'].map((v,j)=>'<option value="'+v+'"'+
-     ((state.ejecucion[index]||'pendiente')===v?' selected':'')+'>'+
-     ['Pendiente de evidencia','Cumplida','No cumplida','No aplica'][j]+'</option>').join('');
+     ((state.ejecucion[index]||'cumple')===v?' selected':'')+'>'+
+     ['Por revisar','Realizado (declarado)','No realizado','No aplica'][j]+'</option>').join('');
     return '<tr>'+td(row[0])+dateField('inicio',start)+dateField('fin',finish)+
      '<td><select class="control" data-schedule="'+h(index)+'">'+status+'</select></td></tr>';
    }));
@@ -580,7 +580,7 @@ function identityPanel(compactView=false){
  out+='<div class="identity-layout"><div class="identity-logo-card">'+logo+
   '<div class="actions"><button class="btn primary" data-action="logo-file">'+(pres.logo?'Cambiar logo':'Subir logo institucional')+
   '</button>'+(state.config.logoDataUrl?'<button class="btn" data-action="remove-logo">Restaurar logo institucional</button>':'')+'</div>'+
-  '<p class="hint">PNG, JPG o WebP · máximo 2 MB. Se guarda solamente en tu equipo y se usa en portada y encabezado de ambos PDF.</p>'+
+  '<p class="hint">PNG, JPG o WebP · máximo 2 MB. Se guarda solamente en tu equipo y se muestra únicamente en la cabecera de ambos PDF.</p>'+
   '</div><div class="identity-code-card">'+
   '<div class="identity-code-row"><span>Presencial</span><strong>'+h(pres.code)+'</strong></div>'+
   '<div class="identity-code-row"><span>Online</span><strong>'+h(online.code)+'</strong></div>'+
@@ -595,7 +595,7 @@ function identityPanel(compactView=false){
   out+='<div class="identity-fields">'+configs.map(([id,label,value,placeholder])=>
    '<label class="field">'+h(label)+'<input class="control" data-code-prefix="'+h(id)+'" value="'+h(value)+
    '" placeholder="'+h(placeholder)+'" disabled aria-readonly="true"></label>').join('')+
-   '<label class="field">Fecha real de elaboración (día del mes previsto)<input type="date" class="control" data-config="fechaElaboracion" value="'+h(state.config.fechaElaboracion||'')+'"></label>'+
+   '<label class="field">Fecha real de elaboración (día del mes previsto)<input type="date" class="control" data-config="fechaElaboracion" value="'+h(state.config.fechaElaboracion||D.lastWorkdayOfMonth(month.stamp))+'"></label>'+
    '<label class="field">Versión del documento<input class="control" data-config="version" value="'+h(state.config.version||'1.0')+'"></label></div>'+
    '<p class="hint">Escribe solo el prefijo del código; Informetit añadirá <b>-'+h(month.stamp)+
    '</b>. También acepta códigos antiguos completos y corrige automáticamente el año-mes al período del informe.</p>';
@@ -605,7 +605,7 @@ function identityPanel(compactView=false){
    (state.config.marcoLegalValidado?'checked':'')+'> He revisado la normativa institucional vigente.</label>'+
    '<label class="field"><input type="checkbox" data-config="firmasValidadas" '+
    (state.config.firmasValidadas?'checked':'')+'> He revisado responsables y firmas pendientes de aprobación.</label>'+
-   '</div><p class="hint">El logotipo y el código de ambos informes se conservan en el respaldo local. Las firmas no se generan automáticamente.</p>';
+   '</div><p class="hint">El logotipo se muestra solo en la cabecera de los informes. Las firmas no se generan automáticamente.</p>';
  out+='</section>';
  return out;
 }

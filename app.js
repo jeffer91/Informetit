@@ -250,6 +250,7 @@ function grades(){
  const careers=[...new Map(a.students.map(s=>[Data.career(s.carrera),s.carrera])).values()].sort((x,y)=>x.localeCompare(y,"es"));
  const results=window.InformetitFullReport?.getData(state,tab);
  let out=head("Núcleos estructurantes","Importación de calificaciones Moodle por estudiante, carrera y núcleo.",switcher());
+ out+='<section class="panel"><h2>Importar resultados por curso (informe completo)</h2><p class="hint">Excel o CSV: Cédula, Carrera, Curso, Núcleo, Nota final, Docente. Los registros se incorporan como provisionales hasta que se confirme su cotejo. El informe los conserva completos, sin convertirlos automáticamente en notas oficiales.</p><label class="field"><input id="cursos-verificados" type="checkbox"> Confirmo que el archivo fue cotejado contra Moodle o actas originales</label><div class="actions"><button class="btn primary" data-action="cursos-file">Importar desglose de cursos</button></div><p class="hint">Registros detallados guardados en el equipo: '+(state.cursosNucleos||[]).length+'.</p></section>';
  if(!hasPeople)out+='<div class="warnbox block">No hay nómina individual cargada para esta modalidad. Importa la base privada de estudiantes antes de asociar notas. Las estadísticas públicas no permiten identificar alumnos.</div>';
  out+='<section class="panel"><h2>Pegar calificaciones de Moodle</h2>'
   +'<p class="hint">Acepta texto vertical de Moodle (correo y seis valores por estudiante), tablas copiadas con tabulaciones y archivos tabulados pegados como texto. Cuando existan varias columnas, es obligatorio identificar la nota final o «Total del curso». No se asignan calificaciones por aproximación.</p>'
@@ -817,9 +818,56 @@ async function parseGradeAndSave(save){
    " ya existentes, "+planned.stats.conflict+" conflictos y "+planned.stats.unmatched+" sin vincular.");
  }catch(e){console.error(e);notify("No se guardaron notas: "+e.message)}
 }
-function parseRows(rows){let header=rows[0]?.map(compact)||[],field=(r,...keys)=>{for(let k of keys){let j=header.indexOf(compact(k));if(j>=0)return String(r[j]??"").trim()}return ""},result=[];if(!header.includes("NUMEROIDENTIFICACION"))throw Error("Falta la columna numeroIdentificacion.");for(let r of rows.slice(1)){let id=field(r,"numeroIdentificacion");if(!id)continue;let original=field(r,"NombreCarrera"),code=field(r,"CodigoCarrera"),mode=normal(original).endsWith("ONLINE")?"online":/-L-/i.test(code)?"online":"presencial",req={};let aliases={Practicas:["PrácticasVinculacion","PracticasVinculacion","Practicas"],Seguimiento:["SeguimientoGraduados","Seguimiento"],Datos:["ActualizaciónDatos","ActualizacionDatos","Datos"],Ingles:["Ingles","Inglés"]};for(let k of R)req[k]=field(r,...(aliases[k]||[k]));result.push({id,nombre:field(r,"Nombres"),codigo:code,carrera:original.replace(/\s+ONLINE\s*$/i,"").trim(),modalidad:mode,horario:field(r,"HorarioComplexivo"),sede:field(r,"Sede"),correo:field(r,"CorreoInstitucional").toLowerCase(),correoPersonal:field(r,"CorreoPersonal"),telefono:field(r,"Celular"),requisitos:req,aprobacionTitulacion:field(r,"AprobacionTitulacion"),aprobacionComplexivoProyecto:field(r,"AprobacionComplexivoProyecto"),tipoTitulacion:"complexivo"})}if(!result.length)throw Error("No hay filas con cédula.");return result}
+function parseRows(rows){let header=rows[0]?.map(compact)||[],field=(r,...keys)=>{for(let k of keys){let j=header.indexOf(compact(k));if(j>=0)return String(r[j]??"").trim()}return ""},result=[];if(!header.includes("NUMEROIDENTIFICACION"))throw Error("Falta la columna numeroIdentificacion.");for(let r of rows.slice(1)){let id=field(r,"numeroIdentificacion");if(!id)continue;let original=field(r,"NombreCarrera"),code=field(r,"CodigoCarrera"),mode=normal(original).endsWith("ONLINE")?"online":/-L-/i.test(code)?"online":"presencial",req={};let aliases={Practicas:["PrácticasVinculacion","PracticasVinculacion","Practicas"],Seguimiento:["SeguimientoGraduados","Seguimiento"],Datos:["ActualizaciónDatos","ActualizacionDatos","Datos"],Ingles:["Ingles","Inglés"]};for(let k of R)req[k]=field(r,...(aliases[k]||[k]));result.push({id,nombre:field(r,"Nombres"),codigo:code,carrera:original.replace(/\s+ONLINE\s*$/i,"").trim(),modalidad:mode,horario:field(r,"HorarioComplexivo"),sede:field(r,"Sede"),correo:field(r,"CorreoInstitucional").toLowerCase(),correoPersonal:field(r,"CorreoPersonal"),telefono:field(r,"Celular"),requisitos:req,aprobacionTitulacion:field(r,"AprobacionTitulacion"),aprobacionComplexivoProyecto:field(r,"AprobacionComplexivoProyecto"),tipoTitulacion:"sin_definir"})}if(!result.length)throw Error("No hay filas con cédula.");return result}
 function parseHTML(txt){let doc=new DOMParser().parseFromString(txt,"text/html"),table=doc.querySelector("table");if(!table)throw Error("El archivo HTML no tiene tablas.");return [...table.querySelectorAll("tr")].map(tr=>[...tr.querySelectorAll("td,th")].map(td=>td.textContent.trim()))}
 async function readExcel(file){let bytes=await file.arrayBuffer(),prefix=new TextDecoder("latin1").decode(bytes.slice(0,400));if(/<table|<!doctype|<html|<style/i.test(prefix)){let html=new TextDecoder("windows-1252").decode(bytes);return parseRows(parseHTML(html))}if(file.name.toLowerCase().endsWith(".csv")){if(!window.XLSX)throw Error("Conecta Internet para importar CSV o pega directamente un JSON.");let x=XLSX.read(bytes,{type:"array"});return parseRows(XLSX.utils.sheet_to_json(x.Sheets[x.SheetNames[0]],{header:1,defval:"",raw:false}))}if(!window.XLSX)throw Error("No se ha cargado la biblioteca de Excel; comprueba la conexión.");let wb=XLSX.read(bytes,{type:"array"});for(let sh of wb.SheetNames){let rows=XLSX.utils.sheet_to_json(wb.Sheets[sh],{header:1,defval:"",raw:false});if(rows[0]&&rows[0].some(x=>compact(x)==="NUMEROIDENTIFICACION"))return parseRows(rows)}throw Error("No se encontró una hoja con numeroIdentificacion.")}
+async function handleCursosFile(ev){
+ const file=ev.target.files?.[0];if(!file)return;
+ try{
+  if(!window.XLSX)throw Error('La biblioteca local de Excel no está disponible.');
+  if(!state.estudiantes.length)throw Error('Primero importa la nómina privada de estudiantes.');
+  const confirmed=!!el('cursos-verificados')?.checked;
+  const wb=XLSX.read(await file.arrayBuffer(),{type:'array'});
+  const val=(row,...keys)=>{const field=Object.keys(row).find(k=>keys.some(x=>compact(k)===compact(x)));return field===undefined?'':String(row[field]??'').trim()};
+  const roster=new Map(state.estudiantes.map(s=>[String(s.id),s])),entries=[],unmatched=[],seen=new Set();
+  for(const sheet of wb.SheetNames){
+   const rows=XLSX.utils.sheet_to_json(wb.Sheets[sheet],{defval:'',raw:false});
+   for(const row of rows){
+    let id=val(row,'Cédula','Cedula','numeroIdentificacion','Identificación').replace(/\.0$/,'');
+    if(/^\d{9}$/.test(id))id='0'+id;
+    const st=roster.get(id),career=val(row,'Carrera','NombreCarrera'),n=Number(val(row,'Núcleo','Nucleo','Número de núcleo'));
+    const course=val(row,'Curso','Materia','Nombre del curso','Asignatura');
+    const grade=Data.grade(val(row,'Nota final','Calificación final','Nota','Calificacion'));
+    if(!id&&!course)continue;
+    if(!st||career&&Data.career(career)!==Data.career(st.carrera)||
+       !course||!Number.isInteger(n)||n<1||n>4||grade===null){
+     unmatched.push({id,curso:course,nucleo:n,motivo:'Identidad, carrera, curso, núcleo o nota no verificables'});continue;
+    }
+    const key=id+'|'+n+'|'+Data.key(course),duplicate=seen.has(key);
+    if(duplicate){unmatched.push({id,curso:course,nucleo:n,motivo:'Duplicado en archivo'});continue}
+    seen.add(key);
+    entries.push({studentId:id,modalidad:st.modalidad,carrera:st.carrera,curso:course,
+      nucleo:n,nota:grade,docente:val(row,'Docente','Profesor'),
+      source:file.name,verificado:confirmed,estado:confirmed?'cotejado_por_coordinacion':'provisional_por_conciliar',
+      fechaImportacion:today()});
+   }
+  }
+  if(!entries.length)throw Error('No se localizaron filas válidas con identificación, carrera, curso, núcleo y nota final.');
+  if(!confirm('Importar '+entries.length+' registros individuales de cursos, '+unmatched.length+
+   ' observaciones por conciliar. Estado: '+(confirmed?'COTEJADO expresamente':'PROVISIONAL')+
+   '. Los registros se guardan solo en este equipo. ¿Confirmas?'))return;
+  const next=Data.migrate(state),records=new Map((next.cursosNucleos||[]).map(x=>[x.studentId+'|'+x.nucleo+'|'+Data.key(x.curso),x]));
+  for(const e of entries)records.set(e.studentId+'|'+e.nucleo+'|'+Data.key(e.curso),e);
+  next.cursosNucleos=[...records.values()];
+  for(const e of unmatched)next.complementarios.push({fuente:file.name,tipo:'curso_sin_conciliar',registro:e,estado:e.motivo});
+  next.importaciones.push({nombre:file.name,tipo:'cursos_nucleos',filas:entries.length,noConciliados:unmatched.length,
+   validado:confirmed,fecha:today()});
+  next.auditoria.push({tipo:'cursos_nucleos',fecha:today(),fuente:file.name,total:entries.length,verificado:confirmed});
+  await Store.save(next);state=next;draw();notify(entries.length+' registros de cursos importados; '+unmatched.length+' requieren revisión.');
+ }catch(e){console.error(e);notify('Importación de cursos: '+e.message)}
+ finally{ev.target.value=''}
+}
+
 async function handleTrabajoFile(ev){
  const file=ev.target.files?.[0];if(!file)return;
  try{
@@ -895,7 +943,7 @@ async function handleFiles(ev){
  }catch(e){console.error(e);notify("Error de importación: "+e.message)}
  finally{ev.target.value=""}
 }
-async function action(code){switch(code){case"student-file":el("student-file").click();break;case"trabajo-file":el("trabajo-file").click();break;case"logo-file":el("logo-file").click();break;case"remove-logo":{
+async function action(code){switch(code){case"student-file":el("student-file").click();break;case"trabajo-file":el("trabajo-file").click();break;case"cursos-file":el("cursos-file").click();break;case"logo-file":el("logo-file").click();break;case"remove-logo":{
  if(state.config.logoDataUrl&&confirm("¿Quitar el logotipo institucional de ambos informes?")){
   const next=Data.migrate(state);delete next.config.logoDataUrl;
   await Store.save(next);state=next;draw();notify("Logotipo quitado de ambos informes.");
@@ -1001,6 +1049,7 @@ document.addEventListener("change",async ev=>{let field=ev.target;if(field.datas
 }else if(field.dataset.config){state.config[field.dataset.config]=field.type==="checkbox"?field.checked:field.value;await persist();draw()}});
 el("student-file").addEventListener("change",handleFiles);el("backup-file").addEventListener("change",handleFiles);
 el("trabajo-file").addEventListener("change",handleTrabajoFile);
+el("cursos-file").addEventListener("change",handleCursosFile);
 el("firebase-file").addEventListener("change",firebaseLoadFile);
 el("logo-file").addEventListener("change",async ev=>{const file=ev.target.files?.[0];if(!file)return;try{if(!["image/png","image/jpeg","image/webp"].includes(file.type))throw Error("Solo se admiten archivos PNG, JPG o WebP.");if(file.size>2000000)throw Error("La imagen debe tener menos de 2 MB.");const dataURL=await new Promise((res,rej)=>{let fr=new FileReader();fr.onload=()=>res(fr.result);fr.onerror=()=>rej(new Error("No se pudo leer imagen."));fr.readAsDataURL(file)});if(!/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/.test(dataURL))throw Error("Imagen no reconocida; utiliza PNG, JPG o WebP.");const next=Data.migrate(state);next.config.logoDataUrl=dataURL;await Store.save(next);state=next;draw();notify("Logotipo guardado para la portada y encabezado de ambos PDF.");}catch(e){notify(e.message)}finally{ev.target.value=""}});
 (async()=>{state=await load();try{const imported=await loadPrivateGPT();if(imported&&!imported.unchanged){console.info("Base GPT privada disponible:",imported.students,"estudiantes nuevos,",imported.grades,"notas nuevas.")}}catch(e){console.error("No se pudo cargar la base GPT privada:",e);notify("No se pudo cargar la base GPT local: "+e.message)}ready=true;draw()})().catch(e=>{el("main").textContent="No fue posible iniciar Informetit: "+e.message});

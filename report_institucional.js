@@ -81,7 +81,7 @@ function makeReport(state,mode){
  const phaseReq=window.InformetitRequirements.analyze(state,mode);
  const totalChecks=phaseReq.checks.applicable,done=phaseReq.checks.ok;
  const pending=phaseReq.source==='individual'?phaseReq.checks.fail+phaseReq.checks.unknown:phaseReq.checks.unclassified;
- let out='<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Informe de titulación '+desc+'</title><style>'+STYLES+'\n'+DOC.CSS+'</style></head><body>';
+ let out='<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Informe Final del Proceso de Titulación · '+desc+'</title><style>'+STYLES+'\n'+DOC.CSS+'</style></head><body>';
  out+=DOC.cover(state,mode);
  out+='<!--INFORMETIT_INDEX-->';
  out+=DOC.introduction();
@@ -133,24 +133,22 @@ function makeReport(state,mode){
  out+='<ol><li>Conciliar la base de estudiantes con los libros de calificaciones y resolver registros duplicados o discrepantes.</li><li>Dar seguimiento a las categorías con más verificaciones pendientes y documentar su cierre.</li><li>Separar planificado, ejecutado, evidenciado y aprobado para cada hito.</li><li>Incorporar actas y supletorios antes de calcular indicadores de aprobación definitiva.</li><li>Revisar la versión normativa, los códigos institucionales y las firmas antes de aprobar el informe.</li></ol>';
  const reportQuality=window.InformetitQuality.analyze(state,mode);
  out+=window.InformetitQuality.report(reportQuality,{Table,Figure,H,para,F,P});
- out+=H(2,'Referencias y documentación utilizada');
- out+=para('Se consignan los tipos de documentos identificados para este ciclo. Las fechas, versiones, artículos legales y referencias bibliográficas deben completarse al cotejar los originales; no se atribuye una edición no comprobada.');
- out+='<p class="privacy">BORRADOR SIN VALIDAR. Los resultados pendientes no se sustituyen por estimaciones. Se requiere validar actas, normativa y controles documentales antes de la aprobación institucional.</p>';
- out+=Table('Registro de fuentes y referencias por validar',
- ['Documento','Uso','Validación pendiente'],[
- ['Manual de procesos institucional de Titulación','Responsables, fases y actas','Verificar código, versión y aprobación'],
- ['Nómina y matriz de requisitos del período','Población y controles de cumplimiento','Confirmar fecha de corte, altas y retiros'],
- ['Calificaciones Moodle y resumen Word','Notas de núcleos','Identificar archivos, fechas y responsables'],
- ['Actas de Complexivo y Trabajo de Titulación','Resultados finales','Contrastar notas y actas firmadas'],
- ['Cronogramas institucionales','Programación de ambas modalidades de titulación','Confirmar fecha, versión y ejecución'],
- ['Constitución, LOES, Régimen Académico y normativa interna','Marco jurídico','Verificar vigencia y artículos aplicables']
- ],'Inventario por completar con referencias bibliográficas institucionales verificadas');
+ out+=H(2,'Referencias Bibliográficas');
+ out+=para('Las referencias siguientes identifican las fuentes normativas públicas consultadas. La vigencia de sus reformas se cotejará con las versiones aplicables al período antes de la aprobación institucional.');
+ const referencias=[
+ ['Asamblea Constituyente. (2008).','Constitución de la República del Ecuador',' (Registro Oficial No. 449).','https://www.asambleanacional.gob.ec/sites/default/files/private/asambleanacional/filesasambleanacionalnameuid-29/constitucion-republica-inc-sent-cc.pdf'],
+ ['Asamblea Nacional del Ecuador. (2010).','Ley Orgánica de Educación Superior',' (Suplemento del Registro Oficial No. 298).','https://www.registroficial.gob.ec/suplemento-al-registro-oficial-no-298-8/'],
+ ['Consejo de Educación Superior. (2022).','Reglamento de Régimen Académico',' (Resolución RPC-SE-08-No.023-2022).','https://www.ces.gob.ec/wp-content/uploads/2025/05/Reglamento-de-Regimen-Academico.pdf']
+ ];
+ out+=referencias.map(([autor,titulo,info,url])=>'<p class="apa-ref">'+E(autor)+' <i>'+E(titulo)+'</i>'+E(info)+' <a href="'+E(url)+'">'+E(url)+'</a></p>').join('');
+ out+='<p class="privacy">La normativa institucional de circulación interna, los libros de Moodle y las actas individuales se relacionan como fuentes de evidencia en el Anexo A hasta disponer de metadatos documentales verificables. No se les asignan ediciones o fechas ficticias.</p>';
  out+='</body></html>';
  const generated=DOC.indexize(out);
  return generated.html.replace('<!--INFORMETIT_INDEX-->',generated.front);
 }
 async function download(state,mode){
- const html=makeReport(state,mode),filename='Informe_Titulacion_'+mode+'_Oct2025_Mar2026_BORRADOR.pdf';
+ const html=makeReport(state,mode),codigo=window.InformetitDocument.fields(state,mode).code;
+ const filename=codigo+'_Informe_Titulacion_'+(mode==='online'?'Online':'Presencial')+'.pdf';
  const header=window.InformetitDocument.printHeader(state,mode);
  if(window.informetitDesktop?.saveAPAHTML)
    return window.informetitDesktop.saveAPAHTML(html,filename,{headerTemplate:header,indexPageNumbers:true});

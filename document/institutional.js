@@ -2,7 +2,7 @@
 (function(root){
 'use strict';
 const E=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const PERIOD='Octubre 2025 a marzo 2026',TITLE='Informe final del proceso de titulación',UNIT='Unidad de Titulación y Eficiencia Terminal';
+const PERIOD='Octubre 2025 a marzo 2026',TITLE='Informe Final del Proceso de Titulación',UNIT='Unidad de Titulación y Eficiencia Terminal';
 function date(s){const m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(String(s||'')),names=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];return m&&+m[2]>=1&&+m[2]<=12?+m[3]+'-'+names[+m[2]-1]+'-'+m[1]:String(s||'Por confirmar')}
 function lastWorkdayOfMonth(stamp){
  const m=/^(\d{4})-(\d{2})$/.exec(String(stamp||''));
@@ -81,13 +81,13 @@ function legal(){
  return '<h2>2. Marco legal y normativo</h2>'
  +p('La gestión del proceso de titulación se interpreta conforme al marco jurídico ecuatoriano de educación superior y a las disposiciones institucionales aplicables al período analizado. Este apartado expone la relación funcional de las normas con el seguimiento académico, sin sustituir la revisión jurídica de sus textos consolidados y reformas vigentes al momento de aprobar el informe.')
  +'<h3>2.1. Constitución de la República del Ecuador</h3>'
- +p('Los artículos 26 y 27 reconocen el derecho a la educación y orientan su desarrollo hacia la formación integral, la calidad y la inclusión. En el ámbito de la educación superior, el artículo 350 vincula la formación académica y profesional con el desarrollo científico, tecnológico y la solución de problemas del país. Los artículos 351 y 352 sitúan a los institutos superiores en el sistema de educación superior y recogen principios de igualdad de oportunidades, pertinencia y calidad.')
+ +p('Según la Constitución de la República del Ecuador (Asamblea Constituyente, 2008), los artículos 26 y 27 reconocen el derecho a la educación y orientan su desarrollo hacia la formación integral, la calidad y la inclusión. En el ámbito de la educación superior, el artículo 350 vincula la formación académica y profesional con el desarrollo científico, tecnológico y la solución de problemas del país. Los artículos 351 y 352 sitúan a los institutos superiores en el sistema de educación superior y recogen principios de igualdad de oportunidades, pertinencia y calidad.')
  +p('En consecuencia, el seguimiento institucional de titulación debe sustentarse en criterios transparentes de evaluación, registros comprobables y aplicación consistente de los procedimientos, atendiendo las condiciones académicas previstas para cada estudiante y modalidad.')
  +'<h3>2.2. Ley Orgánica de Educación Superior</h3>'
- +p('La Ley Orgánica de Educación Superior regula los derechos, responsabilidades y principios de la formación superior. Sus artículos 4 y 5 se refieren al ejercicio del derecho a la educación superior y al acceso, permanencia, egreso y titulación sin discriminación, conforme a las condiciones académicas establecidas por la normativa.')
+ +p('La Ley Orgánica de Educación Superior (Asamblea Nacional del Ecuador, 2010, y sus reformas aplicables) regula los derechos, responsabilidades y principios de la formación superior. Sus artículos 4 y 5 se refieren al ejercicio del derecho a la educación superior y al acceso, permanencia, egreso y titulación sin discriminación, conforme a las condiciones académicas establecidas por la normativa.')
  +p('Para efectos del informe, esta referencia exige diferenciar el derecho del estudiante a seguir el procedimiento institucional de las constancias formales de aprobación, egreso y emisión del título. Las verificaciones administrativas, por sí solas, no acreditan la calificación final ni la inscripción posterior de un título.')
  +'<h3>2.3. Reglamento de Régimen Académico del Consejo de Educación Superior</h3>'
- +p('El Reglamento de Régimen Académico constituye un referente para la organización de carreras, períodos académicos, evaluación y opciones relacionadas con la culminación de estudios. Su aplicación concreta debe contrastarse con la versión vigente y las reformas correspondientes al período y al mecanismo de titulación desarrollado por la institución.')
+ +p('El Reglamento de Régimen Académico (Consejo de Educación Superior, 2022, y sus reformas aplicables) constituye un referente para la organización de carreras, períodos académicos, evaluación y opciones relacionadas con la culminación de estudios. Su aplicación concreta debe contrastarse con la versión vigente y las reformas correspondientes al período y al mecanismo de titulación desarrollado por la institución.')
  +p('Desde el punto de vista del control académico, este marco obliga a conservar el instrumento de evaluación utilizado, la evidencia de cumplimiento del cronograma y la correspondencia entre las actividades formativas y el resultado registrado. Por esta razón se mantienen separados los resultados de los núcleos, las calificaciones del examen y las rúbricas de Trabajo de Titulación.')
  +'<h3>2.4. Regulación de instituciones de formación técnica y tecnológica</h3>'
  +p('La regulación emitida por el Consejo de Educación Superior para las instituciones de formación técnica y tecnológica complementa el régimen académico general. Sus disposiciones y reformas deben revisarse junto con la condición institucional, las atribuciones de las autoridades y los instrumentos internos que sustentan el desarrollo y la aprobación de los procesos académicos.')
@@ -121,7 +121,7 @@ const CSS=[
 '@page{size:A4;margin:5.05cm 2.54cm 2.54cm}',
 '@page:first{size:A4;margin:5.05cm 1.5cm 1.5cm}',
 '@media print{.inf-cover-head{display:none!important}}',
-'@media print{thead{display:table-header-group!important}tfoot{display:table-footer-group!important}h2,h3,.tlabel,.tname,.flabel,.fname{break-after:avoid-page;page-break-after:avoid}.tbl tr,.fig{break-inside:avoid-page}.inf-index a{color:#000!important;text-decoration:none}}',
+'@media print{body>h2{break-before:page!important;page-break-before:always!important}thead{display:table-header-group!important}tfoot{display:table-footer-group!important}h2,h3,.tlabel,.tname,.flabel,.fname{break-after:avoid-page;page-break-after:avoid}.tbl tr,.fig{break-inside:avoid-page}.inf-index a{color:#000!important;text-decoration:none}}',
 '.inf-cover{background:#fff!important;min-height:21.6cm!important;break-after:page;page-break-after:always;display:flex;flex-direction:column;justify-content:space-between;margin:0!important;padding:0!important;box-shadow:none!important}',
 '.inf-cover-head{width:18cm;margin:0 auto}.inf-header{width:18cm!important;table-layout:fixed;border-collapse:collapse;font:8pt/1.15 Arial,sans-serif}',
 '.inf-header td{border:.5pt solid #000;text-align:center;vertical-align:middle;padding:.1cm;overflow-wrap:anywhere}',
@@ -148,6 +148,11 @@ const CSS=[
 '.inf-index-page{min-width:22pt;text-align:right;font-variant-numeric:tabular-nums}',
 '.inf-page-marker{font-size:3px;color:#fff;letter-spacing:0}',
 '.inf-cover + .inf-index{break-before:auto}',
+'.apa-ref{font:12pt/2 "Times New Roman",serif;padding-left:1.27cm;text-indent:-1.27cm;overflow-wrap:anywhere;margin:0 0 8pt}',
+'.inf-foda{display:grid;grid-template-columns:1fr 1fr;gap:8pt;margin:10pt 0 15pt;break-inside:avoid}',
+'.inf-foda .quadrant{border:1pt solid #667e9c;padding:10pt;min-height:90pt;background:#f8fafc}',
+'.inf-foda h4{font:bold 11pt Arial,sans-serif;color:#173b68;margin:0 0 7pt}',
+'.inf-foda p{font:10pt/1.35 Arial,sans-serif;margin:0}',
 '@media screen{.inf-cover{min-height:24cm!important;max-width:21cm;margin:0 auto 24px!important;padding:14px!important;box-shadow:0 1px 6px #d6dce7!important}',
 '.inf-cover-head{width:100%}.inf-cover-head .inf-header{width:100%!important}',
 '.inf-index{background:#fff;max-width:21cm;margin:0 auto 24px;padding:20px;box-shadow:0 1px 6px #d6dce7}}'

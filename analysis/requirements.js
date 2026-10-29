@@ -192,9 +192,8 @@ function renderReport(report,helper){
   max:100,percentage:true,decimals:2,note:'Porcentajes sobre el total de verificaciones aplicables; en la fuente agregada se utiliza el total registrado.'});
  out+=H(3,'4.3. Incidencias y priorización');
  out+=Table('Prioridad de revisión por requisito',
-  ['Requisito','Incumplimientos','Sin verificar','Total de incidencias'],
-  report.priorities.map(x=>[x.label,individual?x.fail:'No desglosado',individual?x.unknown:'No desglosado',
-   individual?x.fail+x.unknown:x.unclassified]),
+  ['Requisito','Total de incidencias'],
+  report.priorities.map(x=>[x.label,individual?x.fail+x.unknown:x.unclassified]),
   'Se contabilizan verificaciones; una persona puede tener varios requisitos pendientes');
  if(report.priorities.length)out+=Figure('Incidencias por requisito',report.priorities.map(x=>[x.label,individual?x.fail+x.unknown:x.unclassified]),{
   note:'Incidencias de verificaciones, no estudiantes únicos.'});

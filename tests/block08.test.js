@@ -87,7 +87,7 @@ test('anexo C contiene incidencias y acciones, separado del análisis nominal',(
   Table:(name,heads,rows,note)=>'<table data-name="'+name+'">'+rows.map(x=>'<tr>'+x.join('|')+'</tr>').join('')+'</table>',
   H:(n,title)=>'<h'+n+'>'+title+'</h'+n+'>',para:x=>'<p>'+x+'</p>'
  });
- for(const x of ['11. Anexos','Anexo A. Inventario','Anexo B. Conciliación',
+ for(const x of ['13. Anexos','Anexo A. Inventario','Anexo B. Conciliación',
    'Anexo C. Matriz','Anexo D. Integridad','Firebase UTET','BORRADOR']){ 
    if(x==='BORRADOR')continue;
    assert.ok(html.includes(x),x);
@@ -101,7 +101,7 @@ test('el informe presencial y el online tienen índice de contenido, tablas y fi
   assert.match(html,/Índice de contenidos/);
   assert.match(html,/Índice de tablas/);
   assert.match(html,/Índice de figuras/);
-  assert.match(html,/11. Anexos y trazabilidad/);
+  assert.match(html,/13. Anexos y Trazabilidad/);
   assert.match(html,/BORRADOR SIN VALIDAR/);
   assert.match(html,/Anexo C. Matriz de control de calidad/);
  }

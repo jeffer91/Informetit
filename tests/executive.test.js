@@ -9,8 +9,8 @@ require('../analysis/executive.js');require('../analysis/informe-completo.js');
 require('../report_institucional.js');
 test('resumen ejecutivo aparece después de resultados y antes de conclusiones',()=>{
  const h=global.InformetitFullReport.makeReport(M.empty(),'presencial');
- assert.ok(h.search(/<h2[^>]*>8\. Síntesis general de la cohorte/)<h.search(/<h2[^>]*>Resumen ejecutivo/));
- assert.ok(h.indexOf('Resumen ejecutivo')<h.search(/<h2[^>]*>9\. Conclusiones/));
+ assert.ok(h.search(/<h2[^>]*>8\. Síntesis general de la cohorte/)<h.search(/<h2[^>]*>9\. Resumen Ejecutivo/));
+ assert.ok(h.search(/<h2[^>]*>9\. Resumen Ejecutivo/)<h.search(/<h2[^>]*>10\. Conclusiones/));
  for(const x of ['Diagrama de Ishikawa','Matriz FODA','Árbol de clasificación'])assert.ok(h.includes(x),x);
 });
 test('no se presenta la población nominal ausente como cero titulados',()=>{

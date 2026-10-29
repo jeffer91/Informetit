@@ -58,7 +58,7 @@ function assess(raw,state,mode){
   let status='ready',reason='Identificación exacta';
   if(!person){status='unmatched';reason='Cédula no encontrada en la base local'}
   else if(person.modalidad!==actual){status='wrong_mode';reason='Estudiante de otra modalidad'}
-  else if(person.tipoTitulacion==='trabajo'){status='wrong_mechanism';reason='Estudiante de Trabajo de Titulación'}
+  else if(person.tipoTitulacion!=='complexivo'){status='wrong_mechanism';reason='Mecanismo sin definir o Trabajo de Titulación; clasificar antes de importar'}
   else if((state.evaluaciones||[]).some(e=>String(e.studentId)===row.studentId&&e.tipo!=='trabajo')){
    status='existing';reason='Tiene evaluación guardada; revisar individualmente antes de reemplazar'
   }

@@ -48,16 +48,16 @@ function localRecords(state){
   }else result.set(key,{collection,key,id:docId(collection,record),record,origin});
  };
  for(const n of state.notas||[]){
-  if(isPending(n)||n.verificado===false)continue;
+  if(isPending(n)||n.verificado!==true)continue;
   const st=students.get(v(n.studentId));
-  if(!st||st.tipoTitulacion==='trabajo')continue;
+  if(!st||st.tipoTitulacion!=='complexivo')continue;
   if(n.curso&&Number(n.nucleo)===0)continue;
   add('nucleos',noteRecord(st,n),'notas');
  }
  for(const n of state.cursosNucleos||[]){
   if(n.verificado!==true||isPending(n))continue;
   const st=students.get(v(n.studentId));
-  if(!st||st.tipoTitulacion==='trabajo')continue;
+  if(!st||st.tipoTitulacion!=='complexivo')continue;
   add('nucleos',noteRecord(st,n),'cursosNucleos');
  }
  const X=root.InformetitComplexivo;
@@ -65,14 +65,14 @@ function localRecords(state){
   const st=students.get(v(e.studentId));
   if(!st||st.tipoTitulacion!=='complexivo'||e.tipo==='trabajo')continue;
   const assessment=X.evaluate(e);
-  if(!assessment.verified||assessment.warnings.length)continue;
+  if(!assessment.verified||!assessment.actaCotejada||assessment.warnings.length)continue;
   const ord=assessment.ordinario,sup=assessment.supletorio;
   const r={periodoId:PERIOD,cedula:st.id,...school(st),
    ordinario:{teoria:grade(ord.teoria),practica:grade(ord.practica),asistencia:ord.asistencia},
    supletorio:{teoria:grade(sup.teoria),practica:grade(sup.practica),
      notaFinal:grade(sup.notaFinal),asistencia:sup.asistencia},
    actaOrdinario:assessment.actaOrdinario,actaSupletorio:assessment.actaSupletorio,
-   verificado:true,origen:'Informetit',schemaVersion:1};
+   actaCotejada:true,verificado:true,origen:'Informetit',schemaVersion:1};
   add('complexivos',r,'evaluaciones');
  }
  return {items:result,issues};
@@ -110,7 +110,7 @@ function validRemote(collection,r){
    Number(r.nucleo)<=4&&grade(r.notaFinal)!==null;
  const o=r.ordinario||{},s=r.supletorio||{};
  return typeof o==='object'&&typeof s==='object'&&
-  !!(v(r.actaOrdinario)||v(r.actaSupletorio))&&
+  r.actaCotejada===true&&!!(v(r.actaOrdinario)||v(r.actaSupletorio))&&
   [o.teoria,o.practica,s.teoria,s.practica,s.notaFinal].some(x=>grade(x)!==null);
 }
 function safeRemoteRecord(collection,r){
@@ -123,7 +123,7 @@ function safeRemoteRecord(collection,r){
  return {periodoId:PERIOD,cedula:v(r.cedula),carrera:v(r.carrera),modalidad:v(r.modalidad),
   ordinario:{teoria:grade(o.teoria),practica:grade(o.practica),asistencia:v(o.asistencia)||'pendiente'},
   supletorio:{teoria:grade(s.teoria),practica:grade(s.practica),notaFinal:grade(s.notaFinal),asistencia:v(s.asistencia)||'pendiente'},
-  actaOrdinario:v(r.actaOrdinario),actaSupletorio:v(r.actaSupletorio),
+  actaOrdinario:v(r.actaOrdinario),actaSupletorio:v(r.actaSupletorio),actaCotejada:true,
   verificado:true,origen:v(r.origen)||'Firebase',schemaVersion:Number(r.schemaVersion)||1};
 }
 function remoteSnapshot(raw){
@@ -141,7 +141,7 @@ function remoteSnapshot(raw){
     ['periodoId','cedula','carrera','modalidad','nucleo','curso','notaFinal','fuente','verificado','origen','schemaVersion',
       'firebaseDocumentId','firebaseUpdateTime']:
     ['periodoId','cedula','carrera','modalidad','ordinario','supletorio','actaOrdinario','actaSupletorio','verificado',
-      'origen','schemaVersion','firebaseDocumentId','firebaseUpdateTime'];
+      'origen','schemaVersion','actaCotejada','firebaseDocumentId','firebaseUpdateTime'];
    const key=identity(name,r);
    if(!validRemote(name,r)||Object.keys(r).some(f=>!allowed.includes(f))){
     blocked.push({collection:name,key,reason:'Esquema o estado de verificación no compatible; requiere inspección',id:r.firebaseDocumentId});continue;
@@ -163,7 +163,7 @@ function normalizeRemoteForLocal(row){
    origen:'Firebase UTET',firebaseDocumentId:row.id};
  }
  return {studentId:r.cedula,tipo:'complexivo',ordinario:r.ordinario,supletorio:r.supletorio,
-  actaOrdinario:r.actaOrdinario,actaSupletorio:r.actaSupletorio,
+  actaOrdinario:r.actaOrdinario,actaSupletorio:r.actaSupletorio,actaCotejada:true,
   origen:'Firebase UTET',firebaseDocumentId:row.id};
 }
 function plan(local,remote){
@@ -179,7 +179,7 @@ function plan(local,remote){
   if(!st||st.modalidad!==current.record.modalidad){
    foreign.push({collection:current.collection,key,reason:'Cédula sin identidad local o modalidad distinta'});continue;
   }
-  if(current.collection==='complexivos'&&st.tipoTitulacion!=='complexivo'){
+  if(st.tipoTitulacion!=='complexivo'){
    conflicts.push({collection:current.collection,key,reason:'Mecanismo sin confirmar o Trabajo de Titulación'});continue;
   }
   const base=stored[key],localSig=a&&signature(a.record),remoteSig=b&&signature(b.record);

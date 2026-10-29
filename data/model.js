@@ -110,7 +110,7 @@ function analyze(state,mod){
     const nk=Number(rec.nucleo),value=grade(rec.nota);
     if(!Number.isInteger(nk)||nk<1||nk>4||value===null)return;
     const s=studentMap.get(id(rec.studentId)),recordId=id(rec.studentId)+'|'+nk;
-    if(s.tipoTitulacion==='trabajo')return; // Trabajo de Titulación se analiza por separado.
+    if(s.tipoTitulacion!=='complexivo')return; // Solo estudiantes expresamente clasificados entran en núcleos.
     if(unresolved.has(recordId)||contradictory.has(recordId))return;
     const entry={...rec,nota:value,nucleo:nk,studentId:s.id,carrera:s.carrera,modalidad:s.modalidad,
       sourceType:src,sourceDetail:text(rec.source||rec.fuente||'')};
@@ -126,13 +126,11 @@ function analyze(state,mod){
     if(src==='moodle'&&prev.sourceType==='word'){index.set(recordId,entry);sourceCounts.word--;sourceCounts.moodle++}
   };
   for(const g of state.notas||[]){
-    if(['ESTIMADO','PROVISIONAL','SIMULADO'].includes(key(g.status)))continue;
+    if(g.verificado===false||['ESTIMADO','PROVISIONAL','SIMULADO','BORRADOR','SIN VERIFICAR','PROVISIONAL POR CONCILIAR'].includes(key(g.status||g.estado)))continue;
     admit(g,'moodle');
   }
-  // Las notas del Word permanecen provisionales: nunca se promocionan automáticamente al consolidado oficial.
-  // Deben conciliarse con Moodle y guardarse en notas con evidencia de validación.
-  // Para conservar compatibilidad: las notas Word previamente aceptadas (sin estado provisional) se mantienen.
-  for(const g of state.notasBorrador||[])if(!['PROVISIONAL','PROVISIONAL POR CONCILIAR','SIN VERIFICAR','BORRADOR'].includes(key(g.estado||g.status)))admit(g,'word');
+  // Nunca promocionar notasBorrador a los resultados oficiales. Las notas históricas
+  // deben cotejarse y transferirse explícitamente a notas con evidencia verificable.
   const notes=[...index.values()].sort((a,b)=>career(a.carrera).localeCompare(career(b.carrera))||a.nucleo-b.nucleo||a.studentId.localeCompare(b.studentId));
   const conflicts=[...new Set([...unresolved,...contradictory])];
   const byNucleus=new Map();

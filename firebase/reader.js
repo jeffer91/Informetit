@@ -30,12 +30,12 @@ function validateRecord(name,record){
    throw Error('La nota del núcleo debe estar entre 0 y 10');
   if(record.verificado!==true)throw Error('No se publican notas provisionales');
  }else{
-  if(record.verificado!==true||!record.actaOrdinario&&!record.actaSupletorio)
+  if(record.verificado!==true||record.actaCotejada!==true||!record.actaOrdinario&&!record.actaSupletorio)
    throw Error('Examen sin verificación y referencia de acta; no se publica');
  }
  const allowed=name==='nucleos'?
   ['periodoId','cedula','modalidad','carrera','nucleo','curso','notaFinal','fuente','verificado','origen','schemaVersion']:
-  ['periodoId','cedula','modalidad','carrera','ordinario','supletorio','actaOrdinario','actaSupletorio','verificado','origen','schemaVersion'];
+  ['periodoId','cedula','modalidad','carrera','ordinario','supletorio','actaOrdinario','actaSupletorio','actaCotejada','verificado','origen','schemaVersion'];
  if(Object.keys(record).some(k=>!allowed.includes(k)))throw Error('Campos del documento no permitidos para '+name);
  return record;
 }

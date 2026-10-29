@@ -10,7 +10,7 @@ const student=(id='0000000001',kind='complexivo')=>({
 });
 const state=()=>{
  const s=M.empty();s.estudiantes=[student()];
- s.notas=[{id:'0000000001|1',studentId:'0000000001',nucleo:1,nota:8.7,source:'Texto Moodle · N1'}];
+ s.notas=[{id:'0000000001|1',studentId:'0000000001',nucleo:1,nota:8.7,source:'Texto Moodle · N1',verificado:true}];
  s.notasBorrador=[{studentId:'0000000001',nucleo:2,nota:9.4,estado:'provisional_por_conciliar'}];
  return s;
 };
@@ -53,7 +53,7 @@ test('examen con referencia de acta se envía a complexivos; sin acta no se env�
  const s=state();s.evaluaciones=[{studentId:'0000000001',tipo:'complexivo',
   ordinario:{teoria:8,practica:9,asistencia:'presentado'},
   supletorio:{teoria:null,practica:null,notaFinal:null,asistencia:'pendiente'},
-  actaOrdinario:'ACTA-01',actaSupletorio:''}];
+  actaOrdinario:'ACTA-01',actaSupletorio:'',actaCotejada:true}];
  const items=[...Sync.localRecords(s).items.values()];
  assert.equal(items.length,2);
  const exam=items.find(x=>x.collection==='complexivos');

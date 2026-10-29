@@ -1,70 +1,153 @@
-/* Resumen ejecutivo situado inmediatamente después de resultados. Diagramas basados en hallazgos, sin atribuir causalidad no demostrada. */
+/* Informetit: análisis ejecutivo visual con fuentes verificables y denominadores explícitos. */
 (function(root){
 'use strict';
 const E=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[c]));
-function bones(){
- const names=[['Requisitos',185,52],['Calificaciones',370,52],['Actas',565,52],
- ['Población',185,214],['Cronogramas',370,214],['Validación',565,214]];
- let svg='<svg xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Ishikawa de ámbitos de control pendientes" viewBox="0 0 800 265">';
- svg+='<rect width="800" height="265" fill="#fff"/><path d="M80 133 H700" stroke="#173b68" stroke-width="4"/>';
- for(const a of names){
-  const above=a[2]<130,stem=above?93:170,edge=above?72:194;
-  svg+='<path d="M'+a[1]+' '+stem+' L'+(a[1]+55)+' 133" stroke="#426587" stroke-width="2" fill="none"/>';
-  svg+='<text x="'+a[1]+'" y="'+edge+'" font-size="15" text-anchor="middle" fill="#1c3045" font-family="Arial">'+E(a[0])+'</text>';
+const pct=(n,d)=>d?(100*n/d).toLocaleString('es-EC',{minimumFractionDigits:2,maximumFractionDigits:2})+' %':'No calculable';
+const text=(x,y,s,size=19,anchor='middle',weight=400,color='#1e3550')=>
+ '<text x="'+x+'" y="'+y+'" font-family="Arial, sans-serif" font-size="'+size+'" fill="'+color+
+ '" font-weight="'+weight+'" text-anchor="'+anchor+'">'+E(s)+'</text>';
+const multi=(x,y,values,dy=19,size=17,color='#1e3550')=>values.map((s,i)=>text(x,y+i*dy,s,size,'middle',400,color)).join('');
+const round=(x,y,w,h,fill='#f4f8fc',stroke='#8aa5bf',radius=11)=>
+ '<rect x="'+x+'" y="'+y+'" width="'+w+'" height="'+h+'" rx="'+radius+'" fill="'+fill+'" stroke="'+stroke+'" stroke-width="1.6"/>';
+const line=(d)=>'<path d="'+d+'" stroke="#69849f" stroke-width="2.4" fill="none" stroke-linejoin="round"/>';
+const svgStart=(name,w,h)=>'<svg xmlns="http://www.w3.org/2000/svg" role="img" aria-label="'+E(name)+'" viewBox="0 0 '+w+' '+h+'" preserveAspectRatio="xMidYMid meet"><rect width="'+w+'" height="'+h+'" fill="#fff"/>';
+function bones(data={}){
+ const r=data.requirements||{},c=data.cierre?.counts||{},q=data.quality||{},state=data.state||{};
+ const unclassified=c.unclassified??0;
+ const provisional=(state.notasBorrador||[]).filter(x=>['PROVISIONAL_POR_CONCILIAR','PROVISIONAL','BORRADOR'].includes(String(x.estado||x.status||'').toUpperCase())).length;
+ const blocks=[
+  ['Requisitos',(r.notComplete9??0)+' casos por revisar'],
+  ['Mecanismo',unclassified+' sin clasificar'],
+  ['Núcleos',provisional+' notas provisionales'],
+  ['Examen',c.pending??0+' evaluaciones pendientes'],
+  ['Actas',(c.total??0)-(c.referenced??0)+' sin acta verificada'],
+  ['Validación',(q.critical||[]).length+' alertas críticas']
+ ];
+ // Dibujo en espina con ramales superiores e inferiores y etiquetas al extremo.
+ let out=svgStart('Ishikawa: seis ámbitos de verificación con indicadores',900,450);
+ out+=round(18,11,864,38,'#edf2f8','#edf2f8',7)+text(450,36,'ANÁLISIS DE FACTORES A VERIFICAR',19,'middle',700);
+ out+=line('M70 230 H740');
+ for(let i=0;i<6;i++){
+  const top=i<3,index=i%3,join=230+index*180,boxX=70+index*230,boxY=top?58:324;
+  const branchX=top?join-35:join+25,branchY=top?185:276;
+  out+=line('M'+join+' 230 L'+branchX+' '+branchY+' L'+(boxX+95)+' '+(top?146:324));
+  out+=round(boxX,boxY,190,88,top?'#f0f5fa':'#f7f9fc','#9caec2',9);
+  out+=text(boxX+95,boxY+30,blocks[i][0],18,'middle',700);
+  out+=text(boxX+95,boxY+60,blocks[i][1],15,'middle');
  }
- svg+='<path d="M700 105 L770 133 L700 161 Z" fill="#e7edf4" stroke="#173b68" stroke-width="2"/>';
- svg+='<text x="726" y="129" font-size="11" text-anchor="middle" font-family="Arial" fill="#173b68">Cierre</text><text x="726" y="142" font-size="11" text-anchor="middle" font-family="Arial" fill="#173b68">por validar</text></svg>';
- return svg;
+ out+=line('M740 185 L880 230 L740 275 Z');
+ out+=round(754,200,115,62,'#dbe8f5','#54779a',6);
+ out+=multi(812,222,['Cierre académico','por validar'],20,16);
+ out+=text(450,428,'Las categorías son hipótesis de revisión; el esquema no prueba relaciones causales.',15,'middle',400,'#51677f');
+ return out+'</svg>';
 }
-function tree(total,actual,summary,mode){
- const known=actual>0,one=known?String(summary.complexivo):'Sin clasificación',two=known?String(summary.trabajo):'Sin clasificación';
- const final=known?String(summary.approved)+' aprobaciones calculadas':'Sin evaluación nominal';
- const rootLabel='Cohorte '+(mode==='online'?'online':'presencial')+': '+total;
- return '<svg xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Árbol de población y evaluación" viewBox="0 0 800 280">'+
- '<rect width="800" height="280" fill="#fff"/>'+
- '<path d="M400 72 V105 H200 V138 M400 105 H600 V138 M200 190 V215 H400 V235 M600 190 V215 H400" fill="none" stroke="#6d89a5" stroke-width="2"/>'+
- '<rect x="255" y="20" width="290" height="52" rx="9" fill="#173b68"/>'+
- '<text x="400" y="52" text-anchor="middle" font-family="Arial" font-size="17" fill="#fff">'+E(rootLabel)+'</text>'+
- '<rect x="40" y="138" width="320" height="52" rx="8" fill="#e6eff7" stroke="#9eb8ce"/>'+
- '<text x="200" y="158" text-anchor="middle" font-family="Arial" font-size="15" fill="#173b68">Examen Complexivo</text>'+
- '<text x="200" y="176" text-anchor="middle" font-family="Arial" font-size="13" fill="#173b68">'+E(one)+'</text>'+
- '<rect x="440" y="138" width="320" height="52" rx="8" fill="#e6eff7" stroke="#9eb8ce"/>'+
- '<text x="600" y="158" text-anchor="middle" font-family="Arial" font-size="15" fill="#173b68">Trabajo de Titulación</text>'+
- '<text x="600" y="176" text-anchor="middle" font-family="Arial" font-size="13" fill="#173b68">'+E(two)+'</text>'+
- '<rect x="240" y="235" width="320" height="36" rx="8" fill="#f5f6f8" stroke="#b6bfcb"/>'+
- '<text x="400" y="258" text-anchor="middle" font-family="Arial" font-size="14" fill="#173b68">'+E(final)+'</text></svg>';
+function foda(data={}){
+ const r=data.requirements||{},c=data.cierre?.counts||{},q=data.quality||{},state=data.state||{};
+ const total=r.total||0,complete=r.complete9||0,unclassified=c.unclassified||0;
+ const preliminary=(state.notasBorrador||[]).filter(x=>/provisional|borrador/i.test(String(x.estado||x.status||''))).length;
+ const quadrants=[
+  {x:20,y:32,key:'F',label:'FORTALEZAS',shade:'#f0f6fb',lines:[
+    total+' estudiantes identificados en la cohorte',
+    complete+' con nueve controles completos',
+    'Cumplimiento integral: '+pct(complete,total)]},
+  {x:448,y:32,key:'O',label:'OPORTUNIDADES',shade:'#f5f7fa',lines:[
+    'Integrar fuentes Moodle y actas',
+    'Conciliar registros antes de su cierre',
+    'Automatizar seguimiento por carrera']},
+  {x:20,y:262,key:'D',label:'DEBILIDADES OBSERVADAS',shade:'#f5f7fa',lines:[
+    unclassified+' mecanismos sin confirmar',
+    preliminary+' transcripciones por cotejar',
+    (q.critical||[]).length+' controles críticos de integridad']},
+  {x:448,y:262,key:'A',label:'AMENAZAS POTENCIALES',shade:'#f0f6fb',lines:[
+    'Riesgo de cerrar sin actas verificadas',
+    'Diferencias entre fuentes académicas',
+    'Demoras en aprobación documental']}
+ ];
+ let out=svgStart('Matriz FODA de cuatro cuadrantes del proceso de titulación',900,490);
+ for(const z of quadrants){
+  out+=round(z.x,z.y,412,210,z.shade,'#a8baca',11);
+  out+=round(z.x+15,z.y+15,42,42,'#173b68','#173b68',8);
+  out+=text(z.x+36,z.y+44,z.key,24,'middle',700,'#fff');
+  out+=text(z.x+68,z.y+44,z.label,18,'start',700);
+  z.lines.forEach((l,i)=>{
+   out+='<circle cx="'+(z.x+33)+'" cy="'+(z.y+88+i*42)+'" r="4" fill="#54779a"/>';
+   out+=text(z.x+48,z.y+94+i*42,l,16,'start');
+  });
+ }
+ return out+'</svg>';
+}
+function tree(total,actual,summary,mode,requirements){
+ const r=requirements||{},c=summary||{},name=mode==='online'?'Online':'Presencial';
+ const full=r.complete9??0,remaining=total-full,complex=c.complexivo??0,work=c.trabajo??0;
+ const unclassified=Math.max(0,c.unclassified??(total-actual)),approved=c.approved??0;
+ const label=(x,y,name,value,denom,fill='#f0f5fb',w=230,h=86)=>{
+  let result=round(x,y,w,h,fill,'#97b0c8',9);
+  result+=text(x+w/2,y+27,name,17,'middle',700);
+  result+=text(x+w/2,y+57,String(value)+' · '+pct(value,denom),18,'middle');
+  return result;
+ };
+ let out=svgStart('Árbol de población, requisitos, mecanismos y resultados',930,625);
+ out+=label(343,15,name+' · COHORTE',total,total,'#dce8f4',244,91);
+ out+=line('M465 106 V136 M233 136 H697 M233 136 V167 M697 136 V167');
+ out+=round(110,167,246,52,'#eaf1f7','#8aacc8')+text(233,201,'CONTROL DE REQUISITOS',18,'middle',700);
+ out+=round(573,167,247,52,'#eaf1f7','#8aacc8')+text(696,201,'MECANISMO ASIGNADO',18,'middle',700);
+ out+=line('M233 219 V243 M125 243 H341 M125 243 V272 M341 243 V272');
+ out+=label(10,272,'Nueve completos',full,total,'#f2f7fb',230,82);
+ out+=label(255,272,'No completos',remaining,total,'#f2f7fb',230,82);
+ out+=line('M696 219 V243 M578 243 H814 M578 243 V272 M696 243 V272 M814 243 V272');
+ out+=label(494,272,'Complexivo',complex,total,'#f5f8fb',150,82);
+ out+=label(656,272,'Trabajo de titulación',work,total,'#f5f8fb',170,82);
+ out+=label(839,272,'Sin definir',unclassified,total,'#f5f8fb',90,82);
+ out+=line('M465 379 V408');
+ out+=round(185,409,560,46,'#eaf1f7','#8aacc8')+text(465,439,'RESULTADOS ACADÉMICOS CALCULABLES',18,'middle',700);
+ out+=line('M465 455 V474 M234 474 H699 M234 474 V500 M465 474 V500 M699 474 V500');
+ out+=label(109,500,'Aprobaciones',approved,total,'#f2f7fb',248,81);
+ out+=label(358,500,'Pendientes',(c.pending??0),total,'#f2f7fb',217,81);
+ out+=label(587,500,'Reprobaciones',(c.failed??0),total,'#f2f7fb',240,81);
+ out+=text(465,612,'Porcentajes calculados sobre la cohorte de esta modalidad; no equivalen a títulos emitidos.',15,'middle',400,'#51677f');
+ return out+'</svg>';
 }
 function render(state,mode,data,{Table,Figure,H,para,F,P}){
- const r=data.requirements,q=data.quality,c=data.cierre,n=data.nuclei;
- const total=r.total,nominal=c.counts.total>0,complete=r.complete9;
+ const r=data.requirements,q=data.quality,c=data.cierre,n=data.nuclei,total=r.total||0;
+ const assigned=(c.counts.complexivo||0)+(c.counts.trabajo||0),complete=r.complete9||0;
+ const u=c.counts.unclassified??Math.max(0,total-assigned);
+ const provisional=(state?.notasBorrador||[]).filter(x=>/provisional|borrador/i.test(String(x.estado||x.status||''))&&
+  (state.estudiantes||[]).some(st=>st.id===x.studentId&&st.modalidad===mode)).length;
  let out=H(2,'9. Resumen Ejecutivo');
- out+=para('El presente resumen sintetiza los resultados del período octubre de 2025 a marzo de 2026, modalidad '+(mode==='online'?'online':'presencial')+'. Se registran '+total+' estudiantes según la fuente poblacional utilizada; '+complete+' presentan los nueve controles completos ('+F(P(complete,total))+' %). Este indicador administrativo no equivale a aprobación académica de titulación.');
- out+=para(nominal?'La nómina individual permite diferenciar '+c.counts.complexivo+' estudiantes en Examen Complexivo y '+c.counts.trabajo+' en Trabajo de Titulación. Se registran '+c.counts.approved+' aprobaciones calculadas y '+c.counts.pending+' evaluaciones pendientes de cierre documental.':
-  'No se dispone de una nómina nominal cargada para clasificar los estudiantes por mecanismo de titulación. Por consiguiente, las aprobaciones finales y sus tasas no son calculables; el valor cero de registros locales no se interpreta como cero titulados.');
- out+=para('La Fase II documenta '+n.nucleiWithResults+' combinaciones carrera–núcleo con información disponible. Las notas individuales y las estadísticas agregadas se mantienen separadas, y los resultados faltantes requieren conciliación antes de consolidar indicadores académicos oficiales.');
- const important=q.issues.filter(x=>x.severity==='critical'||x.severity==='warning');
- out+=para('La auditoría documental identifica '+q.critical.length+' bloqueos críticos y '+q.warnings.length+' advertencias. Entre los controles se encuentran la integridad de la nómina, la trazabilidad de calificaciones, las actas, el cronograma y la validación institucional. Estas observaciones describen asuntos por revisar, no causas que hayan sido demostradas empíricamente.');
- out+=H(3,'Análisis de causas potenciales: diagrama de Ishikawa');
- out+=para('El esquema organiza seis ámbitos de control cuya revisión es necesaria para cerrar el informe. Se utiliza como guía de diagnóstico y no como demostración de causalidad; cada hallazgo debe contrastarse con la evidencia institucional.');
- out+=Figure('Diagrama de Ishikawa: ámbitos de verificación del proceso',[['Control',1]],{diagramSvg:bones(),note:'Categorías de control para investigar; no se imputan causas sin evidencia'});
- out+=H(3,'Matriz FODA del proceso de titulación');
- const strength=total?('Matriz agregada identificada; '+complete+' de '+total+' estudiantes con nueve controles completos.'):'No hay datos suficientes para identificar fortalezas cuantitativas.';
- const weakness=important.length?important.map(x=>x.label).slice(0,3).join('; ')+'.':'No se informan incidencias críticas en las fuentes disponibles.';
- out+=Table('Matriz FODA: situación y acciones de mejora',
- ['Análisis interno','Análisis externo'],
- [['Fortalezas: '+strength,'Oportunidades: unificar libros académicos, nóminas y actas mediante controles de trazabilidad.'],
- ['Debilidades: '+weakness,'Amenazas o riesgos potenciales: retrasos de validación documental y emisión de resultados sin respaldo suficiente.']],
- 'Las oportunidades y amenazas son escenarios de gestión; no se presentan como hechos ocurridos');
- out+=H(3,'Árbol de población y resultados');
- out+=para('El árbol muestra la población de referencia y la clasificación individual cuando existe. No se distribuye la cohorte entre mecanismos a partir de estadísticas globales.');
+ out+=H(3,'9.1. Hallazgos y cobertura de la modalidad');
+ out+=para('La modalidad '+(mode==='online'?'online':'presencial')+' comprende '+total+' estudiantes en la fuente utilizada; '+
+  complete+' cumplen los nueve controles ('+pct(complete,total)+'). Esta proporción describe requisitos administrativos y no equivale a aprobación del examen ni a titulación.');
+ out+=para(assigned?
+  'Existen '+c.counts.complexivo+' estudiantes identificados como Examen Complexivo y '+c.counts.trabajo+
+  ' como Trabajo de Titulación. Permanecen '+u+' sin clasificación explícita. Se han calculado '+c.counts.approved+
+  ' aprobaciones a partir de notas finales disponibles; antes del cierre deben cotejarse las actas.':
+  'No existe aún una clasificación individual confirmada por mecanismo para esta modalidad. La presencia de la nómina no autoriza presumir que todas las personas corresponden a Examen Complexivo.');
+ out+=para('La Fase II contiene '+n.nucleiWithResults+' combinaciones carrera–núcleo con información de alguna fuente. Existen '+
+  provisional+' transcripciones provisionales en esta modalidad que no se incorporan a calificaciones oficiales antes del cotejo. El control documental registra '+q.critical.length+
+  ' alertas críticas y '+q.warnings.length+' advertencias.');
+ out+=H(3,'9.2. Diagrama de Ishikawa');
+ out+=para('El diagrama presenta factores que deben verificarse para concluir el proceso; expresa líneas de investigación, no causalidad demostrada.');
+ out+=Figure('Diagrama de Ishikawa: ámbitos de verificación del proceso',[['Control',1]],{
+   diagramSvg:bones({requirements:r,cierre:c,quality:q,state}),note:'Se muestran indicadores de la base local; son factores de revisión y no causas comprobadas'});
+ out+=H(3,'9.3. Matriz FODA');
+ out+=para('Las fortalezas y debilidades expresan observaciones disponibles. Las oportunidades y amenazas describen posibles acciones y riesgos institucionales, no hechos ya sucedidos.');
+ out+=Figure('Matriz FODA: análisis interno y externo del proceso de titulación',[['Control',1]],{
+   diagramSvg:foda({requirements:r,cierre:c,quality:q,state}),note:'Matriz de cuatro cuadrantes; datos de la cohorte y oportunidades o riesgos propuestos'});
+ out+=H(3,'9.4. Árbol de Población y Resultados');
+ out+=para('El árbol conserva denominadores reales y distingue resultados por mecanismo, requisitos completos y clasificación pendiente. El valor cero corresponde a un recuento real solo si existe una población y registros evaluables.');
  out+=Figure('Árbol de clasificación de la cohorte y sus resultados',[['Control',1]],{
-  diagramSvg:tree(total,c.counts.total,c.counts,mode),
-  note:nominal?'Las cifras por mecanismo corresponden únicamente a la nómina individual cargada':'Sin nómina nominal, las ramas se identifican como no clasificadas'});
- out+=H(3,'Lectura ejecutiva y prioridades');
- out+=para('Las prioridades institucionales son validar la población de corte, completar o conciliar los registros de evaluación y verificar actas, responsables y evidencia de ejecución del cronograma. El reporte continuará identificado como borrador mientras existan bloqueos críticos o verificaciones obligatorias sin soporte.');
+   diagramSvg:tree(total,assigned,c.counts,mode,r),note:'Todos los porcentajes se calculan sobre los '+total+' estudiantes de esta modalidad; no se infiere la graduación'});
+ out+=H(3,'9.5. Prioridades para toma de decisiones');
+ out+=Table('Prioridades de cierre institucional',
+ ['Prioridad','Control','Estado de información'],[
+  ['1','Clasificación individual del mecanismo',u+' estudiantes por confirmar'],
+  ['2','Conciliación de calificaciones de núcleos',provisional+' transcripciones provisionales'],
+  ['3','Verificación de resultados y actas',c.counts.referenced+' referencias declaradas, sin presunción de firma'],
+  ['4','Resolución de alertas de integridad',q.critical.length+' bloqueos críticos']
+ ],'Las prioridades se basan en registros disponibles; los responsables y plazos deberán aprobarse en el Plan de Mejora');
  return out;
 }
-const api=Object.freeze({render,bones,tree});
+const api=Object.freeze({render,bones,foda,tree});
 root.InformetitExecutive=api;
 if(typeof module==='object'&&module.exports)module.exports=api;
 })(typeof window!=='undefined'?window:globalThis);

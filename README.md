@@ -1,3 +1,21 @@
+## Actualización del generador completo — octubre de 2026 (`main`)
+
+Se ha recuperado el **informe institucional completo**; no se sustituyen las tablas individuales por un resumen. El PDF sigue organizado por modalidad y añade desarrollo por curso, análisis individual del Examen Complexivo, matrices nominales de los nueve requisitos, Plan de Mejora, referencias bibliográficas normativas en APA 7 y un control de cobertura documental. Los capítulos de primer nivel comienzan en página nueva. El resumen ejecutivo, después de resultados, incluye Ishikawa, FODA y árbol rediseñados con cifras disponibles, advertencias y denominadores.
+
+**Código y archivo automático:**
+- Presencial: `UTET-INF-01-PRO-95-2026-05_Informe_Titulacion_Presencial.pdf`
+- Online: `UTET-INF-02-PRO-95-2026-05_Informe_Titulacion_Online.pdf`
+
+**Base privada:** ni las nóminas ni las calificaciones se publican en GitHub. Electron conserva la carga automática de `base-gpt.cjs` desde Descargas o `private/`. El archivo privado recuperado contiene 363 estudiantes, 11 notas Moodle y 647 registros Word provisionales. Los mecanismos `sin_definir` permanecen sin clasificar: no se convierten automáticamente en Complexivo. Las notas provisionales se imprimen como material por conciliar y no se cuentan en aprobación oficial.
+
+**Recuperar cursos extensos:** en **Núcleos estructurantes → Importar desglose de cursos** se admite Excel/CSV con columnas `Cédula, Carrera, Curso, Núcleo, Nota final, Docente, Estado académico`. El valor `Núcleo = 0` significa que la fuente histórica no permite homologar el curso con N1–N4. Las calificaciones se guardan como **provisionales** por defecto; marcar la casilla de cotejo solo si la fuente fue verificada con Moodle o actas. Los registros sin identificador/carrera coincidente se envían a conciliación y no se atribuyen a un estudiante.
+
+Existe una versión histórica de 185 páginas con 61 cursos y 1.024 registros individuales. Se han reconstruido, sin publicarlos, 1.008 registros con correspondencia inequívoca en la nómina; 16 requieren conciliación. **No son calificaciones oficialmente verificadas por el mero hecho de aparecer en aquel PDF.** El documento definitivo puede superar las 200 páginas si existen datos verificados suficientes, pero el número de páginas no sustituye la auditoría.
+
+**Ejecución:** `git pull origin main`, `npm install`, `npm run check`, `npm test`, `npm start`. Antes de exportar, comprobar el módulo **Datos y respaldo** y revisar el apartado **13.6 Control de integridad y cobertura del informe**. La impresión visual final del PDF en Windows sigue siendo una revisión necesaria.
+
+---
+
 ## Informetit — actualización aplicada directamente en main (octubre 2026)
 
 - **Códigos oficiales automáticos:** presencial `UTET-INF-01-PRO-95-2026-05`, online `UTET-INF-02-PRO-95-2026-05`. El sufijo cambia automáticamente dos meses después de finalizar cada período.

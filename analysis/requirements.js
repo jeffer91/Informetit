@@ -163,11 +163,16 @@ function renderReport(report,helper){
  const {Table,Figure,H,para,F,P}=helper;
  const n=report.total,individual=report.source==='individual',p=x=>x===null?'Por verificar':F(x);
  const rows=report.careers.map(c=>[c.name,c.total,n?pct(c.total,n).toFixed(2).replace('.',',')+' %':'—']);
+ const careerSum=report.careers.reduce((sum,c)=>sum+c.total,0);
+ rows.push(['TOTAL '+(report.mode==='online'?'ONLINE':'PRESENCIAL'),careerSum,
+  n?pct(careerSum,n).toFixed(2).replace('.',',')+' %':'—']);
  let out=H(2,'4. Fase I. Verificación de requisitos');
  out+=H(3,'4.1. Caracterización de la cohorte');
  out+=para('La Fase I identifica la población de la modalidad '+(report.mode==='online'?'online':'presencial')+' y verifica el cumplimiento documental y académico de la matriz de requisitos. No se confunde el cumplimiento de requisitos con la aprobación de las evaluaciones de titulación.');
  out+=Table('Distribución de estudiantes por carrera',['Carrera','Estudiantes','Participación'],rows,
-  individual?'Cálculos desde la nómina local, desagregados por carrera':'Cifras por carrera de la matriz agregada. No se infieren estados individuales por carrera');
+  individual?'Cálculos desde la nómina local, desagregados por carrera; fila de total de modalidad':'Cifras por carrera de la matriz agregada, con total de modalidad. No se infieren estados individuales por carrera');
+ if(careerSum!==n)out+=para('Advertencia: la suma por carrera ('+careerSum+
+  ') difiere del total registrado ('+n+'). Esta discrepancia requiere conciliación.');
  out+=Figure('Distribución de la cohorte por carrera',report.careers.map(c=>[c.name,c.total]),{note:'Total de estudiantes registrado para la modalidad.'});
  if(report.sites.rows.length){
   out+=Table('Distribución de la cohorte por sede',['Sede','Estudiantes','Porcentaje'],

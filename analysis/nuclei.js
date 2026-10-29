@@ -40,6 +40,7 @@ function build(state,mode='presencial'){
      projects=members.filter(s=>s.tipoTitulacion==='trabajo'),
      unclassified=members.filter(s=>s.tipoTitulacion!=='complexivo'&&s.tipoTitulacion!=='trabajo');
    const wordNuclei=wordMap.get(careerKey)||[];
+    const catalog=root.InformetitNucleiCatalog?.lookup(name);
    const nuclei=NUCLEI.map(n=>{
      const entries=[],pending=[],unresolved=[];
      for(const st of complexivo){
@@ -68,7 +69,7 @@ function build(state,mode='presencial'){
          median:null,sd:null,bands:null,source:'word_aggregate',distribution:false}:
        {n:0,mean:null,min:null,max:null,median:null,sd:null,bands:null,source:'not_available',distribution:false};
      const eligible=individual?complexivo.length:null;
-     return {number:n,eligible,gradeCount:computed.n,pendingCount:pending.length,conflictCount:unresolved.length,
+     return {number:n,title:catalog?.nuclei?.[n-1]?.title||null,eligible,gradeCount:computed.n,pendingCount:pending.length,conflictCount:unresolved.length,
        coverage:eligible===null?null:pct(computed.n,eligible),entries,pending,unresolved,
        wordReference,summary,
        // No es válido inferir quién obtuvo una nota del Word cuando solo existen estadísticas agregadas.
@@ -178,7 +179,7 @@ function renderReport(dataset,helpers){
   const index=c.nuclei.map(n=>({grade:new Map(n.entries.map(e=>[e.id,e])),
     conflict:new Set(n.unresolved.map(e=>e.id))}));
   for(const n of c.nuclei){
-   out+=H(3,section+'.'+n.number+'. Núcleo '+n.number);
+   out+=H(3,section+'.'+n.number+'. Núcleo '+n.number+(n.title?' — '+n.title:''));
    out+=para(narrative(c,n));
    const grades=new Map(n.entries.map(x=>[x.id,x]));
    out+=Table('Estudiantes y notas — '+c.name+' — Núcleo '+n.number,

@@ -96,6 +96,8 @@ function makeReport(state,mode){
     return [row[0],dateText(over.inicio??row[1]),dateText(over.fin??row[2]),
       statusFor(key)]}),
   'Realización declarada por coordinación. La verificación de actas y evidencias es un control documental independiente');
+ if(!window.InformetitNucleiMethodology)throw Error('Módulo metodológico no disponible');
+ out+=window.InformetitNucleiMethodology.render(d.careers,{H,para,Figure});
  const phase1=window.InformetitRequirements.analyze(state,mode);
  out+=window.InformetitRequirements.renderReport(phase1,{Table,Figure,H,para,F,P});
  const nucleiData=window.InformetitNuclei.build(state,mode);

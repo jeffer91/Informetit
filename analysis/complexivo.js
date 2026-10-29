@@ -229,30 +229,37 @@ function renderReport(data,{Table,Figure,H,para,F,P}){
    ' sin resultado completo, '+c.noPresentado+' con una ausencia explícita y '+c.duplicate+
    ' con registros duplicados. '+c.verified+' resultados tienen referencias de acta registradas; su autenticidad y contenido aún deben contrastarse con los documentos institucionales.');
   out+=H(3,'7.3. Resultados por carrera');
-  const rows=data.careers.map(x=>[x.name,x.stats.eligible,x.stats.ordinaryComplete,x.stats.ordinaryApproved,
-    x.stats.recovered,x.stats.failed,x.stats.noPresentado,x.stats.pending,x.stats.approved,
-    x.stats.approvalRate===null?'No calculable':num(x.stats.approvalRate)+' %']);
   out+=Table('Consolidado de Examen Complexivo por carrera',
-   ['Carrera','Nómina','Ordinarios','Apr. ord.','Apr. sup.','Repr.','Ausentes','Pend.','Apr. final','%'],
-   rows,'La tasa de aprobación utiliza la nómina de Complexivo por carrera. Las ausencias y faltantes se muestran por separado');
+   ['Carrera','Convocados','Ordinarios calculables','Aprobados ordinarios','Aprobados supletorio'],
+   data.careers.map(x=>[x.name,x.stats.eligible,x.stats.ordinaryComplete,
+     x.stats.ordinaryApproved,x.stats.recovered]),
+   'El ordinario se pondera 40 % teoría y 60 % práctica');
+  out+=Table('Estados finales de Examen Complexivo por carrera',
+   ['Carrera','Reprobados','Ausentes','Pendientes','Aprobados','Tasa de aprobación'],
+   data.careers.map(x=>[x.name,x.stats.failed,x.stats.noPresentado,x.stats.pending,x.stats.approved,
+     x.stats.approvalRate===null?'No calculable':num(x.stats.approvalRate)+' %']),
+   'La tasa toma como denominador la nómina de Complexivo de cada carrera');
   out+=Figure('Aprobación calculada por carrera',
     data.careers.map(x=>[x.name,x.stats.approvalRate??0]),{
      max:100,percentage:true,decimals:2,
      note:'Porcentaje sobre la nómina de Complexivo de cada carrera. Una barra de cero puede corresponder a falta de notas; consultar la tabla de cobertura.'});
   out+=H(3,'7.4. Resultados individuales por carrera');
-  for(const c of data.careers){
-   out+=H(3,'7.4. '+c.name);
+  for(const [careerIndex,c] of data.careers.entries()){
+   out+=H(3,'7.4.'+(careerIndex+1)+'. '+c.name);
    out+=Table('Ordinario, supletorio y resultado definitivo — '+c.name,
-    ['Estudiante','Cédula','Teoría ord.','Práctica ord.','Ordinario','Supletorio','Definitivo','Estado','Acta'],
+    ['Estudiante','Cédula','Teoría ordinario','Práctica ordinario','Ordinario','Supletorio'],
     c.records.map(x=>[x.name,x.studentId,
       x.evaluation?num(grade(x.evaluation.ordinario.teoria)):'—',
       x.evaluation?num(grade(x.evaluation.ordinario.practica)):'—',
-      x.ordinary===null?'—':num(x.ordinary),
-      x.recovery===null?'—':num(x.recovery),
+      x.ordinary===null?'—':num(x.ordinary),x.recovery===null?'—':num(x.recovery)]),
+    'Una nota ausente no se convierte en cero ni en reprobación');
+   out+=Table('Resultado definitivo y actas — '+c.name,
+    ['Estudiante','Cédula','Definitiva','Estado','Acta'],
+    c.records.map(x=>[x.name,x.studentId,
       x.finalGrade===null?'—':num(x.finalGrade),
       x.duplicate?'Duplicado':DESCRIPTIONS[x.status]||x.status,
       x.verified?'Con referencia':'Sin evidencia completa']),
-    'Se incluyen todos los estudiantes de Complexivo de la carrera, con campos sin nota en blanco (—), sin asignar calificaciones cero ni reprobaciones por ausencia de registro');
+    'La referencia documental se revisa frente al acta institucional');
    const followup=c.records.filter(x=>x.status==='pendiente'||x.status==='supletorio_pendiente'||x.duplicate||x.evaluation?.warnings.length);
    out+=Table('Seguimiento de evaluaciones y actas — '+c.name,
     ['Estudiante','Cédula','Situación','Acción requerida'],

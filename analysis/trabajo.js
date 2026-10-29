@@ -224,15 +224,18 @@ function renderReport(dataset,{Table,Figure,H,para,F}){
   'No se incluyen en este consolidado las notas de núcleos ni los exámenes de Complexivo');
  out+=H(3,'6.3. Resultados por carrera y estudiante');
  out+=Table('Consolidado de Trabajo de Titulación por carrera',
- ['Carrera','Estudiantes','Rúbrica completa','Apr. ordinario','Apr. supletorio','Reprobado','Pendientes','Con acta'],
- dataset.careers.map(x=>[x.name,x.counts.eligible,x.counts.complete,x.counts.approvedOrdinary,
-  x.counts.approvedRescue,x.counts.failed,x.counts.pending,x.counts.referenced]),
- 'Población restringida a Trabajo de Titulación de la modalidad');
+ ['Carrera','Proyectos','Rúbricas completas','Aprobados ordinario','Aprobados supletorio'],
+ dataset.careers.map(x=>[x.name,x.counts.eligible,x.counts.complete,x.counts.approvedOrdinary,x.counts.approvedRescue]),
+ 'Población restringida a Trabajo de Titulación de esta modalidad');
+ out+=Table('Seguimiento de Trabajo de Titulación por carrera',
+ ['Carrera','Reprobados','Pendientes','Referencias de acta'],
+ dataset.careers.map(x=>[x.name,x.counts.failed,x.counts.pending,x.counts.referenced]),
+ 'El registro de acta no certifica por sí mismo su firma o validez');
  if(dataset.careers.length)out+=Figure('Resultados de Trabajo de Titulación por carrera',
   dataset.careers.map(x=>[x.name,x.counts.approved]),{
   note:'Aprobaciones calculadas sobre las rúbricas disponibles; no indican validación de acta institucional.'});
- for(const career of dataset.careers){
-  out+=H(3,'6.3. '+career.name);
+ for(const [careerIndex,career] of dataset.careers.entries()){
+  out+=H(3,'6.3.'+(careerIndex+1)+'. '+career.name);
   out+=Table('Calificaciones del proyecto y defensa — '+career.name,
     ['Estudiante','Cédula','Acta','Escrito','Práctica','Defensa','Promedio oral','Definitiva','Estado'],
     career.entries.map(e=>[

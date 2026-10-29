@@ -43,7 +43,7 @@ async function inspect(data){
    for(const m of joined.matchAll(/\[\[INF:([a-z0-9-]+)\]\]/g))locations[m[1]]=pageNumber;
    page.cleanup();
   }
-  return {pageCount:document.numPages,markers:Object.keys(locations).length,contents};
+  return {pageCount:document.numPages,markers:Object.keys(locations).length,locations,contents};
  }finally{await document.destroy()}
 }
 async function run(){
@@ -58,14 +58,29 @@ async function run(){
   }});
   for(const mode of ['presencial','online']){
    const input=await makeInput(sourceWindow,mode);
-   const pdf=await render(outputWindow,input.html,input.header);
-   const result=await inspect(pdf);
+   let pdf=await render(outputWindow,input.html,input.header),result=await inspect(pdf);
    if(result.pageCount<5)throw Error(mode+': páginas insuficientes: '+result.pageCount);
    if(result.markers===0)throw Error(mode+': marcadores de índice ausentes en PDF');
    if(!result.contents.includes('Resumen ejecutivo')||
       !result.contents.includes('Examen Complexivo'))
     throw Error(mode+': no se detectó el texto académico esperado');
-   console.info(label,mode,'páginas',result.pageCount,'marcadores',result.markers,'bytes',pdf.length);
+   let indexed=false;
+   for(let round=0;round<6;round++){
+    const filled=input.html.replace(
+     /(<span class="inf-index-page" data-page=")([^"]+)(">)(?:—|\d+)(<\/span>)/g,
+     (whole,a,id,b,c)=>a+id+b+
+      (Number.isInteger(result.locations[id])?result.locations[id]:'—')+c);
+    const repaginated=await render(outputWindow,filled,input.header);
+    const next=await inspect(repaginated);
+    if(JSON.stringify(result.locations)===JSON.stringify(next.locations)){
+     pdf=repaginated;result=next;indexed=true;break;
+    }
+    pdf=repaginated;result=next;
+   }
+   if(!indexed)throw Error(mode+': índice no estabilizó la paginación');
+   const expected=(input.html.match(/class="inf-page-marker"/g)||[]).length;
+   if(result.markers<expected)throw Error(mode+': solo '+result.markers+' de '+expected+' marcadores imprimibles');
+   console.info(label,mode,'páginas',result.pageCount,'marcadores',result.markers,'bytes',pdf.length,'índice verificado');
   }
   console.info(label,'OK: impresión de ambas modalidades con datos ficticios');
  }finally{

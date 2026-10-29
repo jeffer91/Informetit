@@ -20,7 +20,7 @@ const valid=x=>{
 };
 const fixed=n=>Math.round((n+Number.EPSILON)*100)/100;
 const percent=(x,n)=>n?fixed(x*100/n):null;
-const fmt=n=>n===null||n===undefined?'Sin nota':Number(n).toLocaleString('es-EC',{minimumFractionDigits:2,maximumFractionDigits:2});
+const fmt=n=>n===null||n===undefined?'—':Number(n).toLocaleString('es-EC',{minimumFractionDigits:2,maximumFractionDigits:2});
 const blankVocal=()=>({nombre:'',practica:{},defensa:{}});
 const blank=studentId=>({studentId:txt(studentId),numeroActa:'',fechaActa:'',tutor:null,lector:null,
  asistencia:'pendiente',vocales:[blankVocal(),blankVocal(),blankVocal()],

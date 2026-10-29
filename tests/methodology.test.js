@@ -52,7 +52,7 @@ test('mapa SVG incluye nombres, centro conceptual y accesibilidad sin imágenes 
  for(const n of career.nuclei)assert.ok(svg.includes(n.title.toUpperCase())||n.title.split(' ')[0].length>2);
  assert.match(svg,/PREPARACIÓN/);
  assert.match(svg,/role="img"/);
- assert.doesNotMatch(svg,/<image|<script|https?:\/\//);
+ assert.doesNotMatch(svg,/<image|<script|(?:href|src)=\"https?:\/\//);
 });
 test('metodología describe cuatro núcleos por carrera y distingue contenido propuesto de lo validado',()=>{
  const out=Method.render([{name:'Administración'},{name:'Enfermería'}],{

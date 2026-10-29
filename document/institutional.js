@@ -6,12 +6,23 @@ const PERIOD='Octubre 2025 a marzo 2026',TITLE='Informe final del proceso de tit
 function date(s){const m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(String(s||'')),names=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];return m&&+m[2]>=1&&+m[2]<=12?+m[3]+'-'+names[+m[2]-1]+'-'+m[1]:String(s||'Por confirmar')}
 function fields(state,mode){
  const c=state?.config||{},online=mode==='online';
- return {modality:online?'Online':'Presencial',code:online?(c.codigoOnline||'POR ASIGNAR'):(c.codigoPresencial||'POR ASIGNAR'),version:c.version||'1.0',date:date(c.fechaElaboracion),logo:/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/.test(c.logoDataUrl||'')?c.logoDataUrl:'',prepared:c.elaborado||'Mgs. Jefferson Villarreal',reviewed:c.revisado||'Ing. Martha Tomalá',approved:c.aprobado||'Dr. Alex León',legal:!!c.marcoLegalValidado,signatures:!!c.firmasValidadas};
+ const info=root.InformetitCodigo?.forMode(state,mode);
+ if(!info)throw Error('No se cargó el motor de códigos del período');
+ const logo=/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/.test(c.logoDataUrl||'')?c.logoDataUrl:'';
+ return {modality:online?'Online':'Presencial',code:info.code,codePrefix:info.prefix,
+   codeValid:info.valid,codeReason:info.reason,codeStamp:info.stamp,codeMonth:info.label,
+   version:c.version||'1.0',date:c.fechaElaboracion?date(c.fechaElaboracion):info.label,
+   logo,prepared:c.elaborado||'Mgs. Jefferson Villarreal',
+   reviewed:c.revisado||'Ing. Martha Tomalá',
+   approved:c.aprobado||'Dr. Alex León',
+   legal:!!c.marcoLegalValidado,signatures:!!c.firmasValidadas};
 }
 function pending(state,mode){
  const f=fields(state,mode),a=[];
- if(f.code==='POR ASIGNAR')a.push('Código documental '+(mode==='online'?'online':'presencial')+' por confirmar');
- if(!state?.config?.fechaElaboracion)a.push('Fecha de elaboración pendiente');
+ if(!f.codeValid)a.push('Prefijo/consecutivo documental '+(mode==='online'?'online':'presencial')+' por confirmar');
+ if(!state?.config?.fechaElaboracion)a.push('Día de elaboración por registrar (mes previsto: '+f.codeMonth+')');
+ else if(String(state.config.fechaElaboracion).slice(0,7)!==f.codeStamp)
+  a.push('La fecha de elaboración difiere del mes programado '+f.codeMonth);
  if(!f.logo)a.push('Logo institucional pendiente');
  if(!f.legal)a.push('Vigencia del marco normativo pendiente');
  if(!f.signatures)a.push('Firmas institucionales pendientes');

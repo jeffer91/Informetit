@@ -37,7 +37,8 @@ function build(state,mode='presencial'){
  const careers=items.map(({name,key:careerKey})=>{
    const members=students.filter(s=>key(s.carrera)===careerKey),
      complexivo=members.filter(s=>s.tipoTitulacion==='complexivo'),
-     projects=members.filter(s=>s.tipoTitulacion==='trabajo');
+     projects=members.filter(s=>s.tipoTitulacion==='trabajo'),
+     unclassified=members.filter(s=>s.tipoTitulacion!=='complexivo'&&s.tipoTitulacion!=='trabajo');
    const wordNuclei=wordMap.get(careerKey)||[];
    const nuclei=NUCLEI.map(n=>{
      const entries=[],pending=[],unresolved=[];
@@ -79,7 +80,7 @@ function build(state,mode='presencial'){
      return {id:String(st.id),name:st.nombre,missing,conflicts};
    }).filter(x=>x.missing.length||x.conflicts.length).sort((a,b)=>a.name.localeCompare(b.name,'es'));
    return {name,key:careerKey,roster:individual?members.length:null,eligible:individual?complexivo.length:null,
-     projects:individual?projects.length:null,nuclei,pendingStudents,
+     projects:individual?projects.length:null,unclassified:individual?unclassified.length:null,nuclei,pendingStudents,
      individualWithAnyNote:individual?complexivo.filter(st=>nuclei.some(x=>x.entries.some(e=>e.id===String(st.id)))).length:null,
      individualWithAllNotes:individual?complexivo.filter(st=>nuclei.every(x=>x.entries.some(e=>e.id===String(st.id)))).length:null};
  });
@@ -143,87 +144,123 @@ function careerNarrative(c){
  return result;
 }
 function renderReport(dataset,helpers){
- const {Table,Figure,H,para,F}=helpers;
- const v=x=>x===null?'No disponible':F(x);
+ const {H,Table,Figure,para,F}=helpers;
+ const fmt=x=>x===null||x===undefined?'No calculable':F(x);
  let out=H(2,'5. Fase II. Resultados de núcleos estructurantes');
- out+=para('Los cuatro núcleos forman parte de la preparación del Examen Complexivo. Los análisis presentan únicamente las notas finales disponibles, con sus denominadores y fuentes. Se conservan los parciales en la base local sin incorporarlos a estas tablas. Los estudiantes de Trabajo de Titulación se analizan en su capítulo correspondiente.');
+ out+=para('La Fase II presenta cada carrera con Núcleo 1, Núcleo 2, Núcleo 3, Núcleo 4 y su consolidado. Cada núcleo incluye la nómina del mecanismo Examen Complexivo, indicadores y gráficos. La ausencia de una nota se mantiene como pendiente y no se convierte en cero.');
  out+=Table('Cronograma planificado de los núcleos estructurantes',
-   ['Núcleo','Fecha de inicio','Fecha de finalización'],
-   dataset.planning,
-   'Fechas de la planificación de Examen Complexivo del período; no prueban por sí solas que las sesiones se hayan ejecutado');
+  ['Núcleo','Fecha de inicio','Fecha de finalización'],dataset.planning,
+  'El cronograma no es evidencia de aprobación ni de realización de evaluaciones');
  out+=H(3,'5.1. Cobertura y fuentes');
- out+=para('Se consideran '+dataset.careers.length+' carreras en la modalidad '+dataset.mode+'. Existen '+dataset.nucleiWithResults+
-   ' combinaciones carrera–núcleo con resultados entre '+dataset.nucleiExpected+' posibles. '+
-   (dataset.individual?('La nómina contiene '+dataset.eligible+' estudiantes asignados a Examen Complexivo y '+
-    dataset.projects+' a Trabajo de Titulación. Se han asociado '+dataset.individualGrades+' notas nominales y quedan '+
-    dataset.pendingSlots+' casillas sin calificación, además de '+dataset.unresolvedSlots+' en conflicto.'):
-    'Sin la nómina individual, los resultados disponibles proceden de la fuente agregada y no permiten contar estudiantes pendientes por nombre.'));
- const coverageRows=dataset.careers.map(c=>[c.name,c.eligible===null?'Sin nómina':c.eligible,
-  ...c.nuclei.map(n=>n.summary.n?String(n.summary.n)+' / '+v(n.summary.mean)+' ('+(n.summary.source==='individual'?'nom.':'Word')+')':'Sin datos')]);
+ out+=para('Se consideran '+dataset.careers.length+' carreras de la modalidad '+dataset.mode+
+  ' y '+dataset.nucleiExpected+' combinaciones carrera–núcleo. '+(dataset.individual?
+    'La nómina confirma '+dataset.eligible+' estudiantes de Examen Complexivo, '+
+     dataset.individualGrades+' notas nominales, '+dataset.pendingSlots+' pendientes y '+
+     dataset.unresolvedSlots+' conflictos.':
+    'Sin una nómina individual no se pueden atribuir notas a estudiantes, aunque existan estadísticas agregadas.'));
  out+=Table('Cobertura académica y medias por carrera y núcleo',
-  ['Carrera','Est. Complexivo','Núcleo 1','Núcleo 2','Núcleo 3','Núcleo 4'],coverageRows,
-  'En cada núcleo: registros / media. Nom. indica datos individuales; Word indica resumen agregado no nominativo. La cobertura nominal no se infiere de agregados');
- out+=H(3,'5.2. Resultados detallados por carrera');
- const detailCareers=dataset.careers.filter(c=>dataset.individual||c.nuclei.some(n=>n.summary.n>0));
- if(!detailCareers.length)out+=para('No hay resultados académicos de núcleos para desarrollar cuadros por carrera en esta modalidad. El cuadro de cobertura anterior identifica todos los vacíos sin generar capítulos repetitivos.');
- detailCareers.forEach((c,index)=>{
-   out+=H(3,'5.2.'+(index+1)+'. '+c.name);
-   out+=para(careerNarrative(c));
-   if(dataset.individual&&c.eligible>0){
-     const studentNames=new Map();
-     const four=c.nuclei.map(n=>{
-       const registered=new Map(n.entries.map(item=>[item.id,item.grade]));
-       const conflicts=new Set(n.unresolved.map(item=>item.id));
-       for(const item of [...n.entries,...n.pending,...n.unresolved])
-         if(!studentNames.has(item.id))studentNames.set(item.id,item.name);
-       return {registered,conflicts};
-     });
-     const individualRows=[...studentNames].sort((a,b)=>a[1].localeCompare(b[1],'es')||a[0].localeCompare(b[0]))
-       .map(([id,name])=>[name,id,...four.map(n=>n.conflicts.has(id)?'Conflicto':n.registered.has(id)?F(n.registered.get(id)):'Pendiente')]);
-     out+=Table('Calificaciones por estudiante y núcleo — '+c.name,
-       ['Estudiante','Cédula','Núcleo 1','Núcleo 2','Núcleo 3','Núcleo 4'],
-       individualRows,'Notas individuales de Examen Complexivo por carrera. Pendiente no es nota cero; Trabajo de Titulación no participa en estos núcleos');
+  ['Carrera','Est. Complexivo','Núcleo 1','Núcleo 2','Núcleo 3','Núcleo 4'],
+  dataset.careers.map(c=>[c.name,c.eligible===null?'Sin nómina':c.eligible,
+   ...c.nuclei.map(n=>n.summary.n?String(n.summary.n)+' / '+fmt(n.summary.mean)+
+   (n.summary.source==='individual'?' (Nominal)':' (Word agregado)'):'Sin datos')]),
+   'Las cifras agregadas del Word no identifican calificaciones individuales');
+ out+=H(3,'5.2. Resultados por carrera, núcleo y consolidado');
+ dataset.careers.forEach((c,i)=>{
+  const section='5.2.'+(i+1);
+  out+=H(3,section+'. '+c.name);
+  out+=para(careerNarrative(c));
+  if(c.unclassified)out+=para('Existen '+c.unclassified+' estudiantes sin mecanismo confirmado en esta carrera. No se les asignan automáticamente notas de núcleos ni el mecanismo Examen Complexivo.');
+  const names=new Map();
+  for(const n of c.nuclei)for(const row of [...n.entries,...n.pending,...n.unresolved])
+    names.set(row.id,row.name);
+  const students=[...names].map(([id,name])=>({id,name})).sort((a,b)=>
+   a.name.localeCompare(b.name,'es')||a.id.localeCompare(b.id));
+  const index=c.nuclei.map(n=>({grade:new Map(n.entries.map(e=>[e.id,e])),
+    conflict:new Set(n.unresolved.map(e=>e.id))}));
+  for(const n of c.nuclei){
+   out+=H(3,section+'.'+n.number+'. Núcleo '+n.number);
+   out+=para(narrative(c,n));
+   const grades=new Map(n.entries.map(x=>[x.id,x]));
+   out+=Table('Estudiantes y notas — '+c.name+' — Núcleo '+n.number,
+    ['N.º','Estudiante','Cédula','Nota final','Estado','Fuente'],
+    students.map((st,j)=>{
+     const e=grades.get(st.id),conflict=index[n.number-1].conflict.has(st.id);
+     return [j+1,st.name,st.id,e?fmt(e.grade):'—',
+       conflict?'En conflicto':e?'Verificada':'Pendiente',
+       e?(e.sourceDetail||e.source):conflict?'Por conciliar':'Sin fuente verificada'];
+    }), 'Se incluyen todos los estudiantes confirmados en Examen Complexivo. Pendiente y conflicto no representan calificación cero');
+   if(!dataset.individual||c.eligible===0)
+    out+=para('Todavía no existe una nómina confirmada de Examen Complexivo para esta carrera. Se conserva la estructura sin inventar estudiantes o calificaciones.');
+   const official=n.summary.source==='individual'?n.summary:null;
+   out+=Table('Indicadores — '+c.name+' — Núcleo '+n.number,
+    ['Indicador','Valor','Indicador','Valor'],[
+     ['Estudiantes de Complexivo',n.eligible===null?'Sin nómina':n.eligible,'Notas verificadas',n.gradeCount],
+     ['Notas pendientes',n.pendingCount,'Conflictos',n.conflictCount],
+     ['Promedio nominal',fmt(official?.mean??null),'Mediana nominal',fmt(official?.median??null)],
+     ['Mínimo nominal',fmt(official?.min??null),'Máximo nominal',fmt(official?.max??null)],
+     ['Desviación estándar',fmt(official?.sd??null),'Cobertura',n.coverage===null?'No calculable':fmt(n.coverage)+' %'],
+     ['Notas de 7,00 a 10,00',n.entries.filter(x=>x.grade>=7).length,
+      'Referencia Word',n.wordReference?'n='+n.wordReference.n+'; media '+fmt(n.wordReference.mean):'No consta']
+    ],'Los estadísticos nominales usan exclusivamente notas individuales; el Word no se mezcla');
+   if(dataset.individual&&c.eligible>0)
+    out+=Figure('Cobertura por estado — '+c.name+' — Núcleo '+n.number,
+     [['Con nota',n.gradeCount],['Pendiente',n.pendingCount],['Conflicto',n.conflictCount]],
+     {max:Math.max(1,c.eligible),decimals:0,note:'Los registros sin nota y en conflicto no se consideran reprobados'});
+   if(official?.bands){
+    out+=Table('Distribución de calificaciones — '+c.name+' — Núcleo '+n.number,
+     ['Rango','Estudiantes','Porcentaje'],official.bands.map(x=>[x.label,x.count,fmt(x.pct)+' %']),
+     'Distribución calculada solo con notas nominales válidas');
+    out+=Figure('Distribución de notas — '+c.name+' — Núcleo '+n.number,
+     official.bands.map(x=>[x.label,x.count]),
+     {decimals:0,note:'Frecuencias nominales; no se imputan calificaciones faltantes'});
    }
-
-   const overview=c.nuclei.map(n=>[ 'Núcleo '+n.number,
-     n.summary.n||'Sin datos',v(n.summary.mean),v(n.summary.median),
-     v(n.summary.min),v(n.summary.max),v(n.summary.sd),
-     n.summary.source==='individual'?'Individual':n.summary.source==='word_aggregate'?'Word agregado':'Pendiente']);
-   out+=Table('Estadísticas de los cuatro núcleos — '+c.name,
-     ['Núcleo','n','Media','Mediana','Mín.','Máx.','Desv. est.','Fuente'],overview,
-     'La desviación estándar es poblacional y solo se calcula desde notas individuales; no se calculan estadísticos de distribución desde un agregado');
-   const chart=c.nuclei.filter(x=>x.summary.mean!==null).map(x=>['N'+x.number,x.summary.mean]);
-   if(chart.length)out+=Figure('Medias disponibles de los núcleos — '+c.name,chart,{
-     max:10,decimals:2,note:'Comparación descriptiva; cada barra utiliza únicamente la muestra disponible de su núcleo y fuente.'});
-   for(const n of c.nuclei){
-     out+=para('Núcleo '+n.number+'. '+narrative(c,n));
-     if(n.summary.source==='individual'){
-       out+=Table('Distribución de calificaciones — '+c.name+' — Núcleo '+n.number,
-         ['Rango (escala 0–10)','Estudiantes','Porcentaje'],n.summary.bands.map(b=>[b.label,b.count,v(b.pct)+' %']),
-         'Denominador: '+n.summary.n+' notas individuales disponibles; los valores menores de 7,00 no equivalen a reprobación del Examen Complexivo');
-       out+=Figure('Distribución de notas — '+c.name+' — Núcleo '+n.number,
-         n.summary.bands.map(b=>[b.label,b.count]),{
-           decimals:0,note:'Frecuencias de notas individuales registradas; excluye faltantes y conflictos.'});
-     }else if(n.summary.source==='word_aggregate')out+=para('La estadística agregada del Word se conserva como resultado documental aceptado, pero no autoriza construir una distribución ni asignar notas a nombres de estudiantes.');
-   }
-   if(dataset.individual){
-     out+=H(3,'Notas pendientes de '+c.name);
-     const missingRows=c.pendingStudents.map(s=>[s.name,s.id,
-       s.missing.length?s.missing.map(n=>'N'+n).join(', '):'—',
-       s.conflicts.length?s.conflicts.map(n=>'N'+n).join(', '):'—']);
-     out+=Table('Seguimiento de calificaciones faltantes — '+c.name,
-       ['Estudiante','Cédula','Notas sin cargar','Notas en conflicto'],missingRows,
-       'Lista separada de seguimiento: una nota sin cargar o en conflicto no se contabiliza como reprobación');
-     if(!missingRows.length)out+=para('No constan notas pendientes ni conflictos de núcleos entre los estudiantes de Complexivo registrados para esta carrera.');
-   }
+   if(typeof helpers.courseSections==='function')out+=helpers.courseSections(c.key,n.number,c.name);
+  }
+  const valid=[],partial=[],empty=[],conflictNames=[];
+  const rows=students.map((st,j)=>{
+   const four=index.map(m=>m.grade.get(st.id)?.grade??null);
+   const conflict=index.some(m=>m.conflict.has(st.id));
+   const complete=four.every(x=>x!==null)&&!conflict;
+   const mean=complete?four.reduce((a,b)=>a+b,0)/4:null;
+   const present=four.filter(x=>x!==null).length;
+   if(complete)valid.push(mean);else if(present)partial.push(st.id);else empty.push(st.id);
+   if(conflict)conflictNames.push(st.id);
+   return [j+1,st.name,st.id,...four.map((x,k)=>index[k].conflict.has(st.id)?
+    'Conflicto':x===null?'Pendiente':fmt(x)),mean===null?'—':fmt(mean),
+    complete?'Completo':conflict?'En conflicto':'Incompleto'];
+  });
+  const consolidatedMean=valid.length?valid.reduce((a,b)=>a+b,0)/valid.length:null;
+  out+=H(3,section+'.5. Consolidado de '+c.name);
+  out+=para('El consolidado reúne los cuatro núcleos por estudiante. La media simple descriptiva solo se calcula cuando constan cuatro notas individuales sin conflicto; no es la nota definitiva del Examen Complexivo ni sustituye una ponderación institucional validada.');
+  out+=Table('Consolidado nominal de cuatro núcleos — '+c.name,
+   ['N.º','Estudiante','Cédula','N1','N2','N3','N4','Media simple','Estado'],rows,
+   'Una media ausente significa expediente incompleto o en conflicto; no es cero');
+  out+=Table('Resumen del consolidado — '+c.name,
+   ['Indicador','Valor','Indicador','Valor'],[
+    ['Estudiantes Complexivo',c.eligible===null?'Sin nómina':c.eligible,'Con cuatro notas',valid.length],
+    ['Con notas parciales',partial.length,'Sin notas verificadas',empty.length],
+    ['Con conflicto',conflictNames.length,'Media de completos',fmt(consolidatedMean)],
+    ['Cobertura completa',c.eligible?fmt(100*valid.length/c.eligible)+' %':'No calculable',
+     'Sin mecanismo confirmado',c.unclassified===null?'Sin nómina':c.unclassified]
+   ],'Se calcula únicamente para la nómina de Complexivo de esta carrera');
+  const means=c.nuclei.filter(n=>n.summary.source==='individual'&&n.summary.mean!==null)
+   .map(n=>['N'+n.number,n.summary.mean]);
+  if(means.length)
+   out+=Figure('Comparación de medias nominales — '+c.name,means,
+    {max:10,decimals:2,note:'Comparación descriptiva de calificaciones nominales de los cuatro núcleos'});
+  if(dataset.individual&&c.eligible>0)
+   out+=Figure('Cobertura del consolidado — '+c.name,
+    [['Cuatro notas',valid.length],['Parcial',partial.length],['Sin notas',empty.length]],
+    {max:Math.max(1,c.eligible),decimals:0,note:'Los conflictos se identifican también de manera individual'});
+  if(typeof helpers.courseSections==='function')out+=helpers.courseSections(c.key,0,c.name);
+  if(!valid.length)out+=para('No hay expedientes completos con las cuatro notas verificadas. Los casos pendientes siguen visibles para su seguimiento.');
  });
- out+=H(3,'5.3. Interpretación y límites del análisis académico');
- out+=para('La muestra corresponde exclusivamente a la modalidad '+dataset.mode+' y al período octubre 2025–marzo 2026. Las comparaciones entre núcleos y carreras son descriptivas y requieren considerar diferencias de tamaño y cobertura.');
- out+=para('Las estadísticas del Word institucional se aceptan como referencia del período, sin convertir sus registros agregados en notas nominales. Cuando existen calificaciones individuales para un núcleo se calculan sus indicadores exclusivamente con ellas; cualquier resumen del Word permanece como referencia separada.');
- out+=para('Una nota faltante no se reemplaza por cero. Las notas en conflicto se excluyen de los estadísticos hasta que el responsable seleccione la fuente que corresponda. Los resultados de estos núcleos no equivalen a aprobación final del proceso de titulación.');
- if(dataset.auditedDuplicates.length)out+=para('Advertencia de integridad: la nómina contiene identificaciones repetidas o vacías y requiere conciliación antes de validar resultados definitivos.');
+ out+=H(3,'5.3. Interpretación general de la Fase II');
+ out+=para('La organización por carrera distingue los cuatro núcleos y el consolidado. Los promedios agregados del Word se mantienen como referencia independiente; ningún dato agregado se atribuye a una persona. Las medias descriptivas de núcleos no acreditan la aprobación final del mecanismo de titulación.');
+ if(dataset.auditedDuplicates.length)out+=para('La nómina contiene identificaciones duplicadas o vacías y requiere conciliación antes de validar el informe.');
  return out;
 }
+
 const api=Object.freeze({NUCLEI,BANDS,stats,build,narrative,careerNarrative,renderReport,format,pct,esc});
 root.InformetitNuclei=api;
 if(typeof module==='object'&&module.exports)module.exports=api;

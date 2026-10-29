@@ -144,6 +144,34 @@ test('informe presencial contiene cuatro apartados nominales y consolidado por c
  assert.match(html,/8,20/);
  assert.equal((html.match(/class="inf-index"/g)||[]).length,3);
 });
+test('45 estudiantes sintéticos de Enfermería aparecen en las cuatro tablas y el consolidado',()=>{
+ const s=M.empty();
+ s.estudiantes=Array.from({length:45},(_,i)=>student(
+  String(i+1).padStart(10,'0'),'ESTUDIANTE SINTETICO '+String(i+1).padStart(2,'0')));
+ s.notas=[];
+ for(let i=0;i<43;i++)for(let n=1;n<=4;n++)
+  s.notas.push({studentId:s.estudiantes[i].id,nucleo:n,nota:8+n/10});
+ const html=window.InformetitFullReport.makeReport(s,'presencial');
+ for(let n=1;n<=4;n++){
+  const from=html.lastIndexOf('5.2.1.'+n+'. Núcleo '+n),
+    to=html.lastIndexOf('5.2.1.'+(n+1)+'.');
+  const section=html.slice(from,to);
+  assert.equal((section.match(/<td>ESTUDIANTE SINTETICO \d{2}<\/td>/g)||[]).length,45,
+   'Deben figurar 45 estudiantes nominales en Núcleo '+n);
+  assert.match(section,/0000000044/);
+  assert.match(section,/0000000045/);
+  assert.match(section,/Pendiente/);
+  assert.match(section,/Cobertura por estado/);
+  assert.match(section,/Distribución de notas/);
+ }
+ const from=html.lastIndexOf('5.2.1.5. Consolidado de Enfermería'),
+  to=html.lastIndexOf('5.3. Interpretación general');
+ const consolidated=html.slice(from,to);
+ assert.equal((consolidated.match(/<td>ESTUDIANTE SINTETICO \d{2}<\/td>/g)||[]).length,45);
+ assert.match(consolidated,/Cuatro notas/);
+ assert.match(consolidated,/Incompleto/);
+ assert.match(consolidated,/8,25/);
+});
 test('PDF agregado no muestra notas individuales de estudiantes que no estén disponibles',()=>{
  const html=window.InformetitFullReport.makeReport(M.empty(),'presencial');
  assert.match(html,/estadísticas agregadas/);

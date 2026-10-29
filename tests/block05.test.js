@@ -160,11 +160,11 @@ test('estructura Enfermería mantiene N1, N2, N3, N4 y consolidado en ese orden 
  const names=['Núcleo 1','Núcleo 2','Núcleo 3','Núcleo 4','Consolidado de Enfermería'];
  let last=-1;
  for(let i=0;i<names.length;i++){
-  const tag='5.2.1.'+(i+1)+'. '+names[i],pos=html.indexOf(tag);
+  const tag='5.2.1.'+(i+1)+'. '+names[i],pos=html.lastIndexOf(tag);
   assert.ok(pos>last,'Falta el orden '+tag);last=pos;
  }
  for(let i=1;i<=4;i++){
-  const from=html.indexOf('5.2.1.'+i+'. Núcleo '+i),end=html.indexOf('5.2.1.'+(i+1)+'.');
+  const from=html.lastIndexOf('5.2.1.'+i+'. Núcleo '+i),end=html.lastIndexOf('5.2.1.'+(i+1)+'.');
   const body=html.slice(from,end);
   assert.match(body,/Estudiantes y notas/);
   assert.match(body,/0000000001/);
@@ -182,7 +182,7 @@ test('el consolidado no calcula media si falta algún núcleo o existe conflicto
   {studentId:'0000000001',nucleo:2,nota:9},
   {studentId:'0000000001',nucleo:3,nota:10}];
  const html=window.InformetitFullReport.makeReport(s,'presencial');
- const idx=html.indexOf('Consolidado nominal de cuatro núcleos');
+ const idx=html.lastIndexOf('Consolidado nominal de cuatro núcleos');
  const excerpt=html.slice(idx,idx+2800);
  assert.match(excerpt,/Pendiente/);
  assert.match(excerpt,/Incompleto/);

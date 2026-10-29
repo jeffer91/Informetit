@@ -64,7 +64,7 @@ test('el informe completo no sustituye tablas individuales por el consolidado',(
 });
 test('los cursos oficiales y provisionales se ubican solo bajo su núcleo y no en capítulos duplicados',()=>{
  const s=sample(),html=global.InformetitFullReport.makeReport(s,'presencial');
- const n1=html.indexOf('5.2.1.1. Núcleo 1'),n2=html.indexOf('5.2.1.2. Núcleo 2');
+ const n1=html.lastIndexOf('5.2.1.1. Núcleo 1'),n2=html.lastIndexOf('5.2.1.2. Núcleo 2');
  const sub=html.slice(n1,n2);
  assert.match(sub,/Curso de control/);
  assert.match(sub,/Notas provisionales por cotejar/);
@@ -77,9 +77,9 @@ test('un curso histórico sin núcleo homologado queda en consolidado sin conver
  s.cursosNucleos.push({studentId:'0000000001',nucleo:0,curso:'Materia histórica',nota:8.7,
   docente:'DOCENTE ANTIGUO',verificado:true});
  const html=global.InformetitFullReport.makeReport(s,'presencial');
- const end=html.indexOf('5.2.1.5. Consolidado de Enfermería');
- assert.doesNotMatch(html.slice(html.indexOf('5.2.1.1. Núcleo 1'),end),/Materia histórica/);
- assert.match(html.slice(end,html.indexOf('5.3. Interpretación general')),/Materia histórica/);
+ const end=html.lastIndexOf('5.2.1.5. Consolidado de Enfermería');
+ assert.doesNotMatch(html.slice(html.lastIndexOf('5.2.1.1. Núcleo 1'),end),/Materia histórica/);
+ assert.match(html.slice(end,html.lastIndexOf('5.3. Interpretación general')),/Materia histórica/);
  assert.match(html,/sin núcleo homologado/);
 });
 test('Ishikawa, FODA y árbol usan cifras de la base y no valores decorativos',()=>{

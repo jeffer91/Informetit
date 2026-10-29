@@ -244,7 +244,7 @@ function renderReport(data,{Table,Figure,H,para,F,P}){
    out+=H(3,'7.4. '+c.name);
    out+=Table('Ordinario, supletorio y resultado definitivo — '+c.name,
     ['Estudiante','Cédula','Teoría ord.','Práctica ord.','Ordinario','Supletorio','Definitivo','Estado','Acta'],
-    c.records.filter(x=>x.evaluation&&!x.duplicate&&(x.evaluation.hasRecordedOrdinary||x.evaluation.hasRecordedRecovery)).map(x=>[x.name,x.studentId,
+    c.records.map(x=>[x.name,x.studentId,
       x.evaluation?num(grade(x.evaluation.ordinario.teoria)):'—',
       x.evaluation?num(grade(x.evaluation.ordinario.practica)):'—',
       x.ordinary===null?'—':num(x.ordinary),
@@ -252,7 +252,7 @@ function renderReport(data,{Table,Figure,H,para,F,P}){
       x.finalGrade===null?'—':num(x.finalGrade),
       x.duplicate?'Duplicado':DESCRIPTIONS[x.status]||x.status,
       x.verified?'Con referencia':'Sin evidencia completa']),
-    'Se muestran notas registradas y calculadas. Los estudiantes pendientes aparecen sin nota definitiva; la ausencia de una nota no representa cero');
+    'Se incluyen todos los estudiantes de Complexivo de la carrera, con campos sin nota en blanco (—), sin asignar calificaciones cero ni reprobaciones por ausencia de registro');
    const followup=c.records.filter(x=>x.status==='pendiente'||x.status==='supletorio_pendiente'||x.duplicate||x.evaluation?.warnings.length);
    out+=Table('Seguimiento de evaluaciones y actas — '+c.name,
     ['Estudiante','Cédula','Situación','Acción requerida'],

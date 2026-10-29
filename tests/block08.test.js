@@ -138,6 +138,11 @@ test('el índice admite paginación exacta sin cambiar las referencias de destin
  assert.match(result,/data-page="inf-figure-1">10/);
  assert.match(html,/\[\[INF:inf-sec-001\]\]/);
 });
+test('el índice distingue subapartados de tercer nivel con sangría propia',()=>{
+ const html=window.InformetitFullReport.makeReport(withNominal(),'presencial');
+ assert.match(html,/<h4[^>]*>4\.4\.1\./);
+ assert.match(html,/class="inf-index-item deep"/);
+});
 test('las tablas nominales conservan ceros iniciales de cédulas',()=>{
  const s=withNominal();s.evaluaciones=[{studentId:'0000000001',tipo:'complexivo',
  ordinario:{teoria:8,practica:9,asistencia:'presentado'}}];

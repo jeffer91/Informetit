@@ -101,7 +101,7 @@ function legal(){
 }
 function indexize(html,pages={}){
  const sections=[];let i=0;
- let body=html.replace(/<h([23])([^>]*)>([\s\S]*?)<\/h\1>/gi,(raw,level,attrs,value)=>{
+ let body=html.replace(/<h([234])([^>]*)>([\s\S]*?)<\/h\1>/gi,(raw,level,attrs,value)=>{
   const label=value.replace(/<[^>]+>/g,'').trim();if(!label)return raw;
   const old=/\bid=["']([^"']+)["']/.exec(attrs),id=old?old[1]:'inf-sec-'+String(++i).padStart(3,'0');
   sections.push({id,label,level:+level});
@@ -111,7 +111,7 @@ function indexize(html,pages={}){
  body=body.replace(/<p class="tlabel">Tabla (\d+)<\/p>/g,(_,n)=>'<p class="tlabel" id="inf-table-'+n+'">Tabla '+n+'<span class="inf-page-marker">[[INF:inf-table-'+n+']]</span></p>');
  const figures=[...body.matchAll(/<p class="flabel">Figura (\d+)<\/p><p class="fname">([^<]*)<\/p>/g)].map(m=>({id:'inf-figure-'+m[1],label:'Figura '+m[1]+'. '+m[2],level:2}));
  body=body.replace(/<p class="flabel">Figura (\d+)<\/p>/g,(_,n)=>'<p class="flabel" id="inf-figure-'+n+'">Figura '+n+'<span class="inf-page-marker">[[INF:inf-figure-'+n+']]</span></p>');
- const entries=a=>a.map(x=>'<div class="inf-index-item'+(x.level===3?' sub':'')+'"><a href="#'+E(x.id)+'">'+E(x.label)+'</a><span class="inf-index-dots"></span><span class="inf-index-page" data-page="'+E(x.id)+'">'+(Number.isInteger(pages[x.id])?pages[x.id]:'—')+'</span></div>').join('');
+ const entries=a=>a.map(x=>'<div class="inf-index-item'+(x.level===4?' deep':x.level===3?' sub':'')+'"><a href="#'+E(x.id)+'">'+E(x.label)+'</a><span class="inf-index-dots"></span><span class="inf-index-page" data-page="'+E(x.id)+'">'+(Number.isInteger(pages[x.id])?pages[x.id]:'—')+'</span></div>').join('');
  const make=(title,items)=>items.length?'<nav class="inf-index"><h2>'+title+'</h2>'+entries(items)+'</nav>':'';
  return {html:body,front:make('Índice de contenidos',sections)+make('Índice de tablas',tables)+make('Índice de figuras',figures),sections,tables,figures};
 }
@@ -121,7 +121,7 @@ const CSS=[
 '@page{size:A4;margin:5.05cm 2.54cm 2.54cm}',
 '@page:first{size:A4;margin:5.05cm 1.5cm 1.5cm}',
 '@media print{.inf-cover-head{display:none!important}}',
-'@media print{body>h2{break-before:page!important;page-break-before:always!important}thead{display:table-header-group!important}tfoot{display:table-footer-group!important}h2,h3,.tlabel,.tname,.flabel,.fname{break-after:avoid-page;page-break-after:avoid}.tbl tr,.fig{break-inside:avoid-page}.inf-index a{color:#000!important;text-decoration:none}}',
+'@media print{body>h2{break-before:page!important;page-break-before:always!important}thead{display:table-header-group!important}tfoot{display:table-footer-group!important}h2,h3,h4,.tlabel,.tname,.flabel,.fname{break-after:avoid-page;page-break-after:avoid}.tbl tr,.fig{break-inside:avoid-page}.inf-index a{color:#000!important;text-decoration:none}}',
 '.inf-cover{background:#fff!important;min-height:21.6cm!important;break-after:page;page-break-after:always;display:flex;flex-direction:column;justify-content:space-between;margin:0!important;padding:0!important;box-shadow:none!important}',
 '.inf-cover-head{width:18cm;margin:0 auto}.inf-header{width:18cm!important;table-layout:fixed;border-collapse:collapse;font:8pt/1.15 Arial,sans-serif}',
 '.inf-header td{border:.5pt solid #000;text-align:center;vertical-align:middle;padding:.1cm;overflow-wrap:anywhere}',
@@ -143,6 +143,8 @@ const CSS=[
 '.inf-index h2{font:bold 13pt/1.3 "Times New Roman",serif;text-align:center;margin:0 0 14pt}',
 '.inf-index-item{display:flex;gap:7pt;align-items:flex-end;margin:3pt 0;break-inside:avoid}',
 '.inf-index-item.sub{padding-left:15pt;font-size:10pt}',
+'.inf-index-item.deep{padding-left:30pt;font-size:9.5pt}',
+'h4{font:bold 11pt/1.4 "Times New Roman",serif;margin:12pt 0 7pt;break-after:avoid}',
 '.inf-index-item a{color:inherit;text-decoration:none;overflow-wrap:anywhere}',
 '.inf-index-dots{flex:1;border-bottom:1pt dotted #999;min-width:10pt}',
 '.inf-index-page{min-width:22pt;text-align:right;font-variant-numeric:tabular-nums}',

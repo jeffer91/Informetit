@@ -18,7 +18,7 @@ const presencialCompletes={'Enfermería':43,'Educación Inicial':38,'Marketing D
 let tables=0,figs=0;
 const para=(x)=>'<p>'+E(x)+'</p>';
 const missingText=x=>/^(?:sin (?:datos|información|desglose|nómina|calificación)|no (?:disponible|calculable|cargada)|por (?:confirmar|asignar|conciliar|validar)|pendiente|ejecución por verificar)/i.test(String(x??'').trim())?'<span class="inf-missing">'+E(x)+'</span>':E(x);
-const H=(n,t)=>'<h'+n+'>'+E(t)+'</h'+n+'>';
+const H=(n,t)=>{const level=n===3&&/^\d+\.\d+\.\d+\./.test(String(t))?4:n;return '<h'+level+'>'+E(t)+'</h'+level+'>'};
 function Table(name,heads,rows,note='Datos disponibles de la cohorte, según registros institucionales'){
  tables++;let html='<div class="tbl"><p class="tlabel">Tabla '+tables+'</p><p class="tname">'+E(name)+'</p><table><thead><tr>'+heads.map(x=>'<th>'+E(x)+'</th>').join('')+'</tr></thead><tbody>';
  html+=(rows.length?rows.map(r=>'<tr>'+r.map(x=>'<td>'+missingText(x)+'</td>').join('')+'</tr>').join(''):'<tr><td colspan="'+heads.length+'">Sin información verificada</td></tr>');

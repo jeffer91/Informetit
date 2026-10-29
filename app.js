@@ -25,7 +25,10 @@ function notifyPdfResult(result){
 
 const sanitize=d=>Data.migrate(d);
 async function load(){return Store.load()}
-async function persist(){await Store.save(state)}
+async function persist(){
+ if(state.firebaseSync){state.firebaseSync.pending=window.InformetitFirebase?.pending(state).map(x=>({key:x.key,collection:x.collection}))||[]}
+ await Store.save(state);scheduleFirebaseSync();
+}
 /*
  * Importación automática de la base GPT privada al abrir Electron.
  * Conserva todas las modificaciones que el usuario ya hizo en este equipo.
@@ -680,104 +683,157 @@ return head("Base maestra local","Bloque 01 · Persistencia, integridad y cálcu
 +head("Datos y respaldo","Importación manual opcional y copia de seguridad.")+'<div class="grid2"><section class="panel"><h2>Importar</h2><p>Importa la base maestra JSON preparada desde ChatGPT o el archivo institucional original XLS/HTML/XLSX.</p><div class="actions"><button class="btn primary" data-action="backup-file">Importar JSON maestro</button><button class="btn" data-action="student-file">Importar Excel de estudiantes</button></div><p class="hint">La importación de JSON reemplaza la base local previa. Descarga antes una copia de seguridad si ya has registrado cambios.</p></section><section class="panel"><h2>Exportar respaldo</h2><p>Descarga estudiantes, notas, resultados, cronogramas verificados, observaciones y conflictos. Podrás compartir este JSON en el chat para que prepare una versión actualizada.</p><div class="actions"><button class="btn primary" data-action="export-json">Descargar JSON</button><button class="btn danger" data-action="clear-db">Vaciar base local</button></div></section></div><section class="panel"><h2>Estado de la base</h2><div class="cards">'+card("Estudiantes",state.estudiantes.length)+card("Notas de núcleos",state.notas.length)+card("Rúbricas de proyectos",state.trabajos.length)+card("Conflictos",state.conflictos.length)+card("Sin vincular",state.sinVincular.length)+'</div><h3>Importaciones</h3>'+table(["Fuente","Tipo","Filas","Fecha"],state.importaciones.map(i=>'<tr>'+td(i.nombre)+td(i.tipo)+td(i.filas)+td(i.fecha)+'</tr>'))+'<h3>Complementarios pendientes de conciliar</h3>'+table(["Fuente","Registro","Estado"],state.complementarios.map(x=>'<tr>'+td(x.fuente)+td(x.registro?.Nombre||x.registro?.nombre||"Sin nombre")+td(x.estado||"Por conciliar")+'</tr>'))+'<h3>Notas en conflicto</h3>'+table(["Estudiante","Núcleo","Actual","Nueva","Decisión"],state.conflictos.map((c,i)=>'<tr>'+td(c.id?.split("|")[0])+td(c.nuevo?.nucleo)+td(num(c.anterior?.nota))+td(num(c.nuevo?.nota))+'<td><button class="btn small" data-use-conflict="'+i+'">Usar nueva</button> <button class="btn small" data-keep-conflict="'+i+'">Conservar actual</button></td></tr>'))+'</section><section class="panel"><h2>Privacidad y límites</h2><p class="privacy">Los datos se guardan en IndexedDB (o localStorage de respaldo) de este navegador, no en GitHub. Borrar datos del navegador puede eliminarlos. Descarga copias JSON y almacénalas en un lugar privado. ChatGPT no puede modificar directamente el contenido guardado dentro de tu navegador: para aplicar cambios realizados aquí, importa el archivo JSON actualizado.</p></section>'}
 
 function firebaseView(){
- const F=window.InformetitFirebase,preview=firebaseComparison,connected=!!firebaseConnection?.connected;
- let out=head("Firebase UTET · solo lectura",
-   "Vinculación con Firestore y conciliación del período octubre 2025–marzo 2026.");
- out+='<section class="panel"><h2>Proyecto UTET · utet-4387a</h2>'
-  +'<p>La aplicación nunca escribe en Firestore. El acceso en vivo requiere permisos Google autorizados. Las credenciales permanecen en tu equipo y no se guardan en GitHub ni en el archivo maestro de estudiantes.</p>'
-  +'<div class="actions"><button class="btn" data-action="firebase-adc">Conectar con Google (credenciales locales)</button>'
-  +'<button class="btn" data-action="firebase-credential">Elegir credencial de lectura</button>'
-  +'<button class="btn primary" data-action="firebase-read"'+(connected?'':' disabled')+'>Consultar Firestore ahora</button>'
-  +'<button class="btn" data-action="firebase-backup">Analizar respaldo JSON/TXT</button></div>'
-  +'<p class="hint">Método recomendado: credenciales de Google configuradas localmente (ADC). Si utilizas una cuenta de servicio, debe tener acceso de solo lectura; nunca compartas su clave privada en un chat ni la publiques.</p>'
-  +'<p class="hint">Estado: '+h(connected?"Identidad autorizada para consultar":'Sin autorización en vivo')
-  +(firebaseMessage?' · '+h(firebaseMessage):'')+'</p></section>';
- if(!preview){
-  out+='<section class="panel"><h2>Conciliación pendiente</h2><p>Carga el respaldo UTET o consulta Firestore para comparar la nómina con la base local. Ningún estudiante se añadirá automáticamente.</p></section>';
-  return out;
+ const F=window.InformetitFirebase,connected=!!firebaseConnection?.connected,
+  enabled=!!state.firebaseSync?.enabled,queue=F?F.pending(state):[],
+  conflicts=state.firebaseSync?.conflicts||[],q=firebaseComparison?.stats;
+ let out=head("Firebase UTET · Sincronización académica",
+  "Únicamente colecciones nucleos y complexivos. Período octubre 2025–marzo 2026.");
+ out+='<section class="panel"><h2>Acceso limitado a dos colecciones</h2>'
+  +'<p>Informetit solo consulta y escribe en <b>nucleos</b> y <b>complexivos</b>. '
+  +'No lee ni modifica Estudiante, matriculas, requisitos, periodos, cronogramas u otras colecciones. '
+  +'Las cédulas y modalidades proceden exclusivamente de la nómina privada local.</p>'
+  +'<div class="cards">'+card("Conexión",connected?"Autorizada":"Sin conectar")
+  +card("Sincronización",enabled?"Habilitada":"Deshabilitada")
+  +card("Cambios por enviar",queue.length)
+  +card("Conflictos para revisión",conflicts.length)+'</div>'
+  +'<div class="actions"><button class="btn" data-action="firebase-adc">Conectar con Google</button>'
+  +'<button class="btn" data-action="firebase-credential">Usar cuenta de servicio local</button>'
+  +'<button class="btn primary" data-action="firebase-read"'+(connected?'':' disabled')+'>Sincronizar ahora</button>'
+  +(enabled?'<button class="btn" data-action="firebase-disable">Desactivar sincronización automática</button>':
+    '<button class="btn" data-action="firebase-enable">Habilitar sincronización automática</button>')
+  +'<button class="btn" data-action="firebase-backup">Revisar respaldo de estas dos colecciones</button></div>'
+  +'<p class="hint">Para activar escrituras automáticas debes autorizarlo una sola vez. '
+  +'Solo se envían notas de núcleos validadas y exámenes con actas verificadas. '
+  +'Los cambios se guardan en tu equipo cuando no hay conexión y se reintentan al volver.</p>'
+  +'<p class="hint">Estado: '+h(firebaseMessage||state.firebaseSync?.lastError||'Sincronización aún no ejecutada')+'</p>'
+  +'<p class="hint">Última lectura: '+h(state.firebaseSync?.lastPull||'Sin lectura')
+  +' · última escritura: '+h(state.firebaseSync?.lastPush||'Sin escritura')+'</p></section>';
+ if(q){
+  out+='<section class="panel"><h2>Última comparación académica</h2>'
+   +'<div class="cards">'+card("Notas locales verificadas",q.local)
+   +card("Documentos de Firebase",q.remote)
+   +card("Recibidos",q.received)
+   +card("Pendientes de envío",q.toSend)
+   +card("Conflictos",q.conflicts)
+   +card("Sin vínculo válido",q.unmatched)+'</div>'
+   +'<p class="hint">Los documentos con estructuras desconocidas, mecanismos sin clasificar '
+   +'y notas contradictorias se bloquean. Nunca se sobrescriben automáticamente.</p></section>';
  }
- const q=preview.stats,snapshot=preview.remote;
- out+='<section class="panel"><h2>Resultado de conciliación</h2>'
-  +'<p class="hint">Fuente: '+h(snapshot.source)+' · Período '+h(snapshot.period)+'. Las diferencias se guardan como incidencias, sin sobrescribir decisiones académicas.</p>'
-  +'<div class="cards">'+card("Registros de Firebase",q.source)+card("Coincidentes",q.matched)
-  +card("Adicionales",q.additional)+card("No encontrados",q.onlyLocal)
-  +card("Diferencias de requisitos",q.differences)+'</div>'
-  +'<p class="hint">Distribución Firebase: '+snapshot.counts.presencial+' presencial, '+snapshot.counts.online+' online. Esta población no sustituye automáticamente los totales aprobados para el informe.</p>'
-  +'<p><b>Calificaciones numéricas:</b> '+(snapshot.gradeDiscovery.found.length?
-   h("Posibles campos en "+snapshot.gradeDiscovery.found.length+" registros. Deben verificarse estructura y correspondencia antes de importarlos."):
-   "No encontradas en las colecciones consultadas. Los estados de aprobación CUMPLE/NO CUMPLE no son notas.")+'</p>';
- if(snapshot.gradeDiscovery.collections.length)
-  out+='<p class="hint">Colecciones académicas examinadas: '+h(snapshot.gradeDiscovery.collections.join(", "))+'</p>';
- if(snapshot.issues.length)out+='<p class="hint">Incidencias de origen: '+snapshot.issues.length+'. No se incorporan registros sin ficha o requisitos.</p>';
- if(preview.added.length)
-  out+='<h3>Registros adicionales para revisar</h3>'
-   +table(["Cédula","Nombre","Carrera","Modalidad"],
-    preview.added.map(x=>'<tr>'+td(x.id)+td(x.nombre)+td(x.carrera)+td(x.modalidad)+'</tr>'));
- if(preview.onlyLocal.length)
-  out+='<h3>Registros de Informetit no encontrados en Firebase</h3>'
-   +table(["Cédula","Nombre","Carrera"],
-    preview.onlyLocal.map(x=>'<tr>'+td(x.id)+td(x.nombre)+td(x.carrera)+'</tr>'));
- if(preview.differences.length)
-  out+='<h3>Diferencias por verificar</h3>'
-   +table(["Cédula","Campo","Informetit","Firebase"],
-    preview.differences.slice(0,150).map(x=>'<tr>'+td(x.id)+td(x.field)+td(x.local)+td(x.remote)+'</tr>'))
-   +'<p class="hint">Se muestran hasta 150 discrepancias; todas se conservarán en el registro privado de conciliación.</p>';
- out+='<div class="actions block"><button class="btn primary" data-action="firebase-apply">Incorporar datos faltantes de coincidentes</button>'
-  +'<button class="btn" data-action="firebase-add">Incorporar también los '+q.additional+' adicionales</button></div>'
-  +'<p class="hint">Ambas opciones preservan notas Moodle, Word, exámenes, actas, tipo de titulación y valores locales ya completados. La incorporación de registros adicionales modifica la población, por lo que requiere una confirmación explícita.</p></section>';
+ if(conflicts.length){
+  out+='<section class="panel"><h2>Conflictos pendientes de revisión</h2>'
+   +table(['Colección','Referencia académica','Motivo'],conflicts.slice(0,150)
+     .map(x=>'<tr>'+td(x.collection)+td(x.key)+td(x.reason)+'</tr>'))
+   +'<p class="hint">Para resolver una discrepancia, verifica el acta y la nota; '
+   +'corrige la fuente autorizada y vuelve a sincronizar. No hay sobrescritura forzada.</p></section>';
+ }
+ if(queue.length)out+='<section class="panel"><h2>Cola local de cambios</h2>'
+   +table(['Colección','Identificador académico'],queue.slice(0,100).map(x=>'<tr>'+td(x.collection)+td(x.key)+'</tr>'))
+   +'<p class="hint">Los registros de esta lista permanecen en IndexedDB hasta una confirmación de Firebase. '
+   +'La cola puede incluir entradas bloqueadas por conflicto que nunca se enviarán sin revisión.</p></section>';
  return out;
 }
-async function firebaseAction(code){
- const F=window.InformetitFirebase;
+let firebaseBusy=false;
+async function syncNow({auto=false}={}){
+ const F=window.InformetitFirebase,bridge=window.informetitDesktop;
+ if(firebaseBusy)return;
+ if(!bridge?.firebaseRead||!bridge?.firebaseAcademicWrite)throw Error('La sincronización exige Informetit Desktop.');
+ if(!firebaseConnection?.connected)throw Error('Conecta primero una cuenta Google autorizada.');
+ firebaseBusy=true;
  try{
-  if(!F)throw Error("Módulo de Firebase no disponible");
-  if(code==="firebase-backup"){el("firebase-file").click();return}
-  if(code==="firebase-adc"||code==="firebase-credential"){
-   if(!window.informetitDesktop?.firebaseConnect)throw Error("La conexión autorizada requiere ejecutar Informetit en Electron.");
-   const result=await window.informetitDesktop.firebaseConnect(code==="firebase-adc"?"adc":"service_account");
+  firebaseMessage='Leyendo únicamente nucleos y complexivos';if(page==='firebase')draw();
+  const raw=await bridge.firebaseRead(),assessment=F.plan(state,raw);
+  firebaseComparison=assessment;
+  const pulled=F.applyPull(state,assessment);
+  await Store.save(pulled.next);state=pulled.next;
+  const successes=[],failures=[];
+  if(state.firebaseSync.enabled){
+   for(const row of assessment.push){
+    try{
+     const result=await bridge.firebaseAcademicWrite({
+      collection:row.collection,id:row.id,record:row.record,precondition:row.precondition
+     });
+     successes.push({...row,result});
+    }catch(err){
+     failures.push({collection:row.collection,key:row.key,reason:'Firebase rechazó la escritura: '+err.message});
+    }
+   }
+  }
+  if(successes.length)state=F.applyWriteSuccess(state,successes);
+  state.firebaseSync.conflicts=[...assessment.conflicts,...assessment.foreign,...failures];
+  state.firebaseSync.lastError=failures.length?failures.length+' escrituras pendientes por revisión':'';
+  state.firebaseSync.pending=F.pending(state).map(x=>({key:x.key,collection:x.collection}));
+  await Store.save(state);
+  firebaseMessage=pulled.stats.added+' registros recibidos · '+successes.length+' enviados · '+
+   state.firebaseSync.conflicts.length+' conflictos'+
+   (state.firebaseSync.pending.length?' · '+state.firebaseSync.pending.length+' cambios pendientes':'');
+  if(page==='firebase')draw();
+  if(!auto)notify('Firebase UTET: '+firebaseMessage);
+ }catch(err){
+  firebaseMessage='Sincronización incompleta: '+err.message;
+  state.firebaseSync.lastError=err.message;
+  state.firebaseSync.pending=F.pending(state).map(x=>({key:x.key,collection:x.collection}));
+  await Store.save(state);
+  if(page==='firebase')draw();
+  if(!auto)notify(firebaseMessage);
+  throw err;
+ }finally{firebaseBusy=false}
+}
+function scheduleFirebaseSync(){
+ if(!state.firebaseSync?.enabled||!firebaseConnection?.connected||firebaseBusy)return;
+ clearTimeout(scheduleFirebaseSync.timer);
+ scheduleFirebaseSync.timer=setTimeout(()=>syncNow({auto:true}).catch(err=>console.warn('Firebase UTET:',err.message)),900);
+}
+async function firebaseAction(code){
+ try{
+  if(!window.InformetitFirebase)throw Error('Motor académico no disponible');
+  if(code==='firebase-backup'){el('firebase-file').click();return}
+  if(code==='firebase-adc'||code==='firebase-credential'){
+   if(!window.informetitDesktop?.firebaseConnect)throw Error('Usa Informetit Desktop para conectar Firebase');
+   const result=await window.informetitDesktop.firebaseConnect(code==='firebase-adc'?'adc':'service_account');
    if(result?.canceled)return;
-   firebaseConnection=result;
-   firebaseMessage="Conexión autorizada · consulta pendiente";draw();notify("Conectado a Firebase UTET en modo lectura.");
+   firebaseConnection=result;firebaseMessage='Conexión autorizada; consultando solo dos colecciones';
+   draw();await syncNow();
    return;
   }
-  if(code==="firebase-read"){
-   if(!window.informetitDesktop?.firebaseRead)throw Error("Solo disponible en Electron.");
-   firebaseMessage="Consultando colecciones autorizadas";draw();
-   const raw=await window.informetitDesktop.firebaseRead();
-   firebaseComparison=F.compare(state,F.snapshot(raw));firebaseMessage="Consulta recibida · conciliación preparada";
-   draw();notify("Firebase consultado: "+firebaseComparison.stats.matched+" coincidentes.");
-   return;
+  if(code==='firebase-disable'){
+   state.firebaseSync.enabled=false;await Store.save(state);
+   firebaseMessage='Sincronización automática desactivada. Los datos permanecen locales.';
+   draw();return;
   }
-  if(code==="firebase-apply"||code==="firebase-add"){
-   if(!firebaseComparison)throw Error("Primero compara los datos de Firebase con la base.");
-   const extra=code==="firebase-add";
-   const msg=extra?"Se incorporarán también los "+firebaseComparison.added.length+" estudiantes adicionales. ¿Confirmas que pertenecen al informe?":
-    "¿Completar datos vacíos de estudiantes coincidentes, conservando toda la información local existente?";
-   if(!confirm(msg))return;
-   // Recalcular en el instante de aplicar, por si cambió la base desde la vista previa.
-   const comparison=F.compare(state,firebaseComparison.remote);
-   const operation=F.apply(state,comparison,{includeAdditional:extra});
-   await Store.save(operation.next);
-   state=operation.next;
-   firebaseComparison=F.compare(state,comparison.remote);
-   firebaseMessage=operation.stats.filled+" campos completados · "+operation.stats.added+" estudiantes añadidos · "+
-     operation.stats.conflicts+" discrepancias nuevas";
-   draw();notify("Conciliación guardada localmente. No se modificó Firestore.");
-   return;
+  if(code==='firebase-enable'){
+   if(!confirm('Se enviarán a Firebase únicamente notas verificadas de nucleos y exámenes '
+    +'con actas, en las colecciones nucleos y complexivos. Se respetan los conflictos y '
+    +'ninguna otra colección será consultada o modificada. ¿Habilitar sincronización automática?'))return;
+   state.firebaseSync.enabled=true;await Store.save(state);
+   if(!firebaseConnection?.connected){
+    const result=await window.informetitDesktop?.firebaseConnect('adc');
+    if(result?.canceled||!result?.connected)throw Error('Sin identidad Google autorizada; usa «Conectar» primero');
+    firebaseConnection=result;
+   }
+   await syncNow();return;
   }
- }catch(error){firebaseMessage=error.message;console.error("Firebase UTET:",error.message);draw();notify("Firebase: "+error.message)}
+  if(code==='firebase-read'){
+   await syncNow();return;
+  }
+ }catch(err){firebaseMessage=err.message;console.error('Firebase UTET:',err);
+  if(page==='firebase')draw();notify('Firebase: '+err.message)}
 }
 async function firebaseLoadFile(event){
- const file=event.target.files?.[0];
- if(!file)return;
+ const file=event.target.files?.[0];if(!file)return;
  try{
-  if(file.size>35*1024*1024)throw Error("El respaldo es demasiado grande (límite 35 MB).");
+  if(file.size>35*1024*1024)throw Error('Respaldo demasiado grande (máximo 35 MB)');
   const raw=JSON.parse((await file.text()).replace(/^\uFEFF/,''));
-  firebaseComparison=window.InformetitFirebase.compare(state,window.InformetitFirebase.snapshot(raw));
-  firebaseMessage="Respaldo leído en este equipo · no se ha escrito en Firestore";
-  page="firebase";draw();notify("Respaldo UTET analizado. Revisa las diferencias antes de aplicar.");
- }catch(error){notify("No se pudo analizar el respaldo: "+error.message)}
- finally{event.target.value=""}
+  const src=raw.collections||raw;
+  if(!Array.isArray(src?.nucleos)||!Array.isArray(src?.complexivos))
+   throw Error('Este respaldo no contiene ambas colecciones académicas. No se consultarán otras colecciones.');
+  // Los archivos se analizan localmente y no habilitan escrituras en la nube.
+  firebaseComparison=window.InformetitFirebase.plan(state,{project:'utet-4387a',
+    collections:{nucleos:src.nucleos,complexivos:src.complexivos}});
+  firebaseMessage='Respaldo privado analizado sin modificar Firebase; '+
+   firebaseComparison.stats.received+' registros académicos nuevos disponibles';
+  page='firebase';draw();
+ }catch(err){notify('Respaldo académico: '+err.message)}
+ finally{event.target.value=''}
 }
 
 const views={inicio,estudiantes,nucleos:grades,evaluaciones:evaluations,trabajo,cronogramas:schedule,informes:reports,identidad,firebase:firebaseView,datos:data};
@@ -812,7 +868,7 @@ async function parseGradeAndSave(save){
   const planned=engine.plan(state,assessed,today());
   // Escritura transaccional; en caso de fallo no se altera el estado en pantalla.
   await Store.save(planned.next);
-  state=planned.next;lastParse=null;inputText="";
+  state=planned.next;lastParse=null;inputText="";scheduleFirebaseSync();
   draw();
   notify("Moodle: "+planned.stats.added+" incorporadas, "+planned.stats.duplicate+
    " ya existentes, "+planned.stats.conflict+" conflictos y "+planned.stats.unmatched+" sin vincular.");
@@ -966,7 +1022,7 @@ async function action(code){switch(code){case"student-file":el("student-file").c
        " · Definitiva "+window.InformetitComplexivo.num(result.finalGrade)+
        " · "+(window.InformetitComplexivo.DESCRIPTIONS[result.status]||result.status));
    }else{
-     await Store.save(planned.next);state=planned.next;evaluationStudentId=id;draw();
+     await Store.save(planned.next);state=planned.next;evaluationStudentId=id;scheduleFirebaseSync();draw();
      notify("Examen Complexivo guardado. Resultado y antecedentes registrados en auditoría.");
    }
  }catch(error){notify("Evaluación: "+error.message)}
@@ -1053,5 +1109,16 @@ el("trabajo-file").addEventListener("change",handleTrabajoFile);
 el("cursos-file").addEventListener("change",handleCursosFile);
 el("firebase-file").addEventListener("change",firebaseLoadFile);
 el("logo-file").addEventListener("change",async ev=>{const file=ev.target.files?.[0];if(!file)return;try{if(!["image/png","image/jpeg","image/webp"].includes(file.type))throw Error("Solo se admiten archivos PNG, JPG o WebP.");if(file.size>2000000)throw Error("La imagen debe tener menos de 2 MB.");const dataURL=await new Promise((res,rej)=>{let fr=new FileReader();fr.onload=()=>res(fr.result);fr.onerror=()=>rej(new Error("No se pudo leer imagen."));fr.readAsDataURL(file)});if(!/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/.test(dataURL))throw Error("Imagen no reconocida; utiliza PNG, JPG o WebP.");const next=Data.migrate(state);next.config.logoDataUrl=dataURL;await Store.save(next);state=next;draw();notify("Logotipo guardado para la portada y encabezado de ambos PDF.");}catch(e){notify(e.message)}finally{ev.target.value=""}});
-(async()=>{state=await load();try{const imported=await loadPrivateGPT();if(imported&&!imported.unchanged){console.info("Base GPT privada disponible:",imported.students,"estudiantes nuevos,",imported.grades,"notas nuevas.")}}catch(e){console.error("No se pudo cargar la base GPT privada:",e);notify("No se pudo cargar la base GPT local: "+e.message)}ready=true;draw()})().catch(e=>{el("main").textContent="No fue posible iniciar Informetit: "+e.message});
+(async()=>{state=await load();try{const imported=await loadPrivateGPT();if(imported&&!imported.unchanged){console.info("Base GPT privada disponible:",imported.students,"estudiantes nuevos,",imported.grades,"notas nuevas.")}}catch(e){console.error("No se pudo cargar la base GPT privada:",e);notify("No se pudo cargar la base GPT local: "+e.message)}ready=true;draw();
+ if(state.firebaseSync?.enabled&&window.informetitDesktop?.firebaseConnect){
+  window.informetitDesktop.firebaseConnect('adc').then(async conn=>{
+   if(!conn?.connected)return;firebaseConnection=conn;await syncNow({auto:true});
+  }).catch(err=>{firebaseMessage='Firebase sin conexión automática: '+err.message;
+    console.warn(firebaseMessage);if(page==='firebase')draw()});
+ }
+ if(window.informetitDesktop){
+  window.addEventListener('online',scheduleFirebaseSync);
+  setInterval(()=>{if(state.firebaseSync?.enabled&&firebaseConnection?.connected)scheduleFirebaseSync()},90000);
+ }
+})().catch(e=>{el("main").textContent="No fue posible iniciar Informetit: "+e.message});
 })();

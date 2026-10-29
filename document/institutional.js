@@ -8,7 +8,7 @@ function fields(state,mode){
  const c=state?.config||{},online=mode==='online';
  const info=root.InformetitCodigo?.forMode(state,mode);
  if(!info)throw Error('No se cargó el motor de códigos del período');
- const logo=/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/.test(c.logoDataUrl||'')?c.logoDataUrl:'';
+ const logo=/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/.test(c.logoDataUrl||'')?c.logoDataUrl:(root.InformetitDefaultLogo||'');
  return {modality:online?'Online':'Presencial',code:info.code,codePrefix:info.prefix,
    codeValid:info.valid,codeReason:info.reason,codeStamp:info.stamp,codeMonth:info.label,
    version:c.version||'1.0',date:c.fechaElaboracion?date(c.fechaElaboracion):info.label,

@@ -579,7 +579,7 @@ function identityPanel(compactView=false){
   '</b> (dos meses después). El año y mes del código se calculan automáticamente.</p></div></div>';
  out+='<div class="identity-layout"><div class="identity-logo-card">'+logo+
   '<div class="actions"><button class="btn primary" data-action="logo-file">'+(pres.logo?'Cambiar logo':'Subir logo institucional')+
-  '</button>'+(pres.logo?'<button class="btn" data-action="remove-logo">Quitar logo</button>':'')+'</div>'+
+  '</button>'+(state.config.logoDataUrl?'<button class="btn" data-action="remove-logo">Restaurar logo institucional</button>':'')+'</div>'+
   '<p class="hint">PNG, JPG o WebP · máximo 2 MB. Se guarda solamente en tu equipo y se usa en portada y encabezado de ambos PDF.</p>'+
   '</div><div class="identity-code-card">'+
   '<div class="identity-code-row"><span>Presencial</span><strong>'+h(pres.code)+'</strong></div>'+

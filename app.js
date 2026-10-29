@@ -840,7 +840,7 @@ async function handleCursosFile(ev){
     const grade=Data.grade(val(row,'Nota final','Calificación final','Nota','Calificacion'));
     if(!id&&!course)continue;
     if(!st||career&&Data.career(career)!==Data.career(st.carrera)||
-       !course||!Number.isInteger(n)||n<1||n>4||grade===null){
+       !course||!Number.isInteger(n)||n<0||n>4||(grade===null&&!/no evaluad/i.test(val(row,'Estado académico','Estado')))){
      unmatched.push({id,curso:course,nucleo:n,motivo:'Identidad, carrera, curso, núcleo o nota no verificables'});continue;
     }
     const key=id+'|'+n+'|'+Data.key(course),duplicate=seen.has(key);
@@ -848,11 +848,12 @@ async function handleCursosFile(ev){
     seen.add(key);
     entries.push({studentId:id,modalidad:st.modalidad,carrera:st.carrera,curso:course,
       nucleo:n,nota:grade,docente:val(row,'Docente','Profesor'),
+      estadoAcademico:val(row,'Estado académico','Estado'),
       source:file.name,verificado:confirmed,estado:confirmed?'cotejado_por_coordinacion':'provisional_por_conciliar',
       fechaImportacion:today()});
    }
   }
-  if(!entries.length)throw Error('No se localizaron filas válidas con identificación, carrera, curso, núcleo y nota final.');
+  if(!entries.length)throw Error('No se localizaron filas válidas con identificación, carrera, curso y una nota o estado no evaluado.');
   if(!confirm('Importar '+entries.length+' registros individuales de cursos, '+unmatched.length+
    ' observaciones por conciliar. Estado: '+(confirmed?'COTEJADO expresamente':'PROVISIONAL')+
    '. Los registros se guardan solo en este equipo. ¿Confirmas?'))return;

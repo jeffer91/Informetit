@@ -22,14 +22,15 @@ function courseRows(state,mode){
  for(const raw of [...state?.notas||[],...state?.cursosNucleos||[]]){
   const id=plain(raw.studentId||raw.cedula||raw.id?.split('|')[0]),st=roster.get(id);
   if(!st||st.modalidad!==mode)continue;
-  const n=Number(raw.nucleo||raw.nucleus);
+  const n=Number(raw.nucleo??raw.nucleus??0);
   const grade=valid(raw.nota),approved=raw.verificado===true||raw.verified===true||
     (Array.isArray(state.notas)&&state.notas.includes(raw)&&!['PROVISIONAL','SIMULADO','ESTIMADO'].includes(type(raw.estado||raw.status)));
-  if(!approved||grade===null||!Number.isInteger(n)||n<1||n>4)continue;
+  if(!approved||!Number.isInteger(n)||n<0||n>4||
+   (grade===null&&!((state.cursosNucleos||[]).includes(raw)&&/no evaluado/i.test(String(raw.estadoAcademico||'')))))continue;
   const title=courseSource(raw),name=st.nombre||'Sin nombre';
   list.push({id,name,career:st.carrera,nucleo:n,course:title,
    teacher:plain(raw.docente||raw.teacher),grade,modality:mode,
-   source:plain(raw.source||raw.fuente),status:grade>=7?'Aprobado':'Reprobado'});
+   source:plain(raw.source||raw.fuente),status:grade===null?'No evaluado':grade>=7?'Aprobado':'Reprobado'});
  }
  const unique=new Map();
  for(const r of list){const k=[r.id,r.nucleo,r.course].join('|');if(!unique.has(k))unique.set(k,r)}
@@ -53,9 +54,10 @@ function courseAnalysis(state,mode,helpers){
  for(const row of rows){const key=M().career(row.career);if(!careers.has(key))careers.set(key,[]);careers.get(key).push(row.grade)}
  ordered.forEach((g,i)=>{
   const first=g[0],s=stats(g.map(x=>x.grade)),careerValues=stats(careers.get(M().career(first.career))||[]);
-  const approved=g.filter(x=>x.grade>=7).length,failed=g.length-approved;
+  const approved=g.filter(x=>x.grade!==null&&x.grade>=7).length,
+   failed=g.filter(x=>x.grade!==null&&x.grade<7).length,notEvaluated=g.length-s.n;
   out+=H(3,'5.4.'+(i+1)+'. '+first.career+' — '+first.course);
-  out+=para('El registro corresponde al Núcleo '+first.nucleo+' de '+first.career+
+  out+=para('El registro corresponde a '+(first.nucleo?'Núcleo '+first.nucleo:'un curso sin núcleo homologado')+' de '+first.career+
    (first.teacher?', a cargo de '+first.teacher:'; el docente no consta en los registros cargados')+
    '. Se muestran todos los estudiantes identificados en esta fuente, sin extrapolar resultados a personas no registradas.');
   out+=Table('Calificaciones individuales — '+first.course+' — '+first.career,
@@ -63,19 +65,20 @@ function courseAnalysis(state,mode,helpers){
    'Fuente: registro nominal importado; '+g.length+' estudiantes. Las notas verificadas corresponden exclusivamente a la fuente registrada');
   out+=Table('Indicadores de rendimiento — '+first.course,
    ['Indicador','Valor','Indicador','Valor'],
-   [['Evaluados',s.n,'Aprobados',approved],
+   [['Registros',g.length,'Evaluados',s.n],
+    ['Aprobados',approved,'No evaluados',notEvaluated],
     ['Reprobados',failed,'Aprobación',percentage(approved,s.n)],
     ['Promedio',format(s.mean),'Mediana',format(s.median)],
     ['Mínimo',format(s.min),'Máximo',format(s.max)],
     ['Desviación estándar',format(s.sd),'Docente',first.teacher||'Por verificar']],
    'Desviación estándar poblacional; los resultados ausentes no se sustituyen por nota cero');
-  out+=para('De '+s.n+' evaluados, '+approved+' aprobaron ('+percentage(approved,s.n)+') y '+failed+
+  out+=para('De '+g.length+' registros y '+s.n+' evaluados, '+approved+' aprobaron ('+percentage(approved,s.n)+') y '+failed+
    ' obtuvieron menos de 7,00. El promedio es '+format(s.mean)+', la mediana '+format(s.median)+
    ', con extremos '+format(s.min)+'–'+format(s.max)+' y desviación estándar '+format(s.sd)+
    '. El promedio de esta carrera en los registros disponibles es '+format(careerValues.mean)+
    ' y el promedio general de esta modalidad es '+format(all.mean)+
    '. Las diferencias son descriptivas y dependen de la cobertura de cada fuente.');
-  out+=Figure('Resultados del curso — '+first.course,[['Aprobados',approved],['Reprobados',failed]],{
+  out+=Figure('Resultados del curso — '+first.course,[['Aprobados',approved],['Reprobados',failed],['No evaluados',notEvaluated]],{
    note:'Distribución de notas individuales del curso; no representa aprobación final del Examen Complexivo'});
  });
  return out;
@@ -87,8 +90,9 @@ function provisionalRows(state,mode,helpers){
   if(!st||st.modalidad!==mode)continue;
   const explicitlyUnverified=['PROVISIONAL','PROVISIONAL POR CONCILIAR','SIN VERIFICAR','BORRADOR'].includes(type(raw.estado||raw.status));
   if(!explicitlyUnverified&&!(state.cursosNucleos||[]).includes(raw))continue;
-  const n=Number(raw.nucleo),k=[M().career(st.carrera),n].join('|');
-  if(!groups.has(k))groups.set(k,{career:st.carrera,n,rows:[]});
+  const n=Number(raw.nucleo??0),course=(state.cursosNucleos||[]).includes(raw)?courseSource(raw):'Núcleo '+n;
+  const k=[M().career(st.carrera),n,course].join('|');
+  if(!groups.has(k))groups.set(k,{career:st.carrera,n,course,rows:[]});
   groups.get(k).rows.push([st.nombre,st.id,valid(raw.nota)===null?'Sin nota':format(valid(raw.nota)),
    plain(raw.fuente||raw.source)||'Sin referencia']);
  }
@@ -98,8 +102,8 @@ function provisionalRows(state,mode,helpers){
  let i=0;
  for(const x of [...groups.values()].sort((a,b)=>a.career.localeCompare(b.career,'es')||a.n-b.n)){
   i++;
-  out+=H(3,'5.5.'+i+'. '+x.career+' — Núcleo '+x.n);
-  out+=Table('Transcripción pendiente de cotejo — '+x.career+' — Núcleo '+x.n,
+  out+=H(3,'5.5.'+i+'. '+x.career+' — '+x.course);
+  out+=Table('Transcripción pendiente de cotejo — '+x.career+' — '+x.course,
    ['Estudiante','Cédula','Nota provisional','Referencia de origen'],x.rows,
    'Provisional, no autorizado para cálculo de aprobación o promedio oficial; verificar con Moodle o acta individual');
  }

@@ -14,6 +14,7 @@ require('../analysis/trabajo.js');
 require('../analysis/consolidado.js');
 require('../analysis/quality.js');
 require('../analysis/executive.js');
+require('../analysis/informe-completo.js');
 require('../report_institucional.js');
 test('octubre 2025–marzo 2026: el código utiliza mayo 2026, nunca el mes de cierre',()=>{
  const c=C.issuance(M.PERIOD);

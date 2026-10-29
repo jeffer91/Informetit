@@ -5,7 +5,8 @@ const M=require('../data/model.js');require('../document/codigo.js');require('..
 require('../public_summary.js');require('../nucleos_agregados.js');
 require('../analysis/requirements.js');require('../analysis/nuclei.js');require('../analysis/complexivo.js');
 require('../analysis/trabajo.js');require('../analysis/consolidado.js');require('../analysis/quality.js');
-require('../analysis/executive.js');require('../report_institucional.js');
+require('../analysis/executive.js');require('../analysis/informe-completo.js');
+require('../report_institucional.js');
 test('resumen ejecutivo aparece después de resultados y antes de conclusiones',()=>{
  const h=global.InformetitFullReport.makeReport(M.empty(),'presencial');
  assert.ok(h.search(/<h2[^>]*>8\. Síntesis general de la cohorte/)<h.search(/<h2[^>]*>Resumen ejecutivo/));

@@ -14,6 +14,7 @@ require('../analysis/trabajo.js');
 require('../analysis/consolidado.js');
 require('../analysis/quality.js');
 require('../analysis/executive.js');
+require('../analysis/informe-completo.js');
 require('../report_institucional.js');
 const all=()=>Object.fromEntries(Model.REQUIREMENTS.map(f=>[f,'CUMPLE']));
 const student=(id,career='ENFERMERIA',mode='presencial')=>({

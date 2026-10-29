@@ -14,6 +14,7 @@ const T=require('../analysis/trabajo.js');
 require('../analysis/consolidado.js');
 const Q=require('../analysis/quality.js');
 require('../analysis/executive.js');
+require('../analysis/informe-completo.js');
 require('../report_institucional.js');
 const student=(id,mode='presencial',type='complexivo',name='PERSONA DE PRUEBA')=>({
  id,nombre:name,carrera:'Enfermería',modalidad:mode,tipoTitulacion:type,requisitos:{}});

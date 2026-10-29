@@ -100,6 +100,13 @@ test('Word diferente genera conflicto y no modifica calificaciones existentes',(
  assert.equal(imported.notasBorrador[0].nota,9.2);
  assert.equal(M.analyze(imported,'presencial').notes.length,0);
 });
+test('un estudiante sin mecanismo no recibe notas de Moodle',()=>{
+ const s=state();s.estudiantes[0].tipoTitulacion='sin_definir';
+ const p=Import.parse(vertical),a=Import.assess(p,ctx(p),s);
+ assert.equal(a.summary.matched,0);
+ assert.equal(a.rows[0].status,'wrong_mechanism');
+ assert.equal(Import.plan(s,a,'2026-10-29').stats.added,0);
+});
 test('aceptar Moodle archiva Word y el conflicto no reaparece',()=>{
  const s=state();s.notasBorrador=[{id:'0000000001|1',studentId:'0000000001',nucleo:1,nota:9.2}];
  const p=Import.parse(vertical),a=Import.assess(p,ctx(p),s);

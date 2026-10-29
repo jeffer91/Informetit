@@ -124,7 +124,7 @@ function resolveRow(row,students,context){
  if(matches.length!==1)return {status:'ambiguous',reason:'Identidad duplicada; requiere revisión'};
  const student=matches[0];
  if(student.modalidad!==context.mode)return {status:'wrong_mode',reason:'La identidad pertenece a otra modalidad'};
- if(student.tipoTitulacion==='trabajo')return {status:'wrong_mechanism',reason:'El estudiante pertenece a Trabajo de Titulación, no a núcleos de Complexivo'};
+ if(student.tipoTitulacion!=='complexivo')return {status:'wrong_mechanism',reason:'El mecanismo no está confirmado como Examen Complexivo'};
  if(career(student.carrera)!==career(context.career))return {status:'wrong_career',reason:'La identidad pertenece a otra carrera'};
  if(!sameIdentity(student,row))return {status:'identity_conflict',reason:'La cédula, el correo o el nombre contradicen la ficha'};
  return {status:'matched',student,reason:'Coincidencia exacta'};
@@ -246,7 +246,7 @@ function linkPending(state,index,studentId,stamp){
  if(!student)throw Error('Selecciona un estudiante de la nómina');
  if(pending.modalidad&&pending.modalidad!==student.modalidad)throw Error('El estudiante pertenece a otra modalidad');
  if(career(student.carrera)!==career(pending.carrera))throw Error('La carrera del estudiante no coincide con la del registro');
- if(student.tipoTitulacion==='trabajo')throw Error('El estudiante corresponde a Trabajo de Titulación, no a núcleos de Complexivo');
+ if(student.tipoTitulacion!=='complexivo')throw Error('El estudiante debe estar clasificado expresamente en Examen Complexivo para vincular notas');
  const grade=validGrade(pending.registro?.nota),nucleus=Number(pending.nucleo);
  if(grade===null)throw Error('No hay calificación final válida para vincular');
  if(!Number.isInteger(nucleus)||nucleus<1||nucleus>4)throw Error('Núcleo inválido');

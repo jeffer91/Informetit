@@ -51,7 +51,7 @@ function printHeader(state,mode){
 function cover(state,mode){
  const f=fields(state,mode);
  const cell=(t,n,j)=>'<td><div class="inf-sign-title">'+t+'</div><div class="inf-sign-space"></div><div class="inf-sign-name"><b>NOMBRE:</b> '+E(n)+'</div><div class="inf-sign-job"><b>CARGO:</b> '+E(j)+'</div></td>';
- return '<section class="inf-cover"><div class="inf-cover-head">'+header(f,false)+'</div><div class="inf-cover-middle">'<h1>+TITLE+'</h1><p>'+PERIOD+'</p><p>Modalidad '+f.modality+'</p><small>BORRADOR · VALIDACIÓN INSTITUCIONAL PENDIENTE</small></div>'
+ return '<section class="inf-cover"><div class="inf-cover-head">'+header(f,false)+'</div><div class="inf-cover-middle"><h1>'+TITLE+'</h1><p>'+PERIOD+'</p><p>Modalidad '+f.modality+'</p><small>BORRADOR · VALIDACIÓN INSTITUCIONAL PENDIENTE</small></div>'
  +'<table class="inf-signatures"><colgroup><col style="width:33.3333%"><col style="width:33.3333%"><col style="width:33.3333%"></colgroup><tbody><tr>'
  +cell('ELABORADO POR:',f.prepared,'Coordinador de Titulación y Eficiencia Terminal')
  +cell('REVISADO POR:',f.reviewed,'Coordinadora General de Carreras')

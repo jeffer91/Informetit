@@ -235,10 +235,10 @@ function renderReport(dataset,{Table,Figure,H,para,F}){
   out+=H(3,'6.3. '+career.name);
   out+=Table('Calificaciones del proyecto y defensa — '+career.name,
     ['Estudiante','Cédula','Acta','Escrito','Práctica','Defensa','Promedio oral','Definitiva','Estado'],
-    career.entries.filter(e=>e.record?.complete&&!e.duplicate).map(e=>[
-      e.name,e.id,e.record.numeroActa||'Sin referencia',
-      fmt(e.record.written),fmt(e.record.practical),fmt(e.record.defense),
-      fmt(e.record.oral),fmt(e.grade),STATES[e.status]||e.status]),
+    career.entries.map(e=>[
+      e.name,e.id,e.record?.numeroActa||'Sin referencia',
+      fmt(e.record?.written),fmt(e.record?.practical),fmt(e.record?.defense),
+      fmt(e.record?.oral),fmt(e.grade),STATES[e.status]||e.status]),
     'Calificaciones procedentes de las actas o rúbricas individuales guardadas en Informetit; no se mezclan con los núcleos de Complexivo');
   for(const entry of career.entries.filter(x=>x.record&&!x.duplicate)){
    const r=entry.record;

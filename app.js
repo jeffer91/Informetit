@@ -778,8 +778,23 @@ async function syncNow({auto=false}={}){
   throw err;
  }finally{firebaseBusy=false}
 }
+let firebaseAutoConnecting=false,lastFirebaseAutoAttempt=0;
+async function tryReconnectAcademicFirebase(){
+ if(!state.firebaseSync?.enabled||firebaseConnection?.connected||firebaseAutoConnecting||
+   !window.informetitDesktop?.firebaseConnect)return;
+ if(Date.now()-lastFirebaseAutoAttempt<60000)return;
+ lastFirebaseAutoAttempt=Date.now();firebaseAutoConnecting=true;
+ try{
+  const c=await window.informetitDesktop.firebaseConnect('adc');
+  if(!c?.connected)return;
+  firebaseConnection=c;await syncNow({auto:true});
+ }catch(err){firebaseMessage='Firebase desconectado: '+err.message;
+  console.warn(firebaseMessage);if(page==='firebase')draw();
+ }finally{firebaseAutoConnecting=false}
+}
 function scheduleFirebaseSync(){
- if(!state.firebaseSync?.enabled||!firebaseConnection?.connected||firebaseBusy)return;
+ if(!state.firebaseSync?.enabled||firebaseBusy)return;
+ if(!firebaseConnection?.connected){tryReconnectAcademicFirebase();return}
  clearTimeout(scheduleFirebaseSync.timer);
  scheduleFirebaseSync.timer=setTimeout(()=>syncNow({auto:true}).catch(err=>console.warn('Firebase UTET:',err.message)),900);
 }
@@ -1110,15 +1125,10 @@ el("cursos-file").addEventListener("change",handleCursosFile);
 el("firebase-file").addEventListener("change",firebaseLoadFile);
 el("logo-file").addEventListener("change",async ev=>{const file=ev.target.files?.[0];if(!file)return;try{if(!["image/png","image/jpeg","image/webp"].includes(file.type))throw Error("Solo se admiten archivos PNG, JPG o WebP.");if(file.size>2000000)throw Error("La imagen debe tener menos de 2 MB.");const dataURL=await new Promise((res,rej)=>{let fr=new FileReader();fr.onload=()=>res(fr.result);fr.onerror=()=>rej(new Error("No se pudo leer imagen."));fr.readAsDataURL(file)});if(!/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/.test(dataURL))throw Error("Imagen no reconocida; utiliza PNG, JPG o WebP.");const next=Data.migrate(state);next.config.logoDataUrl=dataURL;await Store.save(next);state=next;draw();notify("Logotipo guardado para la portada y encabezado de ambos PDF.");}catch(e){notify(e.message)}finally{ev.target.value=""}});
 (async()=>{state=await load();try{const imported=await loadPrivateGPT();if(imported&&!imported.unchanged){console.info("Base GPT privada disponible:",imported.students,"estudiantes nuevos,",imported.grades,"notas nuevas.")}}catch(e){console.error("No se pudo cargar la base GPT privada:",e);notify("No se pudo cargar la base GPT local: "+e.message)}ready=true;draw();
- if(state.firebaseSync?.enabled&&window.informetitDesktop?.firebaseConnect){
-  window.informetitDesktop.firebaseConnect('adc').then(async conn=>{
-   if(!conn?.connected)return;firebaseConnection=conn;await syncNow({auto:true});
-  }).catch(err=>{firebaseMessage='Firebase sin conexión automática: '+err.message;
-    console.warn(firebaseMessage);if(page==='firebase')draw()});
- }
  if(window.informetitDesktop){
+  if(state.firebaseSync?.enabled)tryReconnectAcademicFirebase();
   window.addEventListener('online',scheduleFirebaseSync);
-  setInterval(()=>{if(state.firebaseSync?.enabled&&firebaseConnection?.connected)scheduleFirebaseSync()},90000);
+  setInterval(()=>{if(state.firebaseSync?.enabled)scheduleFirebaseSync()},90000);
  }
 })().catch(e=>{el("main").textContent="No fue posible iniciar Informetit: "+e.message});
 })();

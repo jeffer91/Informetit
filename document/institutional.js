@@ -6,11 +6,11 @@ const PERIOD='Octubre 2025 a marzo 2026',TITLE='Informe final del proceso de tit
 function date(s){const m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(String(s||'')),names=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];return m&&+m[2]>=1&&+m[2]<=12?+m[3]+'-'+names[+m[2]-1]+'-'+m[1]:String(s||'Por confirmar')}
 function fields(state,mode){
  const c=state?.config||{},online=mode==='online';
- return {modality:online?'Online':'Presencial',code:online?(c.codigoOnline||'POR ASIGNAR'):(c.codigoPresencial||'UTET-INF-01-PRO-95-2026-05'),version:c.version||'1.0',date:date(c.fechaElaboracion),logo:/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/.test(c.logoDataUrl||'')?c.logoDataUrl:'',prepared:c.elaborado||'Mgs. Jefferson Villarreal',reviewed:c.revisado||'Ing. Martha Tomalá',approved:c.aprobado||'Dr. Alex León',legal:!!c.marcoLegalValidado,signatures:!!c.firmasValidadas};
+ return {modality:online?'Online':'Presencial',code:online?(c.codigoOnline||'POR ASIGNAR'):(c.codigoPresencial||'POR ASIGNAR'),version:c.version||'1.0',date:date(c.fechaElaboracion),logo:/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/.test(c.logoDataUrl||'')?c.logoDataUrl:'',prepared:c.elaborado||'Mgs. Jefferson Villarreal',reviewed:c.revisado||'Ing. Martha Tomalá',approved:c.aprobado||'Dr. Alex León',legal:!!c.marcoLegalValidado,signatures:!!c.firmasValidadas};
 }
 function pending(state,mode){
  const f=fields(state,mode),a=[];
- if(f.code==='POR ASIGNAR')a.push('Código documental online por confirmar');
+ if(f.code==='POR ASIGNAR')a.push('Código documental '+(mode==='online'?'online':'presencial')+' por confirmar');
  if(!state?.config?.fechaElaboracion)a.push('Fecha de elaboración pendiente');
  if(!f.logo)a.push('Logo institucional pendiente');
  if(!f.legal)a.push('Vigencia del marco normativo pendiente');
@@ -79,6 +79,7 @@ const CSS=[
 '@page{size:A4;margin:5.05cm 2.54cm 2.54cm}',
 '@page:first{size:A4;margin:5.05cm 1.5cm 1.5cm}',
 '@media print{.inf-cover-head{display:none!important}}',
+'@media print{thead{display:table-header-group!important}tfoot{display:table-footer-group!important}h2,h3,.tlabel,.tname,.flabel,.fname{break-after:avoid-page;page-break-after:avoid}.tbl tr,.fig{break-inside:avoid-page}.inf-index a{color:#000!important;text-decoration:none}}',
 '.inf-cover{background:#fff!important;min-height:21.6cm!important;break-after:page;page-break-after:always;display:flex;flex-direction:column;justify-content:space-between;margin:0!important;padding:0!important;box-shadow:none!important}',
 '.inf-cover-head{width:18cm;margin:0 auto}.inf-header{width:18cm!important;table-layout:fixed;border-collapse:collapse;font:8pt/1.15 Arial,sans-serif}',
 '.inf-header td{border:.5pt solid #000;text-align:center;vertical-align:middle;padding:.1cm;overflow-wrap:anywhere}',

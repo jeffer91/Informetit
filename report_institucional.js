@@ -17,15 +17,17 @@ const thesis={
 const presencialCompletes={'Enfermería':43,'Educación Inicial':38,'Marketing Digital y Comercio Electrónico':39,'Redes y Telecomunicaciones':27,'Contabilidad':21,'Educación Básica':21,'Desarrollo de Software':17,'Estética Integral':17,'Administración':16,'Gestión del Talento Humano':15};
 let tables=0,figs=0;
 const para=(x)=>'<p>'+E(x)+'</p>';
+const missingText=x=>/^(?:sin (?:datos|información|desglose|nómina|calificación)|no (?:disponible|calculable|cargada)|por (?:confirmar|asignar|conciliar|validar)|pendiente|ejecución por verificar)/i.test(String(x??'').trim())?'<span class="inf-missing">'+E(x)+'</span>':E(x);
 const H=(n,t)=>'<h'+n+'>'+E(t)+'</h'+n+'>';
 function Table(name,heads,rows,note='Datos disponibles de la cohorte, según registros institucionales'){
  tables++;let html='<div class="tbl"><p class="tlabel">Tabla '+tables+'</p><p class="tname">'+E(name)+'</p><table><thead><tr>'+heads.map(x=>'<th>'+E(x)+'</th>').join('')+'</tr></thead><tbody>';
- html+=(rows.length?rows.map(r=>'<tr>'+r.map(x=>'<td>'+E(x)+'</td>').join('')+'</tr>').join(''):'<tr><td colspan="'+heads.length+'">Sin información verificada</td></tr>');
+ html+=(rows.length?rows.map(r=>'<tr>'+r.map(x=>'<td>'+missingText(x)+'</td>').join('')+'</tr>').join(''):'<tr><td colspan="'+heads.length+'">Sin información verificada</td></tr>');
  return html+'</tbody></table><p class="note">Nota. '+E(note)+'.</p></div>';
 }
-function Figure(name,rows,{max,percentage=false,decimals=0,note='No se interpolan los valores faltantes.'}={}){
+function Figure(name,rows,{max,percentage=false,decimals=0,note='No se interpolan los valores faltantes.',diagramSvg=null}={}){
  if(!rows.length)return '';
  figs++;
+ if(diagramSvg)return '<div class="fig"><p class="flabel">Figura '+figs+'</p><p class="fname">'+E(name)+'</p>'+diagramSvg+'<p class="note">Nota. '+E(note)+'.</p></div>';
  const W=615,left=254,right=65,bw=W-left-right,rh=27,height=36+rows.length*rh;
  const ceiling=max||Math.max(1,...rows.map(r=>Number(r[1])||0));
  let svg='<svg xmlns="http://www.w3.org/2000/svg" role="img" aria-label="'+E(name)+'" viewBox="0 0 '+W+' '+height+'"><rect width="'+W+'" height="'+height+'" fill="#fff"/>';
@@ -67,7 +69,7 @@ function getData(state,mode){
  return {...fallback,careers,people:[],notes:[],finals:[],N,fullRoster:false,
   source:'resumen_publico_sin_identificacion'};
 }
-const STYLES='@page{size:A4;margin:2.54cm}@page:first{margin:1.5cm}*{box-sizing:border-box}body{font:12pt/2 "Times New Roman",serif;color:#121212;margin:0}p{text-align:justify;margin:0 0 9pt;orphans:3;widows:3}h2{font:bold 13pt/1.4 "Times New Roman",serif;text-align:center;margin:18pt 0 10pt;break-after:avoid}h3{font:bold 12pt/1.4 "Times New Roman",serif;margin:15pt 0 8pt;break-after:avoid}ol{padding-left:27pt;margin:4pt 0 12pt}li{padding-left:2pt;margin:3pt 0}table{border-collapse:collapse;width:100%;table-layout:auto}thead{display:table-header-group}tfoot{display:table-footer-group}th,td{padding:5pt 4pt;text-align:left;border-bottom:.5pt solid #888;overflow-wrap:anywhere;word-break:normal}th{border-top:1pt solid #222;border-bottom:1pt solid #222}tr{break-inside:avoid;page-break-inside:avoid}.cover{font-family:Arial;line-height:1.35;min-height:245mm;break-after:page;position:relative}.cover .header{font:8pt Arial;table-layout:fixed}.cover .header td{border:1px solid #777;text-align:center}.cover .logo{max-width:70pt;max-height:44pt}.cover h1{font:bold 18pt Arial;text-align:center}.cover-title{margin-top:105pt;text-align:center}.cover-title p{text-align:center;font:bold 13pt/1.5 Arial}.cover-title small{font:9pt Arial}.sign{margin-top:125pt;font:8pt Arial}.sign th,.sign td{border:1px solid #888;vertical-align:top}.sign td{height:55pt}.tbl,.fig{margin:13pt 0 17pt;break-inside:auto}.tbl table{font:9pt/1.3 Arial,sans-serif}.tbl tr{break-inside:avoid}.tlabel,.flabel{font:bold 10pt/1.2 "Times New Roman",serif;text-align:left;break-after:avoid}.tname,.fname{font:italic 10pt/1.25 "Times New Roman",serif;text-align:left;break-after:avoid}.note{font:8pt/1.3 Arial,sans-serif;margin-top:5pt}.fig{break-inside:avoid}.fig svg{display:block;width:100%;height:auto;max-height:360pt;line-height:1}.toc{font:11pt/1.7 "Times New Roman",serif}.privacy{font:9pt Arial;color:#444}@media screen{body{max-width:840px;margin:auto;padding:24px;background:#fff}}';
+const STYLES='@page{size:A4;margin:2.54cm}@page:first{margin:1.5cm}*{box-sizing:border-box}body{font:12pt/2 "Times New Roman",serif;color:#121212;margin:0}p{text-align:justify;margin:0 0 9pt;orphans:3;widows:3}h2{font:bold 13pt/1.4 "Times New Roman",serif;text-align:center;margin:18pt 0 10pt;break-after:avoid}h3{font:bold 12pt/1.4 "Times New Roman",serif;margin:15pt 0 8pt;break-after:avoid}ol{padding-left:27pt;margin:4pt 0 12pt}li{padding-left:2pt;margin:3pt 0}table{border-collapse:collapse;width:100%;table-layout:auto}thead{display:table-header-group}tfoot{display:table-footer-group}th,td{padding:5pt 4pt;text-align:left;border-bottom:.5pt solid #888;overflow-wrap:anywhere;word-break:normal}th{border-top:1pt solid #222;border-bottom:1pt solid #222}tr{break-inside:avoid;page-break-inside:avoid}.cover{font-family:Arial;line-height:1.35;min-height:245mm;break-after:page;position:relative}.cover .header{font:8pt Arial;table-layout:fixed}.cover .header td{border:1px solid #777;text-align:center}.cover .logo{max-width:70pt;max-height:44pt}.cover h1{font:bold 18pt Arial;text-align:center}.cover-title{margin-top:105pt;text-align:center}.cover-title p{text-align:center;font:bold 13pt/1.5 Arial}.cover-title small{font:9pt Arial}.sign{margin-top:125pt;font:8pt Arial}.sign th,.sign td{border:1px solid #888;vertical-align:top}.sign td{height:55pt}.tbl,.fig{margin:13pt 0 17pt;break-inside:auto}.tbl table{font:8.6pt/1.35 Arial,sans-serif;table-layout:auto;hyphens:none}.tbl td,.tbl th{overflow-wrap:break-word;word-break:normal}.tbl tr{break-inside:avoid}.tlabel,.flabel{font:bold 10pt/1.2 "Times New Roman",serif;text-align:left;break-after:avoid}.tname,.fname{font:italic 10pt/1.25 "Times New Roman",serif;text-align:left;break-after:avoid}.note{font:8pt/1.3 Arial,sans-serif;margin-top:5pt}.fig{break-inside:avoid}.fig svg{display:block;width:100%;height:auto;max-height:360pt;line-height:1}.toc{font:11pt/1.7 "Times New Roman",serif}.privacy{font:9pt Arial;color:#444}@media screen{body{max-width:840px;margin:auto;padding:24px;background:#fff}}';
 function makeReport(state,mode){
  tables=0;figs=0;const d=getData(state,mode),n=d.total,desc=mode==='online'?'online':'presencial',cfg=state?.config||{};
  const DOC=window.InformetitDocument;if(!DOC)throw Error('Módulo de formato INF no disponible');
@@ -82,29 +84,7 @@ function makeReport(state,mode){
  let out='<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Informe de titulación '+desc+'</title><style>'+STYLES+'\n'+DOC.CSS+'</style></head><body>';
  out+=DOC.cover(state,mode);
  out+='<!--INFORMETIT_INDEX-->';
- out+=H(2,'Resumen ejecutivo');
- out+=para('ESTADO DEL DOCUMENTO: '+quality.state+'. Informe de trabajo generado con los datos disponibles; sus aprobaciones calculadas no equivalen al registro de graduación ni sustituyen actas firmadas.');
- out+=para('El presente informe documenta la cohorte octubre de 2025 a marzo de 2026 del Instituto Superior Tecnológico Quito Metropolitano, modalidad '+desc+'. Organiza el seguimiento en requisitos, núcleos estructurantes y evaluación final, distinguiendo Examen Complexivo y Trabajo de Titulación.');
- out+=para('En esta modalidad se registran '+n+' estudiantes. '+d.completos8+' cumplen los ocho requisitos previos ('+F(P(d.completos8,n))+' %) y '+d.completos9+' presentan los nueve controles completos ('+F(P(d.completos9,n))+' %). Este último resultado es administrativo y no representa aprobación académica del examen.');
- const academicOverview=window.InformetitNuclei.build(state,mode);
- out+=para(academicOverview.individual?'Se han vinculado '+academicOverview.individualGrades+
-  ' calificaciones individuales de núcleos para estudiantes de Examen Complexivo. Existen '+academicOverview.pendingSlots+
-  ' casillas sin nota y '+academicOverview.unresolvedSlots+' en conflicto, sin interpretarlas como calificaciones cero. '+
-  academicOverview.wordOnlyNuclei+' núcleos cuentan solo con un agregado documental del Word, separado de las notas individuales.':
-  'Se han documentado '+academicOverview.nucleiWithResults+
-  ' núcleos con estadísticas del Word institucional, sin información nominal asociada en la modalidad. Las calificaciones no disponibles permanecen pendientes.');
- const examPreview=window.InformetitComplexivo.analyze(state,mode);
- out+=para('En Examen Complexivo constan '+examPreview.counts.eligible+
-  ' estudiantes identificados en la nómina local, con '+examPreview.counts.ordinaryComplete+
-  ' calificaciones ordinarias completas, '+examPreview.counts.ordinaryApproved+
-  ' aprobados ordinarios calculados, '+examPreview.counts.recovered+
-  ' aprobados tras supletorio y '+examPreview.counts.pending+
-  ' resultados pendientes. Los cálculos y su respaldo en actas se informan por separado.');
- const projectSummary=window.InformetitTrabajo.analyze(state,mode);
- out+=para('En Trabajo de Titulación se identifican '+projectSummary.counts.eligible+
-  ' estudiantes, '+projectSummary.counts.complete+' rúbricas completas, '+
-  projectSummary.counts.approved+' aprobaciones calculadas y '+projectSummary.counts.pending+
-  ' pendientes. Se requiere comprobar actas y normativa antes de emitir una conclusión institucional definitiva.');
+ out+=DOC.introduction();
  out+=DOC.introduction();
  out+=DOC.legal(Table);
  out+=H(2,'3. Planificación y organización');
@@ -138,22 +118,24 @@ function makeReport(state,mode){
  out+=window.InformetitComplexivo.renderReport(complexivoData,{Table,Figure,H,para,F,P});
  const cierre=window.InformetitConsolidado.analyze(state,mode);
  out+=window.InformetitConsolidado.renderReport(cierre,{Table,Figure,H,para,F,P});
+ out+=window.InformetitExecutive.render(state,mode,{requirements:phaseReq,nuclei:academicOverview,quality,cierre},{Table,Figure,H,para,F,P});
  out+=H(2,'9. Conclusiones');
- out+=para('La cohorte '+desc+' registra '+cierre.counts.complexivo+' estudiantes en Examen Complexivo y '+
- cierre.counts.trabajo+' en Trabajo de Titulación. Con las calificaciones disponibles, '+
- cierre.counts.approved+' presentan aprobación calculada y '+cierre.counts.pending+
- ' permanecen pendientes. Las aprobaciones calculadas requieren contrastar actas e información de títulos antes de calificarlas como graduaciones.');
- out+=para('En Examen Complexivo, el total de aprobaciones calculadas asciende a '+complexivoData.counts.approved+
- ' entre '+complexivoData.counts.eligible+' estudiantes asignados a este mecanismo, y '+complexivoData.counts.verified+
- ' resultados contienen referencias de actas cuya autenticidad debe comprobarse. '+complexivoData.counts.pending+
- ' evaluaciones siguen pendientes; estos casos no pueden reportarse como reprobados.');
- out+='<ol><li>En la modalidad '+desc+' constan '+n+' estudiantes, de los que '+d.completos9+' cumplen íntegramente los nueve controles ('+F(P(d.completos9,n))+' %).</li><li>En los ocho requisitos previos se identifican '+pending+' verificaciones pendientes; no representan necesariamente a '+pending+' personas.</li><li>El análisis académico de los cuatro núcleos debe completarse con registros verificados y muestras comparables.</li><li>Los resultados definitivos de titulación están pendientes de actas suficientes para establecer un cierre institucional.</li></ol>';
+ if(!cierre.counts.total){
+  out+=para('La fuente agregada identifica '+n+' estudiantes de la modalidad '+desc+', pero no se dispone en esta ejecución de una nómina nominal que permita distribuirlos entre Examen Complexivo y Trabajo de Titulación. Por esa razón, las tasas de aprobación, reprobación y recuperación no son calculables y no se presentan como cero.');
+  out+=para('Se han identificado '+d.completos8+' estudiantes con ocho requisitos previos completos y '+d.completos9+' con nueve controles completos, según el resumen disponible. La ausencia de evaluaciones finales nominales impide deducir resultados de graduación.');
+ }else{
+  out+=para('La cohorte '+desc+' comprende '+cierre.counts.total+' estudiantes nominales: '+cierre.counts.complexivo+' asignados a Examen Complexivo y '+cierre.counts.trabajo+' a Trabajo de Titulación. De sus registros disponibles, '+cierre.counts.approved+' presentan aprobación calculada y '+cierre.counts.pending+' resultados siguen pendientes; corresponde contrastar cada resultado con actas originales.');
+  out+=para('Los resultados calculados no acreditan por sí solos la emisión de títulos ni la aprobación institucional. El análisis requiere mantener separadas la verificación de requisitos y la evaluación final.');
+ }
+ out+=para('El cierre de la modalidad exige conciliar las poblaciones, las fuentes de notas, la ejecución del cronograma y los instrumentos de evaluación antes de presentar una tasa oficial de titulación.');
+ out+='<ol><li>La modalidad '+desc+' registra '+n+' estudiantes en la fuente poblacional utilizada.</li><li>Constan '+d.completos9+' estudiantes con nueve controles completos, cifra que no equivale a aprobación de examen.</li><li>Los indicadores individuales sin respaldo nominal se mantienen como no calculables.</li><li>Las observaciones de integridad y trazabilidad deben resolverse antes de la aprobación del documento.</li></ol>';
  out+=H(2,'10. Recomendaciones');
  out+='<ol><li>Conciliar la base de estudiantes con los libros de calificaciones y resolver registros duplicados o discrepantes.</li><li>Dar seguimiento a las categorías con más verificaciones pendientes y documentar su cierre.</li><li>Separar planificado, ejecutado, evidenciado y aprobado para cada hito.</li><li>Incorporar actas y supletorios antes de calcular indicadores de aprobación definitiva.</li><li>Revisar la versión normativa, los códigos institucionales y las firmas antes de aprobar el informe.</li></ol>';
  const reportQuality=window.InformetitQuality.analyze(state,mode);
  out+=window.InformetitQuality.report(reportQuality,{Table,Figure,H,para,F,P});
  out+=H(2,'Referencias y documentación utilizada');
  out+=para('Se consignan los tipos de documentos identificados para este ciclo. Las fechas, versiones, artículos legales y referencias bibliográficas deben completarse al cotejar los originales; no se atribuye una edición no comprobada.');
+ out+='<p class="privacy">BORRADOR SIN VALIDAR. Los resultados pendientes no se sustituyen por estimaciones. Se requiere validar actas, normativa y controles documentales antes de la aprobación institucional.</p>';
  out+=Table('Registro de fuentes y referencias por validar',
  ['Documento','Uso','Validación pendiente'],[
  ['Manual de procesos institucional de Titulación','Responsables, fases y actas','Verificar código, versión y aprobación'],
@@ -163,7 +145,7 @@ function makeReport(state,mode){
  ['Cronogramas institucionales','Programación de ambas modalidades de titulación','Confirmar fecha, versión y ejecución'],
  ['Constitución, LOES, Régimen Académico y normativa interna','Marco jurídico','Verificar vigencia y artículos aplicables']
  ],'Inventario por completar con referencias bibliográficas institucionales verificadas');
- out+='<p class="privacy">BORRADOR SIN VALIDAR. Los resultados pendientes no se sustituyen por estimaciones. Se requiere validar actas, normativa y controles documentales antes de la aprobación institucional.</p></body></html>';
+ out+='</body></html>';
  const generated=DOC.indexize(out);
  return generated.html.replace('<!--INFORMETIT_INDEX-->',generated.front);
 }

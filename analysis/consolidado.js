@@ -5,6 +5,7 @@
 const M=()=>root.InformetitDataModel,X=()=>root.InformetitComplexivo,T=()=>root.InformetitTrabajo;
 const fmt=x=>x===null||x===undefined?'No calculable':Number(x).toLocaleString('es-EC',{minimumFractionDigits:2,maximumFractionDigits:2});
 const percent=(n,total)=>total?Math.round(10000*n/total)/100:null;
+const pct=x=>x===null?'No calculable':fmt(x)+' %';
 function analyze(state,mode='presencial'){
  const m=mode==='online'?'online':'presencial',students=(state.estudiantes||[]).filter(x=>x.modalidad===m);
  const c=X().analyze(state,m),t=T().analyze(state,m);
@@ -40,6 +41,10 @@ function renderReport(d,{Table,Figure,H,para}){
  let out=H(2,'8. Síntesis general de la cohorte');
  out+=para('Los resultados de Examen Complexivo y Trabajo de Titulación se consolidan por estudiante, modalidad y carrera. Las calificaciones de uno y otro mecanismo se obtienen de instrumentos distintos, pero sus resultados se expresan en categorías compatibles para analizar la cohorte.');
  const c=d.counts;
+ if(!c.total){
+  out+=para('Sin nómina individual cargada no es posible distribuir la población por mecanismo ni calcular tasas académicas. Los totales agregados de requisitos permanecen en Fase I; no se convertirán en resultados finales de cero estudiantes.');
+  return out;
+ }
  out+=Table('Consolidado de resultados por mecanismo',
  ['Mecanismo','Estudiantes','Aprobados calculados','Reprobados','No presentados','Pendientes','Duplicados'],[
   ['Examen Complexivo',d.complexivo.counts.eligible,d.complexivo.counts.approved,d.complexivo.counts.failed,
@@ -50,20 +55,23 @@ function renderReport(d,{Table,Figure,H,para}){
  ],'Estados académicos calculados; no certifican incorporación, actas autenticadas ni emisión de títulos');
  out+=Table('Indicadores integrados de cierre de evaluación',
  ['Indicador','Estudiantes','Proporción sobre la cohorte'],[
-  ['Aprobados en primera oportunidad',c.approvedOrdinary,fmt(percent(c.approvedOrdinary,c.total))+' %'],
-  ['Aprobados después de supletorio',c.approvedRescue,fmt(percent(c.approvedRescue,c.total))+' %'],
-  ['Aprobaciones calculadas totales',c.approved,fmt(c.calculatedRate)+' %'],
-  ['Reprobados después de evaluación supletoria',c.failed,fmt(percent(c.failed,c.total))+' %'],
-  ['No presentados declarados',c.absent,fmt(percent(c.absent,c.total))+' %'],
-  ['Pendientes de resultados completos',c.pending,fmt(percent(c.pending,c.total))+' %'],
-  ['Registros duplicados o en conflicto',c.duplicate,fmt(percent(c.duplicate,c.total))+' %'],
-  ['Notas finales con referencia de acta',c.referenced,fmt(percent(c.referenced,c.total))+' %']
+  ['Aprobados en primera oportunidad',c.approvedOrdinary,pct(percent(c.approvedOrdinary,c.total))],
+  ['Aprobados después de supletorio',c.approvedRescue,pct(percent(c.approvedRescue,c.total))],
+  ['Aprobaciones calculadas totales',c.approved,pct(c.calculatedRate)],
+  ['Reprobados después de evaluación supletoria',c.failed,pct(percent(c.failed,c.total))],
+  ['No presentados declarados',c.absent,pct(percent(c.absent,c.total))],
+  ['Pendientes de resultados completos',c.pending,pct(percent(c.pending,c.total))],
+  ['Registros duplicados o en conflicto',c.duplicate,pct(percent(c.duplicate,c.total))],
+  ['Notas finales con referencia de acta',c.referenced,pct(percent(c.referenced,c.total))]
  ],'Tasa calculada sobre la nómina local de la modalidad; no equivale a eficiencia terminal ni tasa de graduación');
- out+=Table('Consolidado de resultados por carrera',
- ['Carrera','Total','Complexivo','Proyectos','Aprobados','Reprobados','Ausentes','Pendientes','Duplicados'],
- d.careers.map(x=>[x.name,x.counts.total,x.counts.complexivo,x.counts.trabajo,
- x.counts.approved,x.counts.failed,x.counts.absent,x.counts.pending,x.counts.duplicate]),
- 'Las carreras agrupadas incluyen a estudiantes de ambas modalidades de titulación, pero solo de la modalidad de asistencia del presente informe');
+ out+=Table('Distribución por carrera y mecanismo',
+ ['Carrera','Total','Examen Complexivo','Trabajo de Titulación'],
+ d.careers.map(x=>[x.name,x.counts.total,x.counts.complexivo,x.counts.trabajo]),
+ 'Distribución según nómina nominal de esta modalidad');
+ out+=Table('Estados de evaluación por carrera',
+ ['Carrera','Aprobados','Reprobados','Ausentes','Pendientes','Duplicados'],
+ d.careers.map(x=>[x.name,x.counts.approved,x.counts.failed,x.counts.absent,x.counts.pending,x.counts.duplicate]),
+ 'Clasificación académica calculada de registros individuales disponibles');
  if(d.careers.length)out+=Figure('Aprobación académica calculada por carrera',
   d.careers.map(x=>[x.name,x.counts.calculatedRate??0]),
   {max:100,percentage:true,decimals:2,

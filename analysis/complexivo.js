@@ -17,7 +17,7 @@ const inputGrade=(x,label)=>{
  return n;
 };
 const round=n=>Math.round((n+Number.EPSILON)*100)/100;
-const num=(x)=>x===null||x===undefined?'Sin nota':Number(x).toLocaleString('es-EC',{minimumFractionDigits:2,maximumFractionDigits:2});
+const num=(x)=>x===null||x===undefined?'—':Number(x).toLocaleString('es-EC',{minimumFractionDigits:2,maximumFractionDigits:2});
 const percent=(x,n)=>n?round(100*x/n):null;
 const key=x=>root.InformetitDataModel?.career(x)||text(x).toUpperCase();
 function weighted(teoria,practica){

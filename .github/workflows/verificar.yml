@@ -26,4 +26,4 @@ jobs:
       - name: Instalar dependencias Electron y bibliotecas locales
         run: npm install --no-audit --no-fund
       - name: Comprobar impresión PDF real de las dos modalidades
-        run: xvfb-run -a npm run smoke:pdf
+        run: xvfb-run -a ./node_modules/.bin/electron --no-sandbox scripts/smoke-pdf.cjs

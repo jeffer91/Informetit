@@ -1,3 +1,35 @@
+# BLOQUE 08 · CIERRE TÉCNICO DE INFORMETIT — versión 1.2.0 (28/10/2026)
+
+**Integrado en `main`.** Los dos informes institucionales se generan dentro de **Electron**, para octubre 2025–marzo 2026, sin publicar registros personales en GitHub.
+
+**[Guía de cierre y validación de los dos informes](CIERRE_INFORMETIT.md)**
+
+### Mejoras finales
+
+- Nuevo `analysis/quality.js`: controles por modalidad de población, cédulas, requisitos, notas, duplicados, actas, cronogramas y diferencias Firebase, diferenciando bloqueos críticos, advertencias y datos informativos.
+- El capítulo **11. Anexos y trazabilidad** incluye inventario de fuentes, conciliación nominal y por mecanismo, auditoría de incidencias e instrucciones de corrección. El informe usa referencias institucionales como **fuentes por verificar**, sin inventar una edición bibliográfica aprobada.
+- En **Dos informes** aparece una auditoría completa de ambas modalidades. Los PDF distinguen aprobación académica calculada de graduación y de actas firmadas.
+- La impresión Electron **informa el estado real del índice** (`paginado_verificado`, marcador incompleto o error), comprueba firma PDF y repite la paginación cuando cambia el número de páginas.
+- Se elimina el código documental presencial inventado por defecto; aparece **POR ASIGNAR** si aún no se ha registrado uno.
+- Los cronogramas del informe incluyen fecha inicial, final y estado **declarado**, aclarando que la ejecución requiere soporte.
+- Nuevo `scripts/smoke-pdf.cjs`: diagnóstico nativo de impresión presencial y online con datos ficticios, perfil temporal y verificación de páginas, contenido y marcadores, **sin acceder a la base de estudiantes**.
+- Los PDF siguen siendo **BORRADORES** hasta cargar y validar actas, notas, normativa, fecha, responsables, firma y totalidad de la población.
+
+### Actualizar y verificar (PowerShell de Windows)
+
+```powershell
+git pull origin main
+npm install
+npm run check
+npm test
+npm run smoke:pdf
+npm start
+```
+
+**Verificación realizada:** las pruebas de lógica del código y los controles de informes pasan con datos ficticios, incluida una cohorte simulada de 262 presencial y 101 online. **Pendiente:** ejecutar la impresión nativa en Windows con `npm run smoke:pdf` y validar visualmente el PDF real, sus índices y los documentos institucionales originales. El diagnóstico nativo está implementado pero no pudo ejecutarse en el entorno de este chat.
+
+---
+
 ## BLOQUE 07 · Trabajo de Titulación y consolidación (28/10/2026)
 
 **Implementado directamente en `main`**, sin crear ramas ni publicar nóminas, cédulas o calificaciones institucionales.

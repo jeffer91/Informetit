@@ -109,10 +109,12 @@ function makeReport(state,mode){
  out+=DOC.legal(Table);
  out+=H(2,'3. Planificación y organización');
  out+=para('La planificación de Examen Complexivo contempla cuatro núcleos estructurantes y las etapas ordinaria y supletoria. Las fechas que se presentan son programadas y no deben interpretarse como constancia de ejecución. Los procesos de Trabajo de Titulación se registran separadamente.');
- out+=Table('Cronograma de Examen Complexivo',['Actividad','Inicio','Fin'],
-  nucleus.map((row,i)=>{const over=state?.cronogramaPersonalizado?.['complexivo|'+i]||{};
-    return [row[0],dateText(over.inicio??row[1]),dateText(over.fin??row[2])]}),
-  'Cronograma editable del período, no evidencia de ejecución');
+ const statusPlan={pendiente:'Ejecución por verificar',cumple:'Cumplida (declarado)',no_cumple:'No cumplida',no_aplica:'No aplica'};
+ out+=Table('Cronograma de Examen Complexivo',['Actividad','Inicio','Fin','Estado declarado'],
+  nucleus.map((row,i)=>{const key='complexivo|'+i,over=state?.cronogramaPersonalizado?.[key]||{};
+    return [row[0],dateText(over.inicio??row[1]),dateText(over.fin??row[2]),
+      statusPlan[state?.ejecucion?.[key]]||statusPlan.pendiente]}),
+  'Estado comunicado en el seguimiento local; no constituye evidencia de ejecución ni acta verificada');
  const phase1=window.InformetitRequirements.analyze(state,mode);
  out+=window.InformetitRequirements.renderReport(phase1,{Table,Figure,H,para,F,P});
  const nucleiData=window.InformetitNuclei.build(state,mode);
@@ -125,11 +127,12 @@ function makeReport(state,mode){
  for(const [fase,rows] of Object.entries(thesis)){
    out+=H(3,fase);
    const plan=rows.map(row=>{
-     const override=state?.cronogramaPersonalizado?.['trabajo|'+(workIndex++)]||{};
-     return [row[0],dateText(override.inicio??row[1]),dateText(override.fin??row[2])];
+     const key='trabajo|'+(workIndex++),override=state?.cronogramaPersonalizado?.[key]||{};
+     return [row[0],dateText(override.inicio??row[1]),dateText(override.fin??row[2]),
+       statusPlan[state?.ejecucion?.[key]]||statusPlan.pendiente];
    });
-   out+=Table('Actividades programadas: '+fase,['Actividad','Inicio','Fin'],plan,
-     'Cronograma editable de octubre 2025–marzo 2026; no acredita ejecución');
+   out+=Table('Actividades programadas: '+fase,['Actividad','Inicio','Fin','Estado declarado'],plan,
+     'Planificación y estado registrado por coordinación; la ejecución requiere soporte documental');
  }
  const complexivoData=window.InformetitComplexivo.analyze(state,mode);
  out+=window.InformetitComplexivo.renderReport(complexivoData,{Table,Figure,H,para,F,P});

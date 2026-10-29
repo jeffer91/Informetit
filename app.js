@@ -266,6 +266,7 @@ function grades(){
   +careers.map(c=>'<option value="'+h(c)+'">'+h(c)+'</option>').join("")+'</select></label>'
   +'<div class="field"><span>Origen</span><div class="tag">Moodle · local</div></div></div>'
   +'<label class="field block">Libro de calificaciones<textarea id="moodle-text" placeholder="T- NUCLEO 1 ENFERMERIA&#10;APELLIDOS NOMBRES&#10;correo@institucion.edu.ec&#10;8,00&#10;...">'+h(inputText)+'</textarea></label>'
+  +'<label class="field block"><input type="checkbox" id="moodle-confirm"> Confirmo que revisé esta exportación de Moodle, su núcleo, carrera e identidades, y autorizo utilizar sus notas finales verificadas.</label>'
   +'<div class="actions"><button class="btn" data-action="preview-notes">1. Analizar y revisar</button>'
   +'<button class="btn primary" data-action="save-notes"'+(!hasPeople?' disabled':'')+'>2. Guardar resultado de la revisión</button></div>'
   +'<p class="hint">Cambiar el texto, el núcleo o la carrera invalida la revisión hasta volver a analizar.</p></section>';
@@ -880,10 +881,16 @@ async function parseGradeAndSave(save){
   return;
  }
  const assessed=lastParse.assessment;
+ if(!el("moodle-confirm")?.checked){notify("Confirma el cotejo de la fuente Moodle antes de guardar como calificaciones verificadas.");return}
  if(assessed.errors.length){notify(assessed.errors.join(" "));return}
  if(!state.estudiantes.some(x=>x.modalidad===tab)){notify("No se ha cargado la nómina local de esta modalidad.");return}
  try{
   const planned=engine.plan(state,assessed,today());
+  const existing=new Set((state.notas||[]).map(x=>String(x.id||x.studentId+'|'+x.nucleo)));
+  for(const note of planned.next.notas||[]){
+    const key=String(note.id||note.studentId+'|'+note.nucleo);
+    if(!existing.has(key)&&note.status==='oficial_registro_moodle')note.verificado=true;
+  }
   // Escritura transaccional; en caso de fallo no se altera el estado en pantalla.
   await Store.save(planned.next);
   state=planned.next;lastParse=null;inputText="";scheduleFirebaseSync();

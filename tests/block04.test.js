@@ -119,7 +119,7 @@ test('conservar Word archiva Moodle y el conflicto no reaparece',()=>{
  assert.equal(resolved.conflictos.length,0);
  assert.equal(resolved.notas.length,0);
  assert.equal(resolved.notasBorrador[0].nota,9.2);
- assert.equal(M.analyze(resolved,'presencial').notes.length,1);
+ assert.equal(M.analyze(resolved,'presencial').notes.length,0);
 });
 test('registro sin vincular se registra una sola vez',()=>{
  const s=state(),p=Import.parse(vertical.replace(/persona@instituto.edu.ec/g,'desconocido@correo.test').replace(/Persona De Prueba/g,'Persona Inexistente'));

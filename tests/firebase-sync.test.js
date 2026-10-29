@@ -78,7 +78,7 @@ test('un estudiante sin mecanismo clasificado no se publica como Complexivo',()=
  const s=state();s.estudiantes[0].tipoTitulacion='sin_definir';
  s.evaluaciones=[{studentId:'0000000001',tipo:'complexivo',
   ordinario:{teoria:8,practica:9,asistencia:'presentado'},actaOrdinario:'ACTA-01'}];
- assert.equal(Sync.localRecords(s).items.size,1);
+ assert.equal(Sync.localRecords(s).items.size,0);
  const exam=Sync.localRecords(state()).items;
  assert.ok(![...exam.values()].some(x=>x.collection==='complexivos'));
 });

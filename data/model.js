@@ -129,6 +129,14 @@ function analyze(state,mod){
     if(g.verificado===false||['ESTIMADO','PROVISIONAL','SIMULADO','BORRADOR','SIN VERIFICAR','PROVISIONAL POR CONCILIAR'].includes(key(g.status||g.estado)))continue;
     admit(g,'moodle');
   }
+  // Conservar las diferencias Moodle/Word como incidencias sin acreditar el Word.
+  for(const entry of state.notasBorrador||[]){
+    const sid=id(entry?.studentId),noteId=sid+'|'+Number(entry?.nucleo);
+    if(!studentMap.has(sid)||unresolved.has(noteId)||contradictory.has(noteId))continue;
+    const source=index.get(noteId),wordGrade=grade(entry?.nota);
+    if(!source||wordGrade===null||grade(source.nota)===wordGrade)continue;
+    index.delete(noteId);sourceCounts[source.sourceType]--;contradictory.add(noteId);
+  }
   // Nunca promocionar notasBorrador a los resultados oficiales. Las notas históricas
   // deben cotejarse y transferirse explícitamente a notas con evidencia verificable.
   const notes=[...index.values()].sort((a,b)=>career(a.carrera).localeCompare(career(b.carrera))||a.nucleo-b.nucleo||a.studentId.localeCompare(b.studentId));

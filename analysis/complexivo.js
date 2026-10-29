@@ -161,7 +161,7 @@ function mean(xs){const items=xs.filter(x=>x!==null&&x!==undefined);return items
 function upsert(state,studentId,input,stamp){
  const M=root.InformetitDataModel,student=(state?.estudiantes||[]).find(x=>String(x.id)===String(studentId));
  if(!student)throw Error('Selecciona un estudiante de la nómina.');
- if(student.tipoTitulacion!=='complexivo')throw Error('Clasifica primero al estudiante en Examen Complexivo; no se registran evaluaciones de mecanismos sin definir.');
+ if(student.tipoTitulacion!=='complexivo')throw Error('Clasifica primero al estudiante en Examen Complexivo; no se registran evaluaciones de mecanismos sin definir ni de Trabajo de Titulación.');
  const next=M.migrate(state),entries=(next.evaluaciones||[]).filter(e=>String(e.studentId)===String(studentId)&&e.tipo!=='trabajo');
  if(entries.length>1)throw Error('El estudiante tiene evaluaciones duplicadas; hay que conciliarlas antes de guardar.');
  const old=entries.length?entries[0]:null;

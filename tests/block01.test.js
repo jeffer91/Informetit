@@ -19,7 +19,7 @@ require('../analysis/informe-completo.js');
 require('../report_institucional.js');
 const requisites=()=>Object.fromEntries(Model.REQUIREMENTS.map(k=>[k,'CUMPLE']));
 const one=(id,mode='presencial',career='ENFERMERIA')=>({
- id,modalidad:mode,nombre:'PERSONA DE PRUEBA',carrera:career,requisitos:requisites()
+ id,modalidad:mode,nombre:'PERSONA DE PRUEBA',carrera:career,tipoTitulacion:'complexivo',requisitos:requisites()
 });
 test('migración v1 preserva estudiantes y notas y asigna Complexivo por defecto',()=>{
  const old={version:1,estudiantes:[{...one('0123456789'),tipoTitulacion:'sin_definir'},{...one('0987654321'),tipoTitulacion:'trabajo'}],notas:[{studentId:'0123456789',nucleo:1,nota:8}]};

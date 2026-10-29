@@ -116,12 +116,13 @@ test('sin datos online no se trasladan estadísticas presenciales',()=>{
  assert.equal(d.wordOnlyNuclei,0);
  assert.equal(d.careers.length,9);
 });
-test('Word individual aceptado contribuye a la muestra nominal sin doble cómputo',()=>{
+test('Word no cotejado no constituye una calificación nominal oficial',()=>{
  const s=state();s.notasBorrador=[{studentId:'0000000001',nucleo:1,nota:9.1}];
  const c=get(s);
- assert.equal(c.nuclei[0].entries[0].source,'Word (nota individual)');
- assert.equal(c.nuclei[0].summary.n,1);
+ assert.equal(c.nuclei[0].entries.length,0);
+ assert.notEqual(c.nuclei[0].summary.source,'individual');
 });
+
 test('nómina completa con cuatro notas tiene cero pendientes',()=>{
  const s=state();
  s.notas=[1,2,3,4].map(n=>({studentId:'0000000001',nucleo:n,nota:8+n*.1}));

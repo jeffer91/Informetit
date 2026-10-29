@@ -188,6 +188,30 @@ function requirementAppendix(state,mode,helpers){
  }
  return out;
 }
+function coverageReport(state,mode,helpers){
+ const {H,Table,para}=helpers,students=(state?.estudiantes||[]).filter(x=>x.modalidad===mode),
+  ids=new Set(students.map(s=>String(s.id))),courses=(state?.cursosNucleos||[]).filter(x=>ids.has(String(x.studentId))),
+  prelim=(state?.notasBorrador||[]).filter(x=>ids.has(String(x.studentId))),
+  exams=(state?.evaluaciones||[]).filter(x=>ids.has(String(x.studentId))),
+  theses=(state?.trabajos||[]).filter(x=>ids.has(String(x.studentId))),
+  official=courseRows(state,mode),
+  courseKeys=new Set(courses.map(x=>[M().career(x.carrera),x.curso,x.nucleo].join('|'))),
+  unclassified=students.filter(x=>!['complexivo','trabajo'].includes(x.tipoTitulacion));
+ let out=H(3,'13.6. Control de integridad y cobertura del informe');
+ out+=Table('Inventario de fuentes nominales incorporadas al documento',
+  ['Contenido','Registros en la base','Tratamiento del informe'],[
+   ['Estudiantes de la modalidad',students.length,students.length?'Incorporados a matrices nominales':'Población nominal no disponible'],
+   ['Estudiantes sin mecanismo confirmado',unclassified.length,'No se asignan automáticamente a Complexivo'],
+   ['Registros oficiales por curso/núcleo',official.length,'Resultados evaluables por curso y fuente'],
+   ['Registros históricos por curso',courses.length,courses.length?'Se reproduce el detalle; estado según cotejo':'Sin cursos individuales importados'],
+   ['Cursos distintos presentes en el archivo',courseKeys.size,'Una subsección por curso con registros válidos'],
+   ['Notas Word provisionales',prelim.length,'Desglosadas como provisionales; excluidas de indicadores oficiales'],
+   ['Registros de evaluación final',exams.length,'Deben tener mecanismo y acta para cierre'],
+   ['Rúbricas de Trabajo de Titulación',theses.length,'Su fuente documental requiere cotejo']
+  ],'La cobertura documental no acredita aprobación de calificaciones ni emisión de títulos');
+ out+=para('Cualquier diferencia entre cursos esperados, cursos importados y cursos publicados debe resolverse antes de aprobar el informe. Los registros sin cotejo se muestran por separado; no se rellenan resultados con cifras del período anterior.');
+ return out;
+}
 function improvementPlan(state,mode,quality,helpers){
  const {H,Table,Figure,para}=helpers,critical=quality.critical||[],warnings=quality.warnings||[];
  const issues=[...critical,...warnings],actions=[
@@ -215,7 +239,7 @@ function improvementPlan(state,mode,quality,helpers){
   note:'Número de hallazgos detectados en esta exportación; la magnitud no mide el desempeño de los estudiantes'});
  return out;
 }
-const api=Object.freeze({courseRows,courseAnalysis,provisionalRows,examDetail,requirementAppendix,improvementPlan,stats});
+const api=Object.freeze({courseRows,courseAnalysis,provisionalRows,examDetail,requirementAppendix,coverageReport,improvementPlan,stats});
 root.InformetitInformeCompleto=api;
 if(typeof module==='object'&&module.exports)module.exports=api;
 })(typeof window!=='undefined'?window:globalThis);

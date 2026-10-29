@@ -139,6 +139,7 @@ function makeReport(state,mode){
  const reportQuality=window.InformetitQuality.analyze(state,mode);
  out+=window.InformetitQuality.report(reportQuality,{Table,Figure,H,para,F,P});
  out+=window.InformetitInformeCompleto.requirementAppendix(state,mode,{Table,Figure,H,para,F,P});
+ out+=window.InformetitInformeCompleto.coverageReport(state,mode,{Table,Figure,H,para,F,P});
  out+='<p class="privacy">BORRADOR SIN VALIDAR. Las notas provisionales y los resultados sin acta cotejada no se consideran oficiales. Las observaciones deben resolverse antes de la aprobación institucional.</p>';
  out+=H(2,'14. Referencias Bibliográficas');
  out+=para('Las referencias siguientes identifican las fuentes normativas públicas consultadas. La vigencia de sus reformas se cotejará con las versiones aplicables al período antes de la aprobación institucional.');

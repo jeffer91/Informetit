@@ -193,38 +193,31 @@ npm start
 
 Los datos individuales y actas permanecen en el almacenamiento local privado. **Pendiente de validar en Windows:** impresión completa del PDF y el comportamiento con las nóminas y actas reales. El Bloque 07 implementará Trabajo de Titulación y consolidación institucional; el Bloque 08 cerrará la maquetación y validación total de los dos informes.
 
-## INTEGRACIÓN FIREBASE UTET · octubre 2026
+## Firebase UTET · sincronización académica bidireccional (octubre 2026)
 
-**Conexión implementada en Electron, solo lectura.** La app utiliza el proyecto Google **`utet-4387a`** y la base Firestore **`(default)`**. Los datos no se descargan ni se publican en GitHub.
+**ALCANCE INMODIFICABLE:** el cliente Electron solo puede enviar solicitudes REST a las colecciones `nucleos` y `complexivos` del proyecto `utet-4387a`. El proceso principal valida una lista cerrada para cada lectura y escritura y rechaza cualquier otra colección. **Estudiante, matriculas, requisitos, periodos, cronogramas, etc. quedan completamente fuera**, incluso de consultas automáticas. No se modifican sus documentos ni reglas de seguridad.
 
-### Lo que confirma la exportación recibida
+### Cómo habilitarla
 
-El archivo de respaldo UTET del 28/10/2026 tiene **1.387** fichas en `Estudiante` (singular), **1.396** matrículas y **1.396** registros de requisitos para varios períodos. La cohorte `2025-10__2026-03` contiene **371 matrículas**, repartidas en **266 presencial y 105 online**. Al cotejar la nómina privada anterior, **los 363 estudiantes originales aparecen en Firebase** y quedan **8 adicionales**. Los nueve requisitos existentes de esos 363 estudiantes no presentan diferencias en ese respaldo.
+1. Actualizar `main`, iniciar Informetit Desktop y comprobar que la base privada de estudiantes esté importada.
+2. Abrir **Firebase UTET · Sincronización académica**.
+3. Conectar una identidad Google con permisos adecuados mediante **Conectar con Google** (ADC) o una cuenta de servicio local autorizada. La clave jamás se expone al renderer ni se publica.
+4. Habilitar **Sincronización automática** y aceptar la confirmación de escrituras académicas. Hasta ese momento, el acceso es de lectura y conciliación.
+5. En los siguientes inicios, Informetit intentará recuperar conexión mediante ADC y sincronizar. Cuando se utilice una cuenta de servicio elegida manualmente, puede requerirse volver a conectarla; no se guarda la ruta ni su clave.
+6. Cualquier nota oficial de Moodle importada, curso marcado explícitamente como verificado o Examen Complexivo con acta verificada se mantiene local y se prepara para su sincronización. Las notas del Word y cursos sin cotejar **no se escriben** a Firebase.
+7. Si estás sin conexión, el cambio permanece en IndexedDB. En la siguiente consulta exitosa se recalcula la cola y se reintenta. La interfaz presenta cambios pendientes y conflictos sin sobrescribir documentos con versiones diferentes.
 
-Los campos `AprobacionComplexivoProyecto` y `AprobacionTitulacion` contienen **CUMPLE / NO CUMPLE**, no notas numéricas. La exportación no contiene la colección `nucleos`. La conexión en vivo también consulta `nucleos` y `cronogramas` para descubrir sus campos, sin imputar notas.
+### Contrato de datos
 
-### Seguridad y acceso
+- `nucleos`: una calificación por `periodoId + cedula + nucleo + curso`; `nucleo` es 1–4, nota de 0–10 y `verificado=true`. Cada documento incluye carrera, modalidad y fuente; no se convierte «sin nota» en cero.
+- `complexivos`: una evaluación por `periodoId + cedula`; ordinario (teoría, práctica, asistencia), supletorio y referencias de acta. Solo se publica cuando el estudiante está expresamente clasificado en Complexivo y hay acta verificada.
+- El período autorizado es `2025-10__2026-03`. Las cédulas se cotejan exclusivamente contra la nómina privada local. No se crean estudiantes desde Firebase.
+- El sistema registra versiones y precondiciones de Firestore, conserva diferencias y no sobrescribe silenciosamente notas distintas. Los documentos con esquemas externos desconocidos se bloquean hasta su revisión.
+- Firestore no incluye en este respaldo histórico estas dos colecciones; la primera escritura, una vez autorizada, materializará la colección correspondiente. Para un proyecto vivo con formatos previos, revisar primero los conflictos.
+- El módulo solo controla **las solicitudes que hace Informetit**; adicionalmente debes aplicar permisos mínimos a las credenciales Google utilizadas. No se modificaron reglas Firebase/IAM ni se realizó conexión en vivo durante este cambio.
 
-- La conexión Google se implementa en `firebase/reader.js` y se ejecuta **solo en el proceso principal Electron**, mediante Firestore REST API y solicitudes **GET** a una lista cerrada de colecciones: `Estudiante`, `matriculas`, `requisitos`, `periodos`, `nucleos` y `cronogramas`. No hay métodos para modificar documentos remotos.
-- Se autentica con credenciales locales **Application Default Credentials (ADC)** o con un archivo JSON de **cuenta de servicio de solo lectura** seleccionado desde una ventana nativa en el equipo. La clave privada **nunca se copia al renderer, al JSON de la app ni a GitHub**.
-- **Recomendado:** utilizar `gcloud auth application-default login` en el mismo Windows con una identidad que tenga permiso de visualización de Firestore. Si la institución usa cuenta de servicio, asignarle **solo `roles/datastore.viewer`** (o permisos equivalentes mínimos), guardar su clave JSON fuera del repositorio y seleccionarla desde la app. No enviar esa clave a ChatGPT ni adjuntarla a correos.
-- La configuración web Firebase (`apiKey`, `appId`, `projectId`) identifica el proyecto, pero **no permite eludir reglas ni permisos** para leer datos privados.
-- La app no cambia reglas de seguridad ni habilita lectura pública.
+**Pruebas:** `npm run check` y `npm test`. La revisión en Windows y una prueba real con identidad Google autorizada quedan pendientes antes de dar por validada una sincronización productiva. Las claves y los expedientes completos nunca deben añadirse al repositorio.
 
-### Flujo operativo
-
-1. Cerrar Informetit; actualizar con `git pull origin main`, `npm install`, `npm run check`, `npm test` y abrir con `npm start`.
-2. Entrar en **Firebase UTET** del menú lateral.
-3. Para conectarse en vivo, elegir **Conectar con Google (credenciales locales)** después de `gcloud auth application-default login`, o **Elegir credencial de lectura** con una cuenta de servicio específica. Luego pulsar **Consultar Firestore ahora**.
-4. Alternativamente, pulsar **Analizar respaldo JSON/TXT** para usar la exportación proporcionada sin conexión en vivo.
-5. Revisar estudiantes coincidentes, adicionales, faltantes y discrepancias de requisitos.
-6. Pulsar **Incorporar datos faltantes de coincidentes** para completar solamente los campos vacíos. Los 8 adicionales **no se agregan** en esta operación.
-7. Si la coordinación confirma que los adicionales pertenecen a la cohorte del informe, puede pulsar **Incorporar también los adicionales**. El aumento de la población requiere confirmación explícita.
-8. La importación nunca modifica notas Moodle, Word, exámenes, actas, tipos de titulación previamente elegidos ni datos de Firebase. Las contradicciones de requisitos se almacenan en `firebaseDiferencias` para revisión, sin sobrescribir los valores locales.
-
-**Importante:** esta implementación está integrada al repositorio, pero la conexión real requiere iniciar sesión o seleccionar las credenciales **en tu propio equipo**; la clave web suministrada no autoriza el acceso a datos protegidos. El proyecto `main` no contiene ninguna clave privada ni datos nominales de Firestore.
-
-Archivos del cambio: `firebase/reader.js` (lectura de nube), `firebase/sync.js` (conciliación), `tests/firebase-sync.test.js` (pruebas), `electron-main.js`, `electron-preload.js`, `app.js`, `data/model.js`, `index.html` y `package.json`.
 
 ## BLOQUE 05 · Fase II — Motor de análisis académico de núcleos (octubre 2026)
 

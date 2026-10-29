@@ -13,6 +13,7 @@ let evaluationStudentId="";
 let trabajoStudentId="";
 let examImportText="",examImportStage=null;
 let firebaseComparison=null,firebaseConnection=null,firebaseMessage="";
+let studentImportStage=null;
 const $=x=>document.querySelector(x), el=id=>document.getElementById(id), h=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])), normal=Data.key, compact=s=>normal(s).replace(/\s/g,""), getNum=Data.grade, num=s=>s===null||s===undefined?"—":Number(s).toLocaleString("es-EC",{minimumFractionDigits:2,maximumFractionDigits:2}), today=()=>new Date().toISOString().slice(0,10);
 function notify(t){const node=el("toast");node.textContent=t;node.style.display="block";clearTimeout(notify.timer);notify.timer=setTimeout(()=>node.style.display="none",4300)}
 function notifyPdfResult(result){
@@ -173,6 +174,7 @@ function estudiantes(){
  let out=head("Fase I · Estudiantes y requisitos",
    "Cumplimiento, verificaciones pendientes, carrera, continuidad y casos individuales.",
    switcher()+'<button data-action="student-file" class="btn primary">Importar Excel</button>');
+ out+=renderStudentImportPreview();
  out+='<div class="cards">'
   +card("Estudiantes",a.total,individual?"Nómina local":"Resumen agregado")
   +card("8 requisitos completos",a.complete8,per(Req.pct(a.complete8,a.total)))
@@ -212,12 +214,13 @@ function estudiantes(){
        +td(c.unknown9.join("; ")||"—")+'</tr>'))
     +'</section>';
   const visible=a.students.filter(st=>!query||[st.nombre,st.id,st.carrera].some(x=>normal(x).includes(normal(query))));
-  out+='<section class="panel"><h2>Nómina y mecanismo de titulación</h2><p class="hint">Examen Complexivo por defecto. Las excepciones de Trabajo de Titulación se conservan cuando se actualiza el Excel.</p>'
+  out+='<section class="panel"><h2>Nómina y mecanismo de titulación</h2><p class="hint">El mecanismo se confirma individualmente; importar requisitos no clasifica a nadie como Complexivo.</p>'
     +table(["Cédula","Estudiante","Carrera","Mecanismo","Controles"],visible.map(st=>{
       const completeReq=Req.studentStatus(st).complete;
       return '<tr>'+td(st.id)+td(st.nombre)+td(st.carrera)
       +'<td><select class="control" data-student-type="'+h(st.id)+'">'
-      +'<option value="complexivo"'+(st.tipoTitulacion!=="trabajo"?" selected":"")+'>Examen Complexivo</option>'
+      +'<option value="sin_definir"'+(st.tipoTitulacion==="sin_definir"?" selected":"")+'>Sin definir</option>'
+      +'<option value="complexivo"'+(st.tipoTitulacion==="complexivo"?" selected":"")+'>Examen Complexivo</option>'
       +'<option value="trabajo"'+(st.tipoTitulacion==="trabajo"?" selected":"")+'>Trabajo de Titulación</option></select></td>'
       +'<td><span class="tag '+(completeReq?"ok":"warn")+'">'+(completeReq?"Completo":"Por revisar")+'</span></td></tr>';
     }))+'</section>';
@@ -900,6 +903,32 @@ async function parseGradeAndSave(save){
  }catch(e){console.error(e);notify("No se guardaron notas: "+e.message)}
 }
 function parseRows(rows){let header=rows[0]?.map(compact)||[],field=(r,...keys)=>{for(let k of keys){let j=header.indexOf(compact(k));if(j>=0)return String(r[j]??"").trim()}return ""},result=[];if(!header.includes("NUMEROIDENTIFICACION"))throw Error("Falta la columna numeroIdentificacion.");for(let r of rows.slice(1)){let id=field(r,"numeroIdentificacion");if(!id)continue;let original=field(r,"NombreCarrera"),code=field(r,"CodigoCarrera"),mode=normal(original).endsWith("ONLINE")?"online":/-L-/i.test(code)?"online":"presencial",req={};let aliases={Practicas:["PrácticasVinculacion","PracticasVinculacion","Practicas"],Seguimiento:["SeguimientoGraduados","Seguimiento"],Datos:["ActualizaciónDatos","ActualizacionDatos","Datos"],Ingles:["Ingles","Inglés"]};for(let k of R)req[k]=field(r,...(aliases[k]||[k]));result.push({id,nombre:field(r,"Nombres"),codigo:code,carrera:original.replace(/\s+ONLINE\s*$/i,"").trim(),modalidad:mode,horario:field(r,"HorarioComplexivo"),sede:field(r,"Sede"),correo:field(r,"CorreoInstitucional").toLowerCase(),correoPersonal:field(r,"CorreoPersonal"),telefono:field(r,"Celular"),requisitos:req,aprobacionTitulacion:field(r,"AprobacionTitulacion"),aprobacionComplexivoProyecto:field(r,"AprobacionComplexivoProyecto"),tipoTitulacion:"sin_definir"})}if(!result.length)throw Error("No hay filas con cédula.");return result}
+function renderStudentImportPreview(){
+ if(!studentImportStage)return '';
+ const stage=studentImportStage,p=stage.preview,c=p.counts;
+ let html='<section class="panel"><h2>Vista previa de importación: '+h(stage.fileName)+'</h2>'
+  +'<p class="hint">No se ha guardado ningún cambio. Se conservan mecanismos de titulación, notas, actas, rúbricas y observaciones. Los requisitos nunca se envían a Firebase.</p>'
+  +'<div class="cards">'+card('Filas del Excel',c.rows)+card('Estudiantes nuevos',c.added)
+  +card('Estudiantes con cambios',c.updated)+card('Sin diferencias',c.unchanged)
+  +card('Identidades bloqueadas',c.blocked)+card('Ausentes del archivo',c.missing)+'</div>'
+  +'<p class="hint">Campos vacíos que se completarían: '+c.filled
+  +' · cambios sobre datos existentes: '+c.revised
+  +'. Los estudiantes ausentes se conservan.</p>';
+ if(p.changes.length){
+  html+='<h3>Cambios propuestos</h3>'
+   +table(['Cédula','Estudiante','Campo','Actual','Excel'],
+    p.changes.slice(0,200).map(x=>'<tr>'+td(x.id)+td(x.name)+td(x.field)+td(x.before)+td(x.after)+'</tr>'));
+  if(p.changes.length>200)html+='<p class="hint">Se muestran 200 de '+p.changes.length+' diferencias.</p>';
+ }
+ if(p.conflicts.length)html+='<h3>Conflictos bloqueados</h3>'
+  +table(['Cédula','Estudiante','Campo','Actual','Excel'],
+   p.conflicts.slice(0,100).map(x=>'<tr>'+td(x.id)+td(x.name)+td(x.field)+td(x.before)+td(x.after)+'</tr>'));
+ if(!p.updates.length)html+='<p><b>Sin diferencias aplicables. La base GPT ya tiene la información del archivo.</b></p>';
+ html+='<div class="actions">'
+  +(p.updates.length?'<button class="btn primary" data-action="apply-student-import">Aplicar actualización revisada</button>':'')
+  +'<button class="btn" data-action="cancel-student-import">Cerrar vista previa</button></div></section>';
+ return html;
+}
 function parseHTML(txt){let doc=new DOMParser().parseFromString(txt,"text/html"),table=doc.querySelector("table");if(!table)throw Error("El archivo HTML no tiene tablas.");return [...table.querySelectorAll("tr")].map(tr=>[...tr.querySelectorAll("td,th")].map(td=>td.textContent.trim()))}
 async function readExcel(file){let bytes=await file.arrayBuffer(),prefix=new TextDecoder("latin1").decode(bytes.slice(0,400));if(/<table|<!doctype|<html|<style/i.test(prefix)){let html=new TextDecoder("windows-1252").decode(bytes);return parseRows(parseHTML(html))}if(file.name.toLowerCase().endsWith(".csv")){if(!window.XLSX)throw Error("Conecta Internet para importar CSV o pega directamente un JSON.");let x=XLSX.read(bytes,{type:"array"});return parseRows(XLSX.utils.sheet_to_json(x.Sheets[x.SheetNames[0]],{header:1,defval:"",raw:false}))}if(!window.XLSX)throw Error("No se ha cargado la biblioteca de Excel; comprueba la conexión.");let wb=XLSX.read(bytes,{type:"array"});for(let sh of wb.SheetNames){let rows=XLSX.utils.sheet_to_json(wb.Sheets[sh],{header:1,defval:"",raw:false});if(rows[0]&&rows[0].some(x=>compact(x)==="NUMEROIDENTIFICACION"))return parseRows(rows)}throw Error("No se encontró una hoja con numeroIdentificacion.")}
 async function handleCursosFile(ev){

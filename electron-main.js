@@ -319,6 +319,10 @@ ipcMain.handle('informetit:firebase-read',async(event)=>{
  if(!mainWindow||event.sender!==mainWindow.webContents)throw Error('Ventana no autorizada');
  return firestoreReader.readAll();
 });
+ipcMain.handle('informetit:firebase-academic-write',async(event,payload)=>{
+ if(!mainWindow||event.sender!==mainWindow.webContents)throw Error('Ventana no autorizada');
+ return firestoreReader.writeAcademic(payload);
+});
 ipcMain.handle('informetit:firebase-status',async(event)=>{
  if(!mainWindow||event.sender!==mainWindow.webContents)throw Error('Ventana no autorizada');
  return firestoreReader.status();

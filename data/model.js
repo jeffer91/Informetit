@@ -9,6 +9,7 @@ const empty=()=>({
   version:SCHEMA_VERSION,periodo:PERIOD,estudiantes:[],notas:[],notasBorrador:[],cursosNucleos:[],
   evaluaciones:[],trabajos:[],ejecucion:{},cronogramaPersonalizado:{},conflictos:[],sinVincular:[],complementarios:[],
   importaciones:[],auditoria:[],firebaseDiferencias:[],gptSeedFingerprint:'',
+  firebaseSync:{enabled:false,baseline:{},pending:[],conflicts:[],lastError:'',lastPull:'',lastPush:''},
   config:{codigoPresencial:'UTET-INF-01-PRO-95',codigoOnline:'UTET-INF-02-PRO-95',version:'1.0',fechaElaboracion:'',
     elaborado:'Mgs. Jefferson Villarreal',revisado:'Ing. Martha Tomalá',
     aprobado:'Dr. Alex León',observaciones:''}
@@ -54,6 +55,12 @@ function migrate(raw){
   if(raw.cronogramaPersonalizado&&typeof raw.cronogramaPersonalizado==='object'&&!Array.isArray(raw.cronogramaPersonalizado))d.cronogramaPersonalizado={...raw.cronogramaPersonalizado};
   if(raw.config&&typeof raw.config==='object'&&!Array.isArray(raw.config))d.config={...d.config,...raw.config};
   if(typeof raw.gptSeedFingerprint==='string')d.gptSeedFingerprint=raw.gptSeedFingerprint;
+  if(raw.firebaseSync&&typeof raw.firebaseSync==='object'&&!Array.isArray(raw.firebaseSync)){
+    d.firebaseSync={...d.firebaseSync,...raw.firebaseSync,
+      baseline:raw.firebaseSync.baseline&&typeof raw.firebaseSync.baseline==='object'&&!Array.isArray(raw.firebaseSync.baseline)?{...raw.firebaseSync.baseline}:{},
+      pending:Array.isArray(raw.firebaseSync.pending)?raw.firebaseSync.pending:[],
+      conflicts:Array.isArray(raw.firebaseSync.conflicts)?raw.firebaseSync.conflicts:[]};
+  }
   d.config.codigoPresencial='UTET-INF-01-PRO-95';
   d.config.codigoOnline='UTET-INF-02-PRO-95';
   if(typeof raw.periodo==='string'&&raw.periodo.trim())d.periodo=raw.periodo;

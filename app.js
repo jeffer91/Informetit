@@ -305,7 +305,7 @@ function grades(){
    +'</select></label></div>'
    +'<p class="hint">'+h(window.InformetitNuclei.careerNarrative(selected))+'</p>'
    +table(["Núcleo","Notas nominales","Pendientes","Conflictos","Media","Mediana","Desv. estándar"],
-     selected.nuclei.map(n=>'<tr>'+td("Núcleo "+n.number)+td(n.gradeCount)
+     selected.nuclei.map(n=>'<tr>'+td("Núcleo "+n.number+(n.title?" — "+n.title:""))+td(n.gradeCount)
      +td(n.pendingCount)+td(n.conflictCount)+td(num(n.summary.mean))
      +td(num(n.summary.median))+td(num(n.summary.sd))+'</tr>'));
   const named=new Map();
@@ -325,13 +325,18 @@ function grades(){
         '<div class="progress"><div style="width:'+width.toFixed(2)+'%"></div></div></div>';
      }).join('')+'</div>';
   };
-  out+='<h3>'+h(selected.name)+'</h3><p class="hint">La vista se organiza en cuatro núcleos y el consolidado final de esta carrera. Se muestran estudiantes clasificados en Examen Complexivo, incluidos los que tienen calificaciones pendientes.</p>';
+  out+='<h3>'+h(selected.name)+'</h3>'+
+  (window.InformetitNucleiCatalog?.lookup(selected.name)?
+   '<div class="block"><h4>Mapa de repaso de los cuatro núcleos</h4>'+
+    window.InformetitNucleiMethodology.diagram(window.InformetitNucleiCatalog.lookup(selected.name))+
+    '<p class="hint">Denominaciones facilitadas por coordinación; temas de repaso sujetos a validación curricular.</p></div>':'')+
+  '<p class="hint">La vista se organiza en cuatro núcleos y el consolidado final de esta carrera. Se muestran estudiantes clasificados en Examen Complexivo, incluidos los que tienen calificaciones pendientes.</p>';
   if(selected.unclassified)out+='<div class="warnbox block">'+selected.unclassified+
    ' estudiantes de esta carrera no tienen un mecanismo confirmado. No se atribuyen automáticamente a Examen Complexivo.</div>';
   for(const n of selected.nuclei){
    const grades=new Map(n.entries.map(x=>[x.id,x]));
    const conflicts=new Set(n.unresolved.map(x=>x.id));
-   out+='<div class="block"><h3>Núcleo '+n.number+' · '+h(selected.name)+'</h3>'
+   out+='<div class="block"><h3>Núcleo '+n.number+(n.title?' — '+h(n.title):'')+' · '+h(selected.name)+'</h3>'
     +'<p class="hint">'+h(window.InformetitNuclei.narrative(selected,n))+'</p>';
    out+=table(['N.º','Estudiante','Cédula','Nota final','Estado','Fuente'],
     people.map((person,i)=>{

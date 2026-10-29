@@ -24,7 +24,7 @@ function courseRows(state,mode){
   if(!st||st.modalidad!==mode)continue;
   const n=Number(raw.nucleo??raw.nucleus??0);
   const grade=valid(raw.nota),approved=raw.verificado===true||raw.verified===true||
-    (Array.isArray(state.notas)&&state.notas.includes(raw)&&!['PROVISIONAL','SIMULADO','ESTIMADO'].includes(type(raw.estado||raw.status)));
+    (Array.isArray(state.notas)&&state.notas.includes(raw)&&type(raw.status||raw.estado)==='OFICIAL REGISTRO MOODLE');
   if(!approved||!Number.isInteger(n)||n<0||n>4||
    (grade===null&&!((state.cursosNucleos||[]).includes(raw)&&/no evaluado/i.test(String(raw.estadoAcademico||'')))))continue;
   const title=courseSource(raw),name=st.nombre||'Sin nombre';
@@ -106,6 +106,67 @@ function provisionalRows(state,mode,helpers){
   out+=Table('Transcripción pendiente de cotejo — '+x.career+' — '+x.course,
    ['Estudiante','Cédula','Nota provisional','Referencia de origen'],x.rows,
    'Provisional, no autorizado para cálculo de aprobación o promedio oficial; verificar con Moodle o acta individual');
+ }
+ return out;
+}
+/* Curso y transcripción se muestran dentro del Núcleo 1–4 de su carrera.
+ * Los cursos históricos con nucleo=0 solo aparecen bajo el consolidado y nunca se homologan por inferencia.
+ */
+function courseSections(state,mode,careerKey,nucleus,careerName,helpers){
+ const {Table,Figure,para}=helpers,roster=byStudent(state),normalized=M().career(careerName);
+ const relevant=st=>st&&st.modalidad===mode&&st.tipoTitulacion==='complexivo'&&
+  M().career(st.carrera)===careerKey;
+ const grouped=new Map(),unverified=new Map(),mismatch=new Set();
+ for(const r of courseRows(state,mode)){
+  const st=roster.get(r.id);
+  if(!relevant(st)||r.nucleo!==nucleus)continue;
+  // Las notas genéricas del núcleo ya se muestran en la tabla nominal principal.
+  if(!r.course||r.course==='Núcleo '+nucleus)continue;
+  const k=type(r.course)+'|'+type(r.teacher);
+  if(!grouped.has(k))grouped.set(k,{course:r.course,teacher:r.teacher,rows:[]});
+  grouped.get(k).rows.push(r);
+ }
+ const candidates=[...(state?.notasBorrador||[]),
+   ...(state?.cursosNucleos||[]).filter(x=>x.verificado!==true&&x.verified!==true)];
+ for(const raw of candidates){
+  const id=plain(raw.studentId||raw.cedula||raw.id?.split('|')[0]),st=roster.get(id);
+  if(!relevant(st)||Number(raw.nucleo??0)!==nucleus)continue;
+  const title=(state?.cursosNucleos||[]).includes(raw)?courseSource(raw):'Núcleo '+nucleus;
+  const k=type(title);
+  if(!unverified.has(k))unverified.set(k,{course:title,rows:[]});
+  const uniqueKey=[id,nucleus,title,valid(raw.nota)].join('|');
+  if(mismatch.has(uniqueKey))continue;
+  mismatch.add(uniqueKey);
+  unverified.get(k).rows.push({id,name:st.nombre,grade:valid(raw.nota),
+   source:plain(raw.fuente||raw.source)||'Transcripción sin referencia'});
+ }
+ if(!grouped.size&&!unverified.size)return '';
+ let out='';
+ if(nucleus===0)out+=para('Cursos históricos sin núcleo homologado de '+careerName+
+  ': se presentan como evidencia separada del consolidado y nunca se asignan automáticamente a N1, N2, N3 o N4.');
+ else out+=para('Detalle de cursos y fuentes documentales de '+careerName+' para el Núcleo '+nucleus+
+  '. Estos registros complementan la tabla nominal del núcleo; no se suman por segunda vez a sus promedios.');
+ for(const group of [...grouped.values()].sort((a,b)=>a.course.localeCompare(b.course,'es'))){
+  const rows=group.rows.slice().sort((a,b)=>a.name.localeCompare(b.name,'es')||a.id.localeCompare(b.id));
+  const scores=stats(rows.map(x=>x.grade)),passed=rows.filter(x=>x.grade!==null&&x.grade>=7).length,
+   failed=rows.filter(x=>x.grade!==null&&x.grade<7).length,missing=rows.length-scores.n;
+  out+=Table('Curso: '+group.course+' — '+careerName,
+   ['Estudiante','Cédula','Calificación','Estado','Docente'],
+   rows.map(x=>[x.name,x.id,format(x.grade),x.status,group.teacher||'Por verificar']),
+   'Desglose verificado del curso; estas filas no se vuelven a incluir en un capítulo independiente');
+  out+=para('El curso '+group.course+' presenta '+scores.n+' calificaciones válidas entre '+rows.length+
+   ' registros, media '+format(scores.mean)+', '+passed+' notas de 7 o más, '+failed+
+   ' notas inferiores a 7 y '+missing+' sin evaluación. Esta estadística no reemplaza el cálculo del núcleo.');
+  out+=Figure('Resultados del curso '+group.course+' — '+careerName,
+   [['7 a 10',passed],['Menor de 7',failed],['Sin nota',missing]],{
+     decimals:0,note:'Distribución del curso; no se considera aprobación definitiva del Examen Complexivo'});
+ }
+ for(const group of [...unverified.values()].sort((a,b)=>a.course.localeCompare(b.course,'es'))){
+  out+=Table('Notas provisionales por cotejar — '+group.course+' — '+careerName,
+   ['Estudiante','Cédula','Nota provisional','Fuente declarada'],
+   group.rows.sort((a,b)=>a.name.localeCompare(b.name,'es'))
+    .map(x=>[x.name,x.id,format(x.grade),x.source]),
+   'Las transcripciones provisionales no se incluyen en estadísticas, consolidados ni escrituras Firebase');
  }
  return out;
 }
@@ -239,7 +300,7 @@ function improvementPlan(state,mode,quality,helpers){
   note:'Número de hallazgos detectados en esta exportación; la magnitud no mide el desempeño de los estudiantes'});
  return out;
 }
-const api=Object.freeze({courseRows,courseAnalysis,provisionalRows,examDetail,requirementAppendix,coverageReport,improvementPlan,stats});
+const api=Object.freeze({courseRows,courseAnalysis,provisionalRows,courseSections,examDetail,requirementAppendix,coverageReport,improvementPlan,stats});
 root.InformetitInformeCompleto=api;
 if(typeof module==='object'&&module.exports)module.exports=api;
 })(typeof window!=='undefined'?window:globalThis);

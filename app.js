@@ -308,14 +308,83 @@ function grades(){
      selected.nuclei.map(n=>'<tr>'+td("Núcleo "+n.number)+td(n.gradeCount)
      +td(n.pendingCount)+td(n.conflictCount)+td(num(n.summary.mean))
      +td(num(n.summary.median))+td(num(n.summary.sd))+'</tr>'));
+  const named=new Map();
+  for(const x of selected.nuclei)for(const person of [...x.entries,...x.pending,...x.unresolved])
+    named.set(person.id,person.name);
+  const people=[...named].map(([id,name])=>({id,name}))
+    .sort((a,b)=>a.name.localeCompare(b.name,'es')||a.id.localeCompare(b.id));
+  const combined=selected.nuclei.map(n=>({
+    entries:new Map(n.entries.map(x=>[x.id,x])),conflicts:new Set(n.unresolved.map(x=>x.id))
+  }));
+  const graphic=(title,parts,maximum)=>{
+    const max=Math.max(1,Number(maximum)||0,...parts.map(x=>Number(x[1])||0));
+    return '<div class="block"><h4>'+h(title)+'</h4>'+
+     parts.map(([label,value])=>{
+       const width=Math.max(0,Math.min(100,100*(Number(value)||0)/max));
+       return '<div class="block"><div class="row between"><span>'+h(label)+'</span><b>'+h(value)+'</b></div>'+
+        '<div class="progress"><div style="width:'+width.toFixed(2)+'%"></div></div></div>';
+     }).join('')+'</div>';
+  };
+  out+='<h3>'+h(selected.name)+'</h3><p class="hint">La vista se organiza en cuatro núcleos y el consolidado final de esta carrera. Se muestran estudiantes clasificados en Examen Complexivo, incluidos los que tienen calificaciones pendientes.</p>';
+  if(selected.unclassified)out+='<div class="warnbox block">'+selected.unclassified+
+   ' estudiantes de esta carrera no tienen un mecanismo confirmado. No se atribuyen automáticamente a Examen Complexivo.</div>';
   for(const n of selected.nuclei){
-   out+='<h3>Núcleo '+n.number+'</h3><p class="hint">'+h(window.InformetitNuclei.narrative(selected,n))+'</p>';
-   out+=table(["Estudiante","Cédula","Nota final","Fuente"],
-     n.entries.map(x=>'<tr>'+td(x.name)+td(x.id)+td(num(x.grade))+td(x.source)+'</tr>'));
-   if(n.summary.bands)
-     out+=table(["Rango de notas","Estudiantes","Porcentaje"],
-       n.summary.bands.map(x=>'<tr>'+td(x.label)+td(x.count)+td(num(x.pct)+" %")+'</tr>'));
+   const grades=new Map(n.entries.map(x=>[x.id,x]));
+   const conflicts=new Set(n.unresolved.map(x=>x.id));
+   out+='<div class="block"><h3>Núcleo '+n.number+' · '+h(selected.name)+'</h3>'
+    +'<p class="hint">'+h(window.InformetitNuclei.narrative(selected,n))+'</p>';
+   out+=table(['N.º','Estudiante','Cédula','Nota final','Estado','Fuente'],
+    people.map((person,i)=>{
+      const score=grades.get(person.id);
+      return '<tr>'+td(i+1)+td(person.name)+td(person.id)+
+       td(score?num(score.grade):'—')+
+       td(conflicts.has(person.id)?'En conflicto':score?'Verificada':'Pendiente')+
+       td(score?(score.sourceDetail||score.source):conflicts.has(person.id)?'Por conciliar':'Sin fuente verificada')+
+       '</tr>';
+    }));
+   out+='<p class="hint">Notas nominales: '+n.gradeCount+' · pendientes: '+n.pendingCount+
+    ' · conflictos: '+n.conflictCount+' · media: '+num(n.summary.source==='individual'?n.summary.mean:null)+
+    ' · mediana: '+num(n.summary.source==='individual'?n.summary.median:null)+
+    ' · mínimo: '+num(n.summary.source==='individual'?n.summary.min:null)+
+    ' · máximo: '+num(n.summary.source==='individual'?n.summary.max:null)+'.</p>';
+   if(selected.eligible>0)
+    out+=graphic('Gráfico de cobertura del Núcleo '+n.number,
+     [['Con nota',n.gradeCount],['Pendiente',n.pendingCount],['Conflicto',n.conflictCount]],
+     selected.eligible);
+   if(n.summary.source==='individual'&&n.summary.bands){
+    out+=table(['Rango de notas','Estudiantes','Porcentaje'],
+      n.summary.bands.map(x=>'<tr>'+td(x.label)+td(x.count)+td(num(x.pct)+' %')+'</tr>'));
+    out+=graphic('Gráfico de distribución del Núcleo '+n.number,
+       n.summary.bands.map(x=>[x.label,x.count]),n.summary.n);
+   }
+   out+='</div>';
   }
+  const full=[],partial=[],empty=[];
+  const consolidated=people.map((person,i)=>{
+    const values=combined.map(m=>m.entries.get(person.id)?.grade??null),
+       conflict=combined.some(m=>m.conflicts.has(person.id)),
+       complete=values.every(x=>x!==null)&&!conflict;
+    const mean=complete?values.reduce((a,b)=>a+b,0)/4:null;
+    if(complete)full.push(mean);
+    else if(values.some(v=>v!==null))partial.push(person.id);
+    else empty.push(person.id);
+    return '<tr>'+td(i+1)+td(person.name)+td(person.id)+values.map((v,j)=>
+      td(combined[j].conflicts.has(person.id)?'Conflicto':v===null?'Pendiente':num(v))).join('')+
+      td(mean===null?'—':num(mean))+td(complete?'Completo':conflict?'En conflicto':'Incompleto')+'</tr>';
+  });
+  out+='<div class="block"><h3>Consolidado de '+h(selected.name)+'</h3>'
+   +'<p class="hint">Las cuatro notas se reúnen por estudiante. La media simple solo aparece cuando N1, N2, N3 y N4 están completos y sin conflicto. No es la nota definitiva del Examen Complexivo.</p>'
+   +table(['N.º','Estudiante','Cédula','N1','N2','N3','N4','Media simple','Estado'],consolidated)
+   +'<p><b>Expedientes con cuatro notas:</b> '+full.length+' de '+(selected.eligible??0)+
+     ' · <b>Parciales:</b> '+partial.length+' · <b>Sin notas:</b> '+empty.length+'.</p>';
+  const means=selected.nuclei.filter(n=>n.summary.source==='individual'&&n.summary.mean!==null)
+    .map(n=>['Núcleo '+n.number,n.summary.mean]);
+  if(means.length)out+=graphic('Gráfico comparativo de medias por núcleo',means,10);
+  if(selected.eligible>0)
+    out+=graphic('Gráfico de cobertura del consolidado',
+       [['Cuatro notas',full.length],['Parciales',partial.length],['Sin notas',empty.length]],
+       selected.eligible);
+  out+='</div>';
   out+='<h3>Estudiantes sin calificación completa · '+h(selected.name)+'</h3>'
    +'<p class="hint">Esta lista es únicamente de seguimiento de los cuatro núcleos. Los estudiantes de Trabajo de Titulación están excluidos.</p>'
    +table(["Estudiante","Cédula","Núcleos sin nota","Núcleos en conflicto"],

@@ -126,7 +126,7 @@ function analyze(state,mode='presencial'){
   data:{req,nuclei,complex,project,summary},asOf:new Date().toISOString().slice(0,10)};
 }
 function report(a,{Table,H,para}){
- let out=H(2,'11. Anexos y trazabilidad de información');
+ let out=H(2,'13. Anexos y Trazabilidad Documental');
  out+=para('Los anexos describen el origen, las limitaciones y el estado de conciliación de las fuentes utilizadas. Son generados desde la base local de la modalidad '+a.mode+', para el período octubre 2025–marzo 2026. No constituyen firma, acta autenticada ni aprobación institucional.');
  out+=H(3,'Anexo A. Inventario de fuentes utilizadas');
  out+=Table('Matriz de procedencia y alcance de las fuentes',

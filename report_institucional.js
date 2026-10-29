@@ -77,6 +77,7 @@ function makeReport(state,mode){
  if(!window.InformetitComplexivo)throw Error('Motor de Examen Complexivo no disponible');
  if(!window.InformetitTrabajo||!window.InformetitConsolidado)throw Error('Motores de Trabajo de Titulación y consolidación no disponibles');
  if(!window.InformetitQuality)throw Error('Motor de control documental no disponible');
+ if(!window.InformetitInformeCompleto)throw Error('Módulo de informe completo no disponible');
  const quality=window.InformetitQuality.analyze(state,mode);
  const phaseReq=window.InformetitRequirements.analyze(state,mode);
  const totalChecks=phaseReq.checks.applicable,done=phaseReq.checks.ok;
@@ -99,6 +100,8 @@ function makeReport(state,mode){
  out+=window.InformetitRequirements.renderReport(phase1,{Table,Figure,H,para,F,P});
  const nucleiData=window.InformetitNuclei.build(state,mode);
  out+=window.InformetitNuclei.renderReport(nucleiData,{Table,Figure,H,para,F,P});
+ out+=window.InformetitInformeCompleto.courseAnalysis(state,mode,{Table,Figure,H,para,F,P});
+ out+=window.InformetitInformeCompleto.provisionalRows(state,mode,{Table,Figure,H,para,F,P});
  const trabajosData=window.InformetitTrabajo.analyze(state,mode);
  out+=window.InformetitTrabajo.renderReport(trabajosData,{Table,Figure,H,para,F,P});
  out+=H(3,'6.5. Cronograma de Trabajo de Titulación');
@@ -116,10 +119,11 @@ function makeReport(state,mode){
  }
  const complexivoData=window.InformetitComplexivo.analyze(state,mode);
  out+=window.InformetitComplexivo.renderReport(complexivoData,{Table,Figure,H,para,F,P});
+ out+=window.InformetitInformeCompleto.examDetail(complexivoData,{Table,Figure,H,para,F,P});
  const cierre=window.InformetitConsolidado.analyze(state,mode);
  out+=window.InformetitConsolidado.renderReport(cierre,{Table,Figure,H,para,F,P});
  out+=window.InformetitExecutive.render(state,mode,{requirements:phaseReq,nuclei:nucleiData,quality,cierre},{Table,Figure,H,para,F,P});
- out+=H(2,'9. Conclusiones');
+ out+=H(2,'10. Conclusiones');
  if(!cierre.counts.total){
   out+=para('La fuente agregada identifica '+n+' estudiantes de la modalidad '+desc+', pero no se dispone en esta ejecución de una nómina nominal que permita distribuirlos entre Examen Complexivo y Trabajo de Titulación. Por esa razón, las tasas de aprobación, reprobación y recuperación no son calculables y no se presentan como cero.');
   out+=para('Se han identificado '+d.completos8+' estudiantes con ocho requisitos previos completos y '+d.completos9+' con nueve controles completos, según el resumen disponible. La ausencia de evaluaciones finales nominales impide deducir resultados de graduación.');
@@ -129,11 +133,13 @@ function makeReport(state,mode){
  }
  out+=para('El cierre de la modalidad exige conciliar las poblaciones, las fuentes de notas, la ejecución del cronograma y los instrumentos de evaluación antes de presentar una tasa oficial de titulación.');
  out+='<ol><li>La modalidad '+desc+' registra '+n+' estudiantes en la fuente poblacional utilizada.</li><li>Constan '+d.completos9+' estudiantes con nueve controles completos, cifra que no equivale a aprobación de examen.</li><li>Los indicadores individuales sin respaldo nominal se mantienen como no calculables.</li><li>Las observaciones de integridad y trazabilidad deben resolverse antes de la aprobación del documento.</li></ol>';
- out+=H(2,'10. Recomendaciones');
+ out+=H(2,'11. Recomendaciones');
  out+='<ol><li>Conciliar la base de estudiantes con los libros de calificaciones y resolver registros duplicados o discrepantes.</li><li>Dar seguimiento a las categorías con más verificaciones pendientes y documentar su cierre.</li><li>Separar planificado, ejecutado, evidenciado y aprobado para cada hito.</li><li>Incorporar actas y supletorios antes de calcular indicadores de aprobación definitiva.</li><li>Revisar la versión normativa, los códigos institucionales y las firmas antes de aprobar el informe.</li></ol>';
+ out+=window.InformetitInformeCompleto.improvementPlan(state,mode,quality,{Table,Figure,H,para,F,P});
  const reportQuality=window.InformetitQuality.analyze(state,mode);
  out+=window.InformetitQuality.report(reportQuality,{Table,Figure,H,para,F,P});
- out+=H(2,'Referencias Bibliográficas');
+ out+=window.InformetitInformeCompleto.requirementAppendix(state,mode,{Table,Figure,H,para,F,P});
+ out+=H(2,'14. Referencias Bibliográficas');
  out+=para('Las referencias siguientes identifican las fuentes normativas públicas consultadas. La vigencia de sus reformas se cotejará con las versiones aplicables al período antes de la aprobación institucional.');
  const referencias=[
  ['Asamblea Constituyente. (2008).','Constitución de la República del Ecuador',' (Registro Oficial No. 449).','https://www.asambleanacional.gob.ec/sites/default/files/private/asambleanacional/filesasambleanacionalnameuid-29/constitucion-republica-inc-sent-cc.pdf'],

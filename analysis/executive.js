@@ -37,7 +37,7 @@ function tree(total,actual,summary,mode){
 function render(state,mode,data,{Table,Figure,H,para,F,P}){
  const r=data.requirements,q=data.quality,c=data.cierre,n=data.nuclei;
  const total=r.total,nominal=c.counts.total>0,complete=r.complete9;
- let out=H(2,'Resumen ejecutivo');
+ let out=H(2,'9. Resumen Ejecutivo');
  out+=para('El presente resumen sintetiza los resultados del período octubre de 2025 a marzo de 2026, modalidad '+(mode==='online'?'online':'presencial')+'. Se registran '+total+' estudiantes según la fuente poblacional utilizada; '+complete+' presentan los nueve controles completos ('+F(P(complete,total))+' %). Este indicador administrativo no equivale a aprobación académica de titulación.');
  out+=para(nominal?'La nómina individual permite diferenciar '+c.counts.complexivo+' estudiantes en Examen Complexivo y '+c.counts.trabajo+' en Trabajo de Titulación. Se registran '+c.counts.approved+' aprobaciones calculadas y '+c.counts.pending+' evaluaciones pendientes de cierre documental.':
   'No se dispone de una nómina nominal cargada para clasificar los estudiantes por mecanismo de titulación. Por consiguiente, las aprobaciones finales y sus tasas no son calculables; el valor cero de registros locales no se interpreta como cero titulados.');

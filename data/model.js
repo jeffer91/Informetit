@@ -4,9 +4,9 @@
 const SCHEMA_VERSION=2;
 const PERIOD='Octubre 2025 - Marzo 2026';
 const REQUIREMENTS=['Academico','Documentacion','Financiero','Practicas','Vinculacion','Seguimiento','Ingles','Datos','Titulacion'];
-const arrays=['estudiantes','notas','notasBorrador','evaluaciones','trabajos','conflictos','sinVincular','complementarios','importaciones','auditoria','firebaseDiferencias'];
+const arrays=['estudiantes','notas','notasBorrador','cursosNucleos','evaluaciones','trabajos','conflictos','sinVincular','complementarios','importaciones','auditoria','firebaseDiferencias'];
 const empty=()=>({
-  version:SCHEMA_VERSION,periodo:PERIOD,estudiantes:[],notas:[],notasBorrador:[],
+  version:SCHEMA_VERSION,periodo:PERIOD,estudiantes:[],notas:[],notasBorrador:[],cursosNucleos:[],
   evaluaciones:[],trabajos:[],ejecucion:{},cronogramaPersonalizado:{},conflictos:[],sinVincular:[],complementarios:[],
   importaciones:[],auditoria:[],firebaseDiferencias:[],gptSeedFingerprint:'',
   config:{codigoPresencial:'UTET-INF-01-PRO-95',codigoOnline:'UTET-INF-02-PRO-95',version:'1.0',fechaElaboracion:'',

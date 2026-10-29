@@ -173,7 +173,7 @@ ipcMain.handle('informetit:save-pdf', async (event, payload) => {
   });
   if (selection.canceled || !selection.filePath) return { canceled: true };
   await fs.writeFile(selection.filePath, content);
-  return { canceled: false, name: path.basename(selection.filePath), indexStatus };
+  return { canceled: false, name: path.basename(selection.filePath), format: 'PDF' };
 });
 
 
@@ -252,29 +252,43 @@ ipcMain.handle('informetit:save-apa-pdf', async (event, payload) => {
       );
       return Buffer.from(await preview.webContents.printToPDF(printOptions));
     };
-    let pdf = await render(html), indexStatus = 'sin_indice';
-    if (opts.indexPageNumbers && html.includes('data-page="inf-sec-')) {
+    let pdf = await render(html), indexStatus = 'no_solicitado';
+    let indexRounds = 0, indexMarkers = 0;
+    if (opts.indexPageNumbers && html.includes('class="inf-index-page"')) {
+      indexStatus = 'sin_paginacion';
       try {
-        let previous = null;
-        for (let round = 0; round < 3; round++) {
-          const pages = await extractIndexPages(pdf);
-          if (!Object.keys(pages).length) {
-            indexStatus = 'sin_marcadores';
+        // Recalcula desde el PDF real; rellenar el índice altera el salto de página.
+        // La página de destino debe coincidir con el último PDF y no con una estimación HTML.
+        let source = html;
+        for (let round = 0; round < 6; round++) {
+          const positions = await extractIndexPages(pdf);
+          indexMarkers = Object.keys(positions).length;
+          if (!indexMarkers) { indexStatus = 'marcadores_no_detectados'; break; }
+          const filled = fillIndexPages(html, positions);
+          const updated = await render(filled);
+          indexRounds++;
+          const updatedPositions = await extractIndexPages(updated);
+          pdf = updated; source = filled;
+          if (JSON.stringify(updatedPositions) === JSON.stringify(positions)) {
+            indexStatus = 'paginado_verificado';
             break;
           }
-          const mapped = fillIndexPages(html, pages);
-          indexStatus = 'paginado';
-          const serialized = JSON.stringify(pages);
-          if (serialized === previous) break;
-          previous = serialized;
-          pdf = await render(mapped);
+          indexStatus = 'paginacion_inestable';
         }
+        // En un documento de muchas páginas puede haber un marcador ilegible.
+        // Se informa el estado exacto y nunca se afirma un índice completo por defecto.
+        const expectedMarkers = (html.match(/class="inf-page-marker"/g) || []).length;
+        if (indexStatus === 'paginado_verificado' && indexMarkers < expectedMarkers)
+          indexStatus = 'marcadores_incompletos';
       } catch (error) {
-        indexStatus = 'sin_paginacion';
-        console.error('No se pudo completar el índice de páginas:', error);
+        indexStatus = 'error_de_paginacion';
+        console.error('[Informetit] Índice del PDF no validado:', error);
       }
     }
-    if (!Buffer.isBuffer(pdf) || pdf.length < 10) throw new Error('No se pudo renderizar el PDF.');
+    // Comprobar la firma del resultado antes del diálogo de guardado.
+    if (!Buffer.isBuffer(pdf) || pdf.length < 10 ||
+        pdf.subarray(0, 5).toString('ascii') !== '%PDF-')
+      throw new Error('La impresión no generó un PDF válido.');
     const cleanName = path.basename(providedName).replace(/[^\\p{L}\\p{N}_. -]/gu, '_').slice(0, 100);
     const selection = await dialog.showSaveDialog(mainWindow, {
       title: 'Guardar informe APA 7',
@@ -284,7 +298,7 @@ ipcMain.handle('informetit:save-apa-pdf', async (event, payload) => {
     });
     if (selection.canceled || !selection.filePath) return { canceled: true };
     await fs.writeFile(selection.filePath, pdf);
-    return { canceled: false, name: path.basename(selection.filePath) };
+    return { canceled: false, name: path.basename(selection.filePath), indexStatus, indexMarkers, indexRounds };
   } finally {
     if (!preview.isDestroyed()) preview.destroy();
   }

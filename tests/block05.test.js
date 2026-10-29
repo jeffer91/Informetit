@@ -15,6 +15,8 @@ require('../analysis/consolidado.js');
 require('../analysis/quality.js');
 require('../analysis/executive.js');
 require('../analysis/informe-completo.js');
+require('../data/nuclei-catalog.js');
+require('../analysis/methodology.js');
 require('../report_institucional.js');
 const required=()=>Object.fromEntries(M.REQUIREMENTS.map(x=>[x,'CUMPLE']));
 const student=(id='0000000001',name='ESTUDIANTE DE PRUEBA',career='Enfermería',mode='presencial',mechanism='complexivo')=>({

@@ -15,6 +15,8 @@ const C=require('../analysis/consolidado.js');
 require('../analysis/quality.js');
 require('../analysis/executive.js');
 require('../analysis/informe-completo.js');
+require('../data/nuclei-catalog.js');
+require('../analysis/methodology.js');
 require('../report_institucional.js');
 const student=(id,type='trabajo',mode='presencial',career='Desarrollo de Software')=>({
  id,nombre:'ESTUDIANTE DE EJEMPLO '+id,tipoTitulacion:type,modalidad:mode,carrera:career,requisitos:{}

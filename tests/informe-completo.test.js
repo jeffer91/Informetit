@@ -8,6 +8,8 @@ require('../analysis/requirements.js');require('../analysis/nuclei.js');require(
 require('../analysis/trabajo.js');require('../analysis/consolidado.js');require('../analysis/quality.js');
 require('../analysis/executive.js');
 const Full=require('../analysis/informe-completo.js');
+require('../data/nuclei-catalog.js');
+require('../analysis/methodology.js');
 require('../report_institucional.js');
 const st=(id,name,kind='complexivo')=>({
  id,nombre:name,carrera:'Enfermería',modalidad:'presencial',tipoTitulacion:kind,

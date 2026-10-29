@@ -16,6 +16,8 @@ require('../analysis/consolidado.js');
 require('../analysis/quality.js');
 require('../analysis/executive.js');
 require('../analysis/informe-completo.js');
+require('../data/nuclei-catalog.js');
+require('../analysis/methodology.js');
 require('../report_institucional.js');
 const requisites=()=>Object.fromEntries(Model.REQUIREMENTS.map(k=>[k,'CUMPLE']));
 const one=(id,mode='presencial',career='ENFERMERIA')=>({

@@ -6,6 +6,8 @@ require('../public_summary.js');require('../nucleos_agregados.js');
 require('../analysis/requirements.js');require('../analysis/nuclei.js');require('../analysis/complexivo.js');
 require('../analysis/trabajo.js');require('../analysis/consolidado.js');require('../analysis/quality.js');
 require('../analysis/executive.js');require('../analysis/informe-completo.js');
+require('../data/nuclei-catalog.js');
+require('../analysis/methodology.js');
 require('../report_institucional.js');
 test('resumen ejecutivo aparece después de resultados y antes de conclusiones',()=>{
  const h=global.InformetitFullReport.makeReport(M.empty(),'presencial');

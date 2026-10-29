@@ -11,7 +11,8 @@ app.on('quit',()=>{try{fs.rmSync(isolatedProfile,{recursive:true,force:true})}ca
  console.warn('[Informetit PDF smoke] No se pudo limpiar perfil temporal:',error.message);
 }});
 
-if(process.platform==='linux'&&process.getuid?.()===0)app.commandLine.appendSwitch('no-sandbox');
+// Solo en la prueba sintética de CI se permite no-sandbox: Linux runners no ofrecen SUID helper.
+if(process.platform==='linux'&&(process.env.CI||process.getuid?.()===0))app.commandLine.appendSwitch('no-sandbox');
 const label='[Informetit PDF smoke]';
 async function makeInput(win,mode){
  const expression="(()=>{"+

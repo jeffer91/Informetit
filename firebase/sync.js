@@ -100,7 +100,7 @@ function fromFirestore(doc){
 function signature(record){
  if(!record)return '';
  const o={...record};delete o.firebaseDocumentId;delete o.firebaseUpdateTime;
- delete o.updatedAt;delete o.createdAt;
+ delete o.updatedAt;delete o.createdAt;delete o.origen;
  return JSON.stringify(Object.fromEntries(Object.keys(o).sort().map(k=>[k,o[k]])));
 }
 function validRemote(collection,r){

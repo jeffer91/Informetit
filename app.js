@@ -920,7 +920,7 @@ async function handleCursosFile(ev){
   next.importaciones.push({nombre:file.name,tipo:'cursos_nucleos',filas:entries.length,noConciliados:unmatched.length,
    validado:confirmed,fecha:today()});
   next.auditoria.push({tipo:'cursos_nucleos',fecha:today(),fuente:file.name,total:entries.length,verificado:confirmed});
-  await Store.save(next);state=next;draw();notify(entries.length+' registros de cursos importados; '+unmatched.length+' requieren revisión.');
+  await Store.save(next);state=next;scheduleFirebaseSync();draw();notify(entries.length+' registros de cursos importados; '+unmatched.length+' requieren revisión.');
  }catch(e){console.error(e);notify('Importación de cursos: '+e.message)}
  finally{ev.target.value=''}
 }
@@ -1042,7 +1042,7 @@ case"apply-eval-import":{
  try{
   const latest=window.InformetitExamImport.assess(examImportStage.text,state,tab);
   const results=window.InformetitExamImport.apply(state,latest,today());
-  await Store.save(results.next);state=results.next;
+  await Store.save(results.next);state=results.next;scheduleFirebaseSync();
   examImportStage=null;examImportText="";draw();
   notify("Complexivo: "+results.stats.added+" evaluaciones incorporadas; "+results.stats.skipped+" filas sin modificar.");
  }catch(error){console.error(error);notify("No se guardó el lote: "+error.message)}
@@ -1071,7 +1071,7 @@ document.addEventListener("click",async ev=>{let nav=ev.target.closest("[data-pa
  if(!confirm("¿Vincular esta nota de Moodle a "+chosen.nombre+" ("+chosen.id+")? Comprueba su identidad antes de continuar."))return;
  try{
   const result=window.InformetitMoodle.linkPending(state,idx,studentId,today());
-  await Store.save(result.next);state=result.next;draw();
+  await Store.save(result.next);state=result.next;scheduleFirebaseSync();draw();
   notify(result.status==="conflict"?"Vínculo registrado; existe una discrepancia para resolver en Datos y respaldo.":"Registro vinculado y archivado en auditoría.");
  }catch(error){console.error(error);notify("No se pudo vincular: "+error.message)}
  return;
@@ -1083,7 +1083,7 @@ let conflict=ev.target.closest("[data-use-conflict], [data-keep-conflict]");if(c
  if(!confirm(description))return;
  try{
   const candidate=window.InformetitMoodle.resolveConflict(state,i,useNew?"new":"current",today());
-  await Store.save(candidate);state=candidate;draw();notify("Conflicto resuelto y registrado en la auditoría.");
+  await Store.save(candidate);state=candidate;scheduleFirebaseSync();draw();notify("Conflicto resuelto y registrado en la auditoría.");
  }catch(e){console.error(e);notify("No se resolvió el conflicto: "+e.message)}
 }});
 document.addEventListener("input",ev=>{if(ev.target.id==="student-search"){query=ev.target.value;let pos=ev.target.selectionStart;draw();let search=el("student-search");search.focus();search.setSelectionRange(pos,pos)}if(ev.target.id==="moodle-text"){inputText=ev.target.value;lastParse=null}if(ev.target.id==="exam-import-text"){examImportText=ev.target.value;examImportStage=null}});

@@ -112,6 +112,13 @@ test('cambio simultáneo local y remoto se marca como conflicto, sin perder info
  assert.equal(p.push.length,0);assert.equal(p.pull.length,0);
  assert.equal(p.stats.conflicts,1);
 });
+test('los metadatos de origen no provocan escrituras ni conflictos espurios',()=>{
+ const s=state(),row=[...Sync.localRecords(s).items.values()][0];
+ const fire={...row.record,origen:'Firebase'};
+ const p=Sync.plan(s,remote([firebaseDoc('nucleos',fire)]));
+ assert.equal(p.stats.equal,1);
+ assert.equal(p.push.length,0);
+});
 test('acepta 0 como nota válida y los campos de firestore conservan el tipo',()=>{
  const s=state();s.notas[0].nota=0;
  const row=[...Sync.localRecords(s).items.values()][0];

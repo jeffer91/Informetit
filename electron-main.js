@@ -17,6 +17,7 @@ const singleInstance = app.requestSingleInstanceLock();
 if (!singleInstance) app.quit();
 
 let mainWindow = null;
+let privateBackupQueue=Promise.resolve();
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -97,7 +98,7 @@ ipcMain.handle('informetit:read-master', async event => {
     app.getPath('userData')
   ];
   const selectedFiles = [];
-  const namePattern = /^(?:base-gpt(?: \(\d+\))?|informetit_base(?:_[\w-]+)*(?: \(\d+\))?)\.(?:json|cjs)$/i;
+  const namePattern = /^(?:base-gpt(?:-autosave| \(\d+\))?|informetit_base(?:_[\w-]+)*(?: \(\d+\))?)\.(?:json|cjs)$/i;
   for (const directory of sourceDirs) {
     try {
       const items = await fs.readdir(directory, { withFileTypes: true });
@@ -116,6 +117,7 @@ ipcMain.handle('informetit:read-master', async event => {
       }
     }
   }
+  selectedFiles.sort((a,b)=>b.mtime-a.mtime);
   let problem;
   for (const entry of selectedFiles) {
     if (entry.size > 12 * 1024 * 1024 || entry.size < 10) continue;
@@ -147,6 +149,22 @@ ipcMain.handle('informetit:read-master', async event => {
   }
   if (selectedFiles.length && problem) throw new Error('No se pudo interpretar la base GPT local: ' + problem.message);
   return null;
+});
+
+ipcMain.handle('informetit:backup-master',async(event,payload)=>{
+  if(!mainWindow||event.sender!==mainWindow.webContents)throw Error('Solicitud de respaldo privado no autorizada');
+  if(!payload||typeof payload!=='object'||!Array.isArray(payload.estudiantes)||!Array.isArray(payload.notas))
+    throw Error('El respaldo debe contener estudiantes y calificaciones válidos');
+  const content=JSON.stringify(payload);
+  if(Buffer.byteLength(content,'utf8')>20*1024*1024)throw Error('El respaldo privado excede 20 MB');
+  const filename=path.join(app.getPath('userData'),'base-gpt-autosave.json');
+  privateBackupQueue=privateBackupQueue.catch(()=>{}).then(async()=>{
+    const temporary=filename+'.tmp';
+    await fs.writeFile(temporary,content,{encoding:'utf8',mode:0o600});
+    await fs.rename(temporary,filename);
+    return {saved:true,location:'Perfil privado de Informetit',bytes:Buffer.byteLength(content)};
+  });
+  return privateBackupQueue;
 });
 
 ipcMain.handle('informetit:save-pdf', async (event, payload) => {

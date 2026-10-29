@@ -49,12 +49,17 @@ async function load(){
  }
  return M.migrate(raw);
 }
+async function backupMaster(value){
+ if(typeof root.informetitDesktop?.backupMaster!=='function')return;
+ try{await root.informetitDesktop.backupMaster(value)}
+ catch(error){console.warn('[Informetit] No se completó el respaldo GPT automático:',error.message)}
+}
 async function save(data){
  const M=model(),value=M.migrate(data),issues=M.audit(value).issues.filter(p=>['id_vacio','cedula_repetida'].includes(p.type));
  if(issues.length)throw new Error('La base tiene '+issues.length+' identificaciones vacías o duplicadas. Resuelve esas incidencias antes de guardar.');
  if(backend==='localStorage'){
   if(!root.localStorage)throw new Error('Este entorno no permite guardar registros');
-  root.localStorage.setItem(DATABASE,JSON.stringify(value));return value;
+  root.localStorage.setItem(DATABASE,JSON.stringify(value));await backupMaster(value);return value;
  }
  const db=await open();
  await transact(db,'readwrite',(store)=>{
@@ -67,6 +72,7 @@ async function save(data){
    }else store.put(value,MASTER);
   };
  });
+ await backupMaster(value);
  return value;
 }
 async function hasLegacyBackup(){

@@ -11,6 +11,7 @@ contextBridge.exposeInMainWorld('informetitDesktop', Object.freeze({
   firebaseStatus: () => ipcRenderer.invoke('informetit:firebase-status'),
   firebaseAcademicWrite: payload => ipcRenderer.invoke('informetit:firebase-academic-write',payload),
   loadMasterData: () => ipcRenderer.invoke('informetit:read-master'),
+  backupMaster: data => ipcRenderer.invoke('informetit:backup-master',data),
   savePDF: (base64, name) => ipcRenderer.invoke('informetit:save-pdf', { base64, name }),
   saveAPAHTML: (html, name, options = {}) => ipcRenderer.invoke('informetit:save-apa-pdf', { html, name, options })
 }));

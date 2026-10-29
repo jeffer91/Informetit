@@ -12,7 +12,7 @@ Informetit permite visualizar y exportar **dos borradores PDF distintos**, uno d
 |---|---|
 | Portada INF | Encabezado, control documental, fecha, logotipo y responsables; firma pendiente |
 | Índices | Contenidos, tablas y figuras; PDF con intento de paginación verificada |
-| Resumen ejecutivo | Población, controles de requisitos y resultados calculados de cada mecanismo |
+| Resumen ejecutivo (después de la síntesis de resultados) | Población, hallazgos, Ishikawa, FODA y árbol de resultados según información disponible |
 | 1. Introducción | Antecedentes, objetivos, alcance y metodología |
 | 2. Marco legal | Referencias generales; versiones y artículos sujetos a validación |
 | 3. Planificación | Cronograma Complexivo editable y estado de ejecución declarado |
@@ -56,7 +56,7 @@ En **Dos informes → Auditoría del informe y cierre documental**, revisar:
 4. Núcleos sin nota y agregados del Word; diferenciar ausencia de una nota real de cero.
 5. Ordinarios, supletorios, ausencias, registros duplicados y proyectos incompletos.
 6. Número y fecha de cada acta, sus calificaciones y firmas en los documentos originales.
-7. Códigos INF y fecha de elaboración; el sistema usa **POR ASIGNAR** si no hay código confirmado.
+7. Códigos oficiales INF: presencial UTET-INF-01-PRO-95 y online UTET-INF-02-PRO-95; sufijo automático dos meses después del período, y fecha real de elaboración independiente.
 8. Marco jurídico vigente, cronogramas y evidencias reales de ejecución.
 9. Integridad de la impresión PDF, saltos de página e índices.
 

@@ -99,9 +99,9 @@ function makeReport(state,mode){
  const phase1=window.InformetitRequirements.analyze(state,mode);
  out+=window.InformetitRequirements.renderReport(phase1,{Table,Figure,H,para,F,P});
  const nucleiData=window.InformetitNuclei.build(state,mode);
- out+=window.InformetitNuclei.renderReport(nucleiData,{Table,Figure,H,para,F,P});
- out+=window.InformetitInformeCompleto.courseAnalysis(state,mode,{Table,Figure,H,para,F,P});
- out+=window.InformetitInformeCompleto.provisionalRows(state,mode,{Table,Figure,H,para,F,P});
+ out+=window.InformetitNuclei.renderReport(nucleiData,{Table,Figure,H,para,F,P,
+   courseSections:(careerKey,n,careerName)=>window.InformetitInformeCompleto.courseSections(
+     state,mode,careerKey,n,careerName,{Table,Figure,H,para,F,P})});
  const trabajosData=window.InformetitTrabajo.analyze(state,mode);
  out+=window.InformetitTrabajo.renderReport(trabajosData,{Table,Figure,H,para,F,P});
  out+=H(3,'6.5. Cronograma de Trabajo de Titulación');

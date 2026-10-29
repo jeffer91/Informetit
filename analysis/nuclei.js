@@ -169,6 +169,22 @@ function renderReport(dataset,helpers){
  detailCareers.forEach((c,index)=>{
    out+=H(3,'5.2.'+(index+1)+'. '+c.name);
    out+=para(careerNarrative(c));
+   if(dataset.individual&&c.eligible>0){
+     const studentNames=new Map();
+     const four=c.nuclei.map(n=>{
+       const registered=new Map(n.entries.map(item=>[item.id,item.grade]));
+       const conflicts=new Set(n.unresolved.map(item=>item.id));
+       for(const item of [...n.entries,...n.pending,...n.unresolved])
+         if(!studentNames.has(item.id))studentNames.set(item.id,item.name);
+       return {registered,conflicts};
+     });
+     const individualRows=[...studentNames].sort((a,b)=>a[1].localeCompare(b[1],'es')||a[0].localeCompare(b[0]))
+       .map(([id,name])=>[name,id,...four.map(n=>n.conflicts.has(id)?'Conflicto':n.registered.has(id)?F(n.registered.get(id)):'Pendiente')]);
+     out+=Table('Calificaciones por estudiante y núcleo — '+c.name,
+       ['Estudiante','Cédula','Núcleo 1','Núcleo 2','Núcleo 3','Núcleo 4'],
+       individualRows,'Notas individuales de Examen Complexivo por carrera. Pendiente no es nota cero; Trabajo de Titulación no participa en estos núcleos');
+   }
+
    const overview=c.nuclei.map(n=>[ 'Núcleo '+n.number,
      n.summary.n||'Sin datos',v(n.summary.mean),v(n.summary.median),
      v(n.summary.min),v(n.summary.max),v(n.summary.sd),
@@ -181,17 +197,6 @@ function renderReport(dataset,helpers){
      max:10,decimals:2,note:'Comparación descriptiva; cada barra utiliza únicamente la muestra disponible de su núcleo y fuente.'});
    for(const n of c.nuclei){
      out+=para('Núcleo '+n.number+'. '+narrative(c,n));
-     if(dataset.individual){
-       const nominalRows=[
-         ...n.entries.map(x=>[x.name,x.id,v(x.grade),x.source,'Registrada']),
-         ...n.pending.map(x=>[x.name,x.id,'—','Sin calificación','Pendiente']),
-         ...n.unresolved.map(x=>[x.name,x.id,'—','Sin calificación','Conflicto por resolver'])
-       ].sort((x,y)=>x[0].localeCompare(y[0],'es')||x[1].localeCompare(y[1]));
-       out+=Table('Calificaciones finales nominales — '+c.name+' — Núcleo '+n.number,
-         ['Estudiante','Cédula','Calificación final','Fuente','Estado'],
-         nominalRows,
-         'Se incluyen TODOS los estudiantes de Complexivo de la carrera. Las notas no cargadas se dejan vacías (—) y se identifican como pendientes o en conflicto, nunca como cero');
-     }
      if(n.summary.source==='individual'){
        out+=Table('Distribución de calificaciones — '+c.name+' — Núcleo '+n.number,
          ['Rango (escala 0–10)','Estudiantes','Porcentaje'],n.summary.bands.map(b=>[b.label,b.count,v(b.pct)+' %']),

@@ -565,6 +565,54 @@ let sections='<div class="report-paper"><h1>'+h(title)+'</h1><p><b>Unidad de Tit
 for(const c of a.careers){let carrGrades=grades.filter(g=>g.carrera===c);sections+='<h3>'+h(c)+'</h3>'+table(["Núcleo","Notas registradas","Promedio comprobado"],[1,2,3,4].map(n=>{let arr=carrGrades.filter(g=>g.nucleo===n);return "<tr>"+td("Núcleo "+n)+td(arr.length)+td(arr.length?num(arr.reduce((x,g)=>x+g.nota,0)/arr.length):"Pendiente")+"</tr>"}))+'<p>Resultados descriptivos calculados solamente con las '+carrGrades.length+' notas del registro disponible para esta carrera. Las notas faltantes no se reemplazan por estimaciones.</p>'}
 sections+='<h2>3. Evaluación final</h2><p>Evaluaciones registradas: '+evals.length+'; aprobados: '+evals.filter(e=>e.status==="aprobado").length+'; reprobados: '+evals.filter(e=>e.status==="reprobado").length+'. Los casos pendientes no equivalen a reprobación.</p><h2>4. Validación y asuntos pendientes</h2><p>Estudiantes sin clasificación de modalidad de titulación: '+a.students.filter(s=>s.tipoTitulacion==="sin_definir").length+'. Calificaciones en conflicto: '+state.conflictos.filter(x=>members.has(x.anterior?.studentId)).length+'. Conclusiones y recomendaciones institucionales sujetas a validación y evidencias completas.</p><p><b>Informe de trabajo:</b> se genera únicamente a partir de la información actualmente incorporada. No constituye acta de aprobación.</p></div>';
 return exportMode?sections:'<section class="panel">'+sections+'</section>'}
+
+/* Identidad institucional: logotipo compartido, prefijos verificables y mes automático. */
+function identityPanel(compactView=false){
+ const C=window.InformetitCodigo,D=window.InformetitDocument;
+ if(!C||!D)throw Error('Configuración de códigos INF no disponible');
+ const month=C.issuance(state.periodo),pres=D.fields(state,'presencial'),online=D.fields(state,'online');
+ const active=tab==='online'?online:pres;
+ const logo=pres.logo?'<img class="identity-logo" src="'+h(pres.logo)+'" alt="Vista previa del logotipo institucional">':
+   '<div class="identity-logo-empty">Sin logotipo cargado</div>';
+ let out='<section class="panel identity-panel"><div class="identity-panel-heading"><div><h2>Identidad institucional y códigos INF</h2>'+
+  '<p class="hint">Para este período, finalizado en '+h(month.periodEnd)+', el informe corresponde a <b>'+h(month.label)+
+  '</b> (dos meses después). El año y mes del código se calculan automáticamente.</p></div></div>';
+ out+='<div class="identity-layout"><div class="identity-logo-card">'+logo+
+  '<div class="actions"><button class="btn primary" data-action="logo-file">'+(pres.logo?'Cambiar logo':'Subir logo institucional')+
+  '</button>'+(pres.logo?'<button class="btn" data-action="remove-logo">Quitar logo</button>':'')+'</div>'+
+  '<p class="hint">PNG, JPG o WebP · máximo 2 MB. Se guarda solamente en tu equipo y se usa en portada y encabezado de ambos PDF.</p>'+
+  '</div><div class="identity-code-card">'+
+  '<div class="identity-code-row"><span>Presencial</span><strong>'+h(pres.code)+'</strong></div>'+
+  '<div class="identity-code-row"><span>Online</span><strong>'+h(online.code)+'</strong></div>'+
+  '<p class="hint">Sufijo automático y fijo para este período: <b>'+h(month.stamp)+'</b>.'+
+  ' Los consecutivos y el proceso no se asignan sin confirmación institucional.</p>';
+ if(compactView)out+='<div class="actions"><button class="btn" data-page="identidad">Configurar códigos y fecha</button></div>';
+ else{
+  const configs=[
+   ['codigoPresencial','Prefijo y consecutivo presencial',C.prefix(state.config.codigoPresencial),'Ej.: UTET-INF-01-PRO-95'],
+   ['codigoOnline','Prefijo y consecutivo online',C.prefix(state.config.codigoOnline),'Prefijo autorizado de online']
+  ];
+  out+='<div class="identity-fields">'+configs.map(([id,label,value,placeholder])=>
+   '<label class="field">'+h(label)+'<input class="control" data-code-prefix="'+h(id)+'" value="'+h(value)+
+   '" placeholder="'+h(placeholder)+'"></label>').join('')+
+   '<label class="field">Fecha real de elaboración (día del mes previsto)<input type="date" class="control" data-config="fechaElaboracion" value="'+h(state.config.fechaElaboracion||'')+'"></label>'+
+   '<label class="field">Versión del documento<input class="control" data-config="version" value="'+h(state.config.version||'1.0')+'"></label></div>'+
+   '<p class="hint">Escribe solo el prefijo del código; Informetit añadirá <b>-'+h(month.stamp)+
+   '</b>. También acepta códigos antiguos completos y corrige automáticamente el año-mes al período del informe.</p>';
+ }
+ out+='</div></div>';
+ if(!compactView)out+='<div class="field-row identity-validation"><label class="field"><input type="checkbox" data-config="marcoLegalValidado" '+
+   (state.config.marcoLegalValidado?'checked':'')+'> He revisado la normativa institucional vigente.</label>'+
+   '<label class="field"><input type="checkbox" data-config="firmasValidadas" '+
+   (state.config.firmasValidadas?'checked':'')+'> He revisado responsables y firmas pendientes de aprobación.</label>'+
+   '</div><p class="hint">El logotipo y el código de ambos informes se conservan en el respaldo local. Las firmas no se generan automáticamente.</p>';
+ out+='</section>';
+ return out;
+}
+function identidad(){
+ return head('Logo y códigos INF','Configuración del encabezado institucional de ambos informes.')+
+  identityPanel(false);
+}
 function reports(){
  const d=window.InformetitFullReport?.getData(state,tab),hasPrivate=state.estudiantes.some(s=>s.modalidad===tab);
  const quality=window.InformetitQuality.analyze(state,tab);
@@ -595,6 +643,7 @@ function reports(){
  const notes=academic.individualGrades;
  let out=head("Informe institucional · "+modeLabel(tab),"Borrador por fases y carreras, con tablas y gráficos APA 7.",switcher()+'<button class="btn" data-action="preview-current">Vista previa</button><button class="btn primary" data-action="print">Exportar borrador PDF</button>');
  out+='<div class="cards">'+card("Estudiantes",d.total)+card("Requisitos completos",d.completos9,num(100*d.completos9/d.total)+" %")+card("Núcleos con datos",coverage+" / "+academic.nucleiExpected,"Solo agregado Word: "+academic.wordOnlyNuclei+" núcleos")+card("Aprobaciones calculadas",window.InformetitConsolidado.analyze(state,tab).counts.approved,"Ambos mecanismos · verificar actas")+'</div>';
+ out+=identityPanel(true);
  out+='<section class="panel"><h2>Auditoría del informe y cierre documental</h2>'
   +'<p><b>'+h(quality.state)+'</b>. '+quality.critical.length+' bloqueos críticos y '+
    quality.warnings.length+' advertencias. La app registra aprobaciones calculadas, no acredita graduaciones.</p>'
@@ -611,7 +660,10 @@ function reports(){
  out+='<section class="panel"><h2>Control de calidad antes de emitir el PDF</h2>'+table(["Control","Resultado"],qaRows.map(row=>'<tr>'+row.map(td).join("")+'</tr>'))+'<p class="hint">Las notas del Word están aceptadas como fuente del período. Las discrepancias con Moodle, los registros sin vincular y las actas faltantes continúan pendientes; el PDF será borrador hasta validar la documentación.</p></section>';
  out+='<section class="panel"><h2>Avance del informe</h2><div class="goodbox">Se incluyen introducción, metodología, objetivos, referencia normativa por validar, cronogramas, Fase I desarrollada con controles de verificación, estructura de núcleos por carrera, ruta de Trabajo de Titulación, fase evaluativa, recomendaciones y referencias.</div><p class="hint">Las notas ausentes y los resultados sin actas no se rellenan con estimaciones.</p><div class="actions"><button class="btn" data-action="preview-current">Vista previa del informe</button><button class="btn primary" data-action="print">Exportar PDF de esta modalidad</button><button class="btn" data-action="draft-presencial">PDF presencial</button><button class="btn" data-action="draft-online">PDF online</button></div></section>';
  out+='<section class="panel"><h2>Control de notas por carrera y núcleo</h2><p class="hint">Se conservan por separado las calificaciones oficiales y las extraídas del Word de trabajo. Las del Word se conservan como fuente aceptada para la cohorte; cualquier discrepancia con Moodle se identifica para revisión.</p>'+table(["Carrera","Núcleo 1","Núcleo 2","Núcleo 3","Núcleo 4"],academic.careers.map(c=>'<tr>'+td(c.name)+c.nuclei.map(k=>{const g=k.summary;return '<td><span class="tag '+(g.n?"ok":"warn")+'">'+(g.n?g.n+" registros · "+num(g.mean)+" · "+(g.source==="individual"?"Nominal":"Word"):"Pendiente")+'</span></td>'}).join("")+'</tr>'))+'<p class="hint">'+notes+' calificaciones registradas como datos individuales o resúmenes agregados. Los núcleos sin datos quedan pendientes, no reprobados.</p></section>';
- out+='<section class="panel"><h2>Control documental · estándar INF</h2><p class="hint">Portada A4 1,5 cm; encabezado INF, bloque de firmas, numeración automática y cuerpo APA 7.</p><div class="field-row"><label class="field">Código presencial<input data-config="codigoPresencial" value="'+h(state.config.codigoPresencial)+'"></label><label class="field">Código online<input data-config="codigoOnline" value="'+h(state.config.codigoOnline)+'"></label><label class="field">Versión<input data-config="version" value="'+h(state.config.version)+'"></label><label class="field">Fecha<input type="date" data-config="fechaElaboracion" value="'+h(state.config.fechaElaboracion)+'"></label></div><div class="actions block"><button class="btn" data-action="logo-file">Cargar logotipo para portada</button></div><div class="field-row"><label class="field"><input type="checkbox" data-config="marcoLegalValidado" '+(state.config.marcoLegalValidado?"checked":"")+'> He verificado el marco normativo vigente.</label><label class="field"><input type="checkbox" data-config="firmasValidadas" '+(state.config.firmasValidadas?"checked":"")+'> He revisado responsables y espacio de firmas; esto no firma el PDF.</label></div><p class="hint">Pendientes: '+(documentPending.length?documentPending.map(h).join("; "):"Ninguno declarado")+'. Las actas se validan por separado.</p></section>';
+ out+='<section class="panel"><h2>Control documental · estándar INF</h2>'+
+   '<p class="hint">El logo, los prefijos, el código con mes automático y la fecha real se configuran en <b>Logo y códigos INF</b>. Las actas y firmas se validan por separado.</p>'+
+   '<p class="hint">Pendientes: '+(documentPending.length?documentPending.map(h).join("; "):"Ninguno declarado")+'</p>'+
+   '<button class="btn" data-page="identidad">Abrir configuración de identidad</button></section>';
  out+='<section class="panel"><h2>Fuentes que faltan para cerrar el informe</h2><p>Calificaciones de Moodle por carrera y núcleo; actas de examen y defensa; resultados de supletorio; evidencia de cumplimiento del cronograma y, cuando corresponda, estudiantes retirados online.</p></section>';
  if(!hasPrivate)out+='<div class="warnbox block">La rama pública contiene estadísticas agregadas, no expedientes individuales. Las notas personales deben manejarse en una base privada.</div>';
  return out;
@@ -727,7 +779,7 @@ async function firebaseLoadFile(event){
  finally{event.target.value=""}
 }
 
-const views={inicio,estudiantes,nucleos:grades,evaluaciones:evaluations,trabajo,cronogramas:schedule,informes:reports,firebase:firebaseView,datos:data};
+const views={inicio,estudiantes,nucleos:grades,evaluaciones:evaluations,trabajo,cronogramas:schedule,informes:reports,identidad,firebase:firebaseView,datos:data};
 function draw(){el("main").innerHTML=views[page]();document.querySelectorAll(".nav").forEach(x=>x.classList.toggle("active",x.dataset.page===page));}
 function download(name,type,content){let blob=new Blob([content],{type}),u=URL.createObjectURL(blob),a=document.createElement("a");a.href=u;a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),2000)}
 async function parseGradeAndSave(save){
@@ -807,7 +859,12 @@ async function handleFiles(ev){
  }catch(e){console.error(e);notify("Error de importación: "+e.message)}
  finally{ev.target.value=""}
 }
-async function action(code){switch(code){case"student-file":el("student-file").click();break;case"logo-file":el("logo-file").click();break;case"backup-file":el("backup-file").click();break;case"preview-notes":await parseGradeAndSave(false);break;case"save-notes":await parseGradeAndSave(true);break;case"export-json":download("Informetit_base_local_"+today()+".json","application/json;charset=utf-8",JSON.stringify(state,null,2));break;case"clear-db":if(confirm("¿Eliminar todas las notas, estudiantes y demás datos almacenados en ESTE navegador? Asegúrate de haber exportado un respaldo.")){state=initial();await persist();draw();notify("Base local vaciada")}break;case"preview-eval":case"save-eval":{
+async function action(code){switch(code){case"student-file":el("student-file").click();break;case"logo-file":el("logo-file").click();break;case"remove-logo":{
+ if(state.config.logoDataUrl&&confirm("¿Quitar el logotipo institucional de ambos informes?")){
+  const next=Data.migrate(state);delete next.config.logoDataUrl;
+  await Store.save(next);state=next;draw();notify("Logotipo quitado de ambos informes.");
+ }
+}break;case"backup-file":el("backup-file").click();break;case"preview-notes":await parseGradeAndSave(false);break;case"save-notes":await parseGradeAndSave(true);break;case"export-json":download("Informetit_base_local_"+today()+".json","application/json;charset=utf-8",JSON.stringify(state,null,2));break;case"clear-db":if(confirm("¿Eliminar todas las notas, estudiantes y demás datos almacenados en ESTE navegador? Asegúrate de haber exportado un respaldo.")){state=initial();await persist();draw();notify("Base local vaciada")}break;case"preview-eval":case"save-eval":{
  const id=el("eval-id")?.value;
  if(!id){notify("Selecciona un estudiante de Examen Complexivo.");break}
  const i={ordTeoria:el("eval-one")?.value,ordPractica:el("eval-two")?.value,
@@ -897,9 +954,17 @@ document.addEventListener("change",async ev=>{let field=ev.target;if(field.datas
  current[fieldName]=field.value;
  state.cronogramaPersonalizado[index]=current;
  await persist();notify('Cronograma actualizado para el informe.');
-}else if(field.dataset.schedule){state.ejecucion[field.dataset.schedule]=field.value;await persist();notify("Ejecución registrada.")}else if(field.dataset.config){state.config[field.dataset.config]=field.type==="checkbox"?field.checked:field.value;await persist();draw()}});
+}else if(field.dataset.schedule){state.ejecucion[field.dataset.schedule]=field.value;await persist();notify("Ejecución registrada.")}else if(field.hasAttribute('data-code-prefix')){
+ const key=field.dataset.codePrefix;
+ if(!['codigoPresencial','codigoOnline'].includes(key))return;
+ const candidate=window.InformetitCodigo.prefix(field.value);
+ const check=window.InformetitCodigo.validity(candidate);
+ if(candidate&&!check.valid){notify(check.reason);draw();return}
+ state.config[key]=candidate;
+ await persist();draw();notify("Código de "+(key==='codigoOnline'?'online':'presencial')+" actualizado con el mes automático.");
+}else if(field.dataset.config){state.config[field.dataset.config]=field.type==="checkbox"?field.checked:field.value;await persist();draw()}});
 el("student-file").addEventListener("change",handleFiles);el("backup-file").addEventListener("change",handleFiles);
 el("firebase-file").addEventListener("change",firebaseLoadFile);
-el("logo-file").addEventListener("change",async ev=>{const file=ev.target.files?.[0];if(!file)return;try{if(!file.type.startsWith("image/"))throw Error("Solo se aceptan imágenes.");if(file.size>2000000)throw Error("La imagen debe tener menos de 2 MB.");const dataURL=await new Promise((res,rej)=>{let fr=new FileReader();fr.onload=()=>res(fr.result);fr.onerror=()=>rej(new Error("No se pudo leer imagen."));fr.readAsDataURL(file)});state.config.logoDataUrl=dataURL;await persist();notify("Logotipo incorporado a los PDF.");}catch(e){notify(e.message)}finally{ev.target.value=""}});
+el("logo-file").addEventListener("change",async ev=>{const file=ev.target.files?.[0];if(!file)return;try{if(!["image/png","image/jpeg","image/webp"].includes(file.type))throw Error("Solo se admiten archivos PNG, JPG o WebP.");if(file.size>2000000)throw Error("La imagen debe tener menos de 2 MB.");const dataURL=await new Promise((res,rej)=>{let fr=new FileReader();fr.onload=()=>res(fr.result);fr.onerror=()=>rej(new Error("No se pudo leer imagen."));fr.readAsDataURL(file)});if(!/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/.test(dataURL))throw Error("Imagen no reconocida; utiliza PNG, JPG o WebP.");const next=Data.migrate(state);next.config.logoDataUrl=dataURL;await Store.save(next);state=next;draw();notify("Logotipo guardado para la portada y encabezado de ambos PDF.");}catch(e){notify(e.message)}finally{ev.target.value=""}});
 (async()=>{state=await load();try{const imported=await loadPrivateGPT();if(imported&&!imported.unchanged){console.info("Base GPT privada disponible:",imported.students,"estudiantes nuevos,",imported.grades,"notas nuevas.")}}catch(e){console.error("No se pudo cargar la base GPT privada:",e);notify("No se pudo cargar la base GPT local: "+e.message)}ready=true;draw()})().catch(e=>{el("main").textContent="No fue posible iniciar Informetit: "+e.message});
 })();

@@ -1,3 +1,39 @@
+## Correcciones del formato INF — logo institucional y emisión dos meses después del período (28/10/2026)
+
+**Aplicadas directamente a `main`** para los informes presencial y online.
+
+### 1. Logo institucional visible
+
+- Menú nuevo **Logo y códigos INF**, con un panel destacado para **Subir logo institucional**, vista previa y botones **Cambiar logo** y **Quitar logo**.
+- Acceso rápido al mismo panel al inicio de **Dos informes**.
+- Formatos admitidos: PNG, JPG/JPEG y WebP de hasta 2 MB. El logo se almacena como imagen codificada en `config.logoDataUrl` dentro de la base privada local de Electron, se conserva en sus respaldos JSON y se inserta en la portada y encabezado de los dos PDF. No se sube al repositorio ni a Firebase.
+- La aplicación muestra expresamente cuando falta un logo y vuelve a dibujar su vista previa después de guardarlo o eliminarlo.
+
+### 2. Mes del informe y código documental automáticos
+
+- Nuevo motor independiente `document/codigo.js`. Obtiene el **último mes y año del período de la cohorte** y añade **dos meses calendarios**. Así se resuelve correctamente cualquier cambio de año.
+- Para **octubre 2025–marzo 2026**, el mes documental es **mayo de 2026**. El código final siempre termina en **`-2026-05`**, tanto para presencial como online.
+- El **prefijo y consecutivo** siguen siendo propios de la institución y deben confirmarse antes de su uso. Ejemplo, *solo si su prefijo ha sido validado*: `UTET-INF-01-PRO-95` → `UTET-INF-01-PRO-95-2026-05`.
+- La pantalla guarda un prefijo independiente para cada modalidad y presenta ambos códigos derivados. Si se importa un código completo antiguo, el sistema sustituye el año-mes anterior por el calculado y no duplica el sufijo.
+- Cuando el prefijo no se ha confirmado, se muestra **POR ASIGNAR** y una advertencia documental, en lugar de inventar el consecutivo.
+- La fecha real de elaboración permite elegir el día. Mientras esté vacía, el encabezado muestra **mayo de 2026** sin inventar un día. Si se registra una fecha de otro mes, el control documental la señala para revisión.
+- La lógica se aplica tanto a la vista previa como al encabezado y portada del PDF.
+- Se añadieron `tests/identity.test.js` y comprobaciones al comando `npm test`.
+
+### Actualización en Windows
+
+```powershell
+cd D:\Informetit
+git pull origin main
+npm run check
+npm test
+npm start
+```
+
+En la aplicación abre **Logo y códigos INF**, carga tu logo, introduce los prefijos y consecutivos institucionales confirmados (sin escribir el sufijo `2026-05`) y revisa la vista previa desde **Dos informes**.
+
+---
+
 # BLOQUE 08 · CIERRE TÉCNICO DE INFORMETIT — versión 1.2.0 (28/10/2026)
 
 **Integrado en `main`.** Los dos informes institucionales se generan dentro de **Electron**, para octubre 2025–marzo 2026, sin publicar registros personales en GitHub.

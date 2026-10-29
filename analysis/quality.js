@@ -98,11 +98,17 @@ function analyze(state,mode='presencial'){
  if(!planned.length)push('warning','SCHEDULE_EVIDENCE','Ejecución del cronograma','Sin seguimiento de ejecución',
    'Las fechas programadas no prueban que las actividades se realizaron.',
    'Registrar estado de ejecución con su evidencia.');
- const conflicts=(state?.firebaseDiferencias||[]).filter(x=>!x.estado||x.estado==='pendiente')
+ const previousDifferences=(state?.firebaseDiferencias||[]).filter(x=>!x.estado||x.estado==='pendiente')
    .filter(x=>localIds.has(String(x.id)));
- if(conflicts.length)push('warning','FIREBASE_DIFFERENCES','Conciliación Firebase',
-   conflicts.length+' discrepancias','Existen diferencias entre la base local y Firebase.',
-   'Revisar la conciliación de requisitos y población.');
+ if(previousDifferences.length)push('warning','FIREBASE_DIFFERENCES','Histórico de conciliación de fuentes',
+   previousDifferences.length+' discrepancias','Registros previos de conciliación local.',
+   'Revisar el respaldo privado sin volver a consultar otras colecciones institucionales.');
+ const academicConflicts=(state?.firebaseSync?.conflicts||[]).filter(x=>{
+   const cedula=String(x.key||'').split('|')[1];return !cedula||localIds.has(cedula);
+ });
+ if(academicConflicts.length)push('critical','FIREBASE_ACADEMIC_CONFLICTS','Conflictos de sincronización académica',
+   academicConflicts.length+' incidencias','Diferencias no resueltas de notas o actas entre Firebase y la base local.',
+   'Conciliar las dos fuentes y verificar el acta antes de aprobar el informe.',true);
  // Ninguna aprobación calculada equivale a graduación, ni la referencia equivale a acta firmada.
  push('info','OFFICIAL_ENDORSEMENT','Validación institucional','No automática',
   'La app no puede autenticar las actas ni aprobar el informe por la institución.',

@@ -44,6 +44,10 @@ test('a partir de notas verificadas calcula cambios para crear sin tocar otros d
  assert.equal(s.notasBorrador[0].nota,9.4);
  assert.equal(Sync.pending(s).length,1);
 });
+test('las notas sin confirmación explícita no se envían a Firebase',()=>{
+ const s=state();delete s.notas[0].verificado;
+ assert.equal(Sync.localRecords(s).items.size,0);
+});
 test('las notas históricas sin cotejo no se envían a Firebase',()=>{
  const s=state();s.cursosNucleos=[{studentId:'0000000001',curso:'CURSO HISTÓRICO',
   nucleo:1,nota:10,verificado:false}];
@@ -61,6 +65,14 @@ test('examen con referencia de acta se envía a complexivos; sin acta no se env�
  assert.doesNotThrow(()=>Fire.validateRecord('complexivos',exam.record));
  s.evaluaciones[0].actaOrdinario='';
  assert.equal(Sync.localRecords(s).items.size,1);
+});
+test('un examen con número de acta pero sin cotejo explícito no se publica',()=>{
+ const s=state();
+ s.evaluaciones=[{studentId:'0000000001',tipo:'complexivo',
+  ordinario:{teoria:8,practica:9,asistencia:'presentado'},
+  supletorio:{teoria:null,practica:null,notaFinal:null,asistencia:'pendiente'},
+  actaOrdinario:'ACTA-01',actaSupletorio:''}];
+ assert.equal([...Sync.localRecords(s).items.values()].filter(x=>x.collection==='complexivos').length,0);
 });
 test('un estudiante sin mecanismo clasificado no se publica como Complexivo',()=>{
  const s=state();s.estudiantes[0].tipoTitulacion='sin_definir';

@@ -14,7 +14,8 @@ const svgStart=(name,w,h)=>'<svg xmlns="http://www.w3.org/2000/svg" role="img" a
 function bones(data={}){
  const r=data.requirements||{},c=data.cierre?.counts||{},q=data.quality||{},state=data.state||{};
  const unclassified=c.unclassified??0;
- const provisional=(state.notasBorrador||[]).filter(x=>['PROVISIONAL_POR_CONCILIAR','PROVISIONAL','BORRADOR'].includes(String(x.estado||x.status||'').toUpperCase())).length;
+ const ids=new Set((state.estudiantes||[]).filter(s=>s.modalidad===data.mode).map(s=>String(s.id)));
+ const provisional=(state.notasBorrador||[]).filter(x=>ids.has(String(x.studentId))&&/provisional|borrador/i.test(String(x.estado||x.status||''))).length;
  const blocks=[
   ['Requisitos',(r.notComplete9??0)+' casos por revisar'],
   ['Mecanismo',unclassified+' sin clasificar'],
@@ -44,7 +45,8 @@ function bones(data={}){
 function foda(data={}){
  const r=data.requirements||{},c=data.cierre?.counts||{},q=data.quality||{},state=data.state||{};
  const total=r.total||0,complete=r.complete9||0,unclassified=c.unclassified||0;
- const preliminary=(state.notasBorrador||[]).filter(x=>/provisional|borrador/i.test(String(x.estado||x.status||''))).length;
+ const ids=new Set((state.estudiantes||[]).filter(s=>s.modalidad===data.mode).map(s=>String(s.id)));
+ const preliminary=(state.notasBorrador||[]).filter(x=>ids.has(String(x.studentId))&&/provisional|borrador/i.test(String(x.estado||x.status||''))).length;
  const quadrants=[
   {x:20,y:32,key:'F',label:'FORTALEZAS',shade:'#f0f6fb',lines:[
     total+' estudiantes identificados en la cohorte',
@@ -128,11 +130,11 @@ function render(state,mode,data,{Table,Figure,H,para,F,P}){
  out+=H(3,'9.2. Diagrama de Ishikawa');
  out+=para('El diagrama presenta factores que deben verificarse para concluir el proceso; expresa líneas de investigación, no causalidad demostrada.');
  out+=Figure('Diagrama de Ishikawa: ámbitos de verificación del proceso',[['Control',1]],{
-   diagramSvg:bones({requirements:r,cierre:c,quality:q,state}),note:'Se muestran indicadores de la base local; son factores de revisión y no causas comprobadas'});
+   diagramSvg:bones({requirements:r,cierre:c,quality:q,state,mode}),note:'Se muestran indicadores de la base local; son factores de revisión y no causas comprobadas'});
  out+=H(3,'9.3. Matriz FODA');
  out+=para('Las fortalezas y debilidades expresan observaciones disponibles. Las oportunidades y amenazas describen posibles acciones y riesgos institucionales, no hechos ya sucedidos.');
  out+=Figure('Matriz FODA: análisis interno y externo del proceso de titulación',[['Control',1]],{
-   diagramSvg:foda({requirements:r,cierre:c,quality:q,state}),note:'Matriz de cuatro cuadrantes; datos de la cohorte y oportunidades o riesgos propuestos'});
+   diagramSvg:foda({requirements:r,cierre:c,quality:q,state,mode}),note:'Matriz de cuatro cuadrantes; datos de la cohorte y oportunidades o riesgos propuestos'});
  out+=H(3,'9.4. Árbol de Población y Resultados');
  out+=para('El árbol conserva denominadores reales y distingue resultados por mecanismo, requisitos completos y clasificación pendiente. El valor cero corresponde a un recuento real solo si existe una población y registros evaluables.');
  out+=Figure('Árbol de clasificación de la cohorte y sus resultados',[['Control',1]],{

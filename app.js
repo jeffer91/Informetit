@@ -384,7 +384,7 @@ function evaluations(){
      +numberInput("eval-sup-two","Práctica · 60 %",record?.supletorio.practica)
      +numberInput("eval-rescue","Nota final expresa del acta",record?.supletorio.notaFinal)
      +inputText("eval-sup-source","Acta de supletorio",record?.actaSupletorio)
-     +'</div>';
+     +'</div><label class="field"><input type="checkbox" id="eval-acta-cotejada"'+(record?.actaCotejada?' checked':'')+'> Confirmo que cotejé las actas originales y sus calificaciones. Solo así se permite sincronizarlas con Firebase.</label>';
    out+='<div class="actions block"><button class="btn" data-action="preview-eval">Calcular y revisar</button>'
      +'<button class="btn primary" data-action="save-eval">Guardar evaluación</button></div>';
    out+='<p class="hint">Un ordinario insuficiente sin supletorio permanece pendiente de recuperación. Solo se declara reprobación definitiva cuando existe una nota supletoria inferior a 7,00. Las referencias de acta respaldan los resultados, pero no generan firmas electrónicas.</p>';
@@ -1027,7 +1027,8 @@ async function action(code){switch(code){case"student-file":el("student-file").c
    ordAsistencia:el("eval-ord-att")?.value||"pendiente",supTeoria:el("eval-sup-one")?.value,
    supPractica:el("eval-sup-two")?.value,supFinal:el("eval-rescue")?.value,
    supAsistencia:el("eval-sup-att")?.value||"pendiente",
-   actaOrdinario:el("eval-source")?.value,actaSupletorio:el("eval-sup-source")?.value};
+   actaOrdinario:el("eval-source")?.value,actaSupletorio:el("eval-sup-source")?.value,
+   actaCotejada:!!el("eval-acta-cotejada")?.checked};
  try{
    const planned=window.InformetitComplexivo.upsert(state,id,i,today());
    if(code==="preview-eval"){

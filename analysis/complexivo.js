@@ -272,7 +272,7 @@ function renderReport(data,{Table,Figure,H,para,F,P}){
     ['Casos con advertencias',data.issues.length]],
    'La presencia de una referencia no verifica el documento ni equivale a su aprobación formal; los cálculos sin acta permanecen en borrador');
  }
- out+=H(3,'7.6. Interpretación y límites');
+ out+=H(3,data.source==='sin_nomina'?'7.2. Interpretación y límites':'7.6. Interpretación y límites');
  out+=para('El cumplimiento de requisitos, las notas de los núcleos estructurantes y los estados CUMPLE/NO CUMPLE en Firebase no sustituyen el resultado del Examen Complexivo. Las cifras de aprobación se calculan únicamente desde los componentes teórico y práctico o desde la nota de recuperación registrada en las actas.');
  out+=para('Las referencias de actas son datos declarados, no documentos autenticados. Para cerrar esta fase como definitiva se requiere comprobar la totalidad de las actas ordinarias y supletorias, resolver duplicados, registrar las inasistencias e identificar de forma explícita a quienes siguen pendientes.');
  return out;

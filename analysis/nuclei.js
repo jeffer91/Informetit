@@ -164,7 +164,9 @@ function renderReport(dataset,helpers){
   ['Carrera','Est. Complexivo','Núcleo 1','Núcleo 2','Núcleo 3','Núcleo 4'],coverageRows,
   'En cada núcleo: registros / media. Nom. indica datos individuales; Word indica resumen agregado no nominativo. La cobertura nominal no se infiere de agregados');
  out+=H(3,'5.2. Resultados detallados por carrera');
- dataset.careers.forEach((c,index)=>{
+ const detailCareers=dataset.careers.filter(c=>dataset.individual||c.nuclei.some(n=>n.summary.n>0));
+ if(!detailCareers.length)out+=para('No hay resultados académicos de núcleos para desarrollar cuadros por carrera en esta modalidad. El cuadro de cobertura anterior identifica todos los vacíos sin generar capítulos repetitivos.');
+ detailCareers.forEach((c,index)=>{
    out+=H(3,'5.2.'+(index+1)+'. '+c.name);
    out+=para(careerNarrative(c));
    const overview=c.nuclei.map(n=>[ 'Núcleo '+n.number,

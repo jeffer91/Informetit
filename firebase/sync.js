@@ -35,15 +35,16 @@ const isPending=note=>['PROVISIONAL','SIMULADO','ESTIMADO','BORRADOR','SIN VERIF
  .includes(normalize(note.status||note.estado));
 function localRecords(state){
  const students=new Map((state.estudiantes||[]).map(s=>[v(s.id),s]));
- const result=new Map(),issues=[];
+ const result=new Map(),issues=[],duplicateKeys=new Set();
  const add=(collection,record,origin)=>{
   if(!record)return;
   const key=identity(collection,record);
+  if(duplicateKeys.has(key))return;
   if(result.has(key)){
    const previous=result.get(key);
    if(signature(previous.record)!==signature(record)){
     issues.push({kind:'duplicate',collection,key,reason:'Dos registros locales distintos para la misma evaluación'});
-    result.delete(key);
+    result.delete(key);duplicateKeys.add(key);
    }
   }else result.set(key,{collection,key,id:docId(collection,record),record,origin});
  };
@@ -170,7 +171,7 @@ function plan(local,remote){
  const snapshot=remoteSnapshot(remote);
  const l=localRecords(local),studentById=new Map((local.estudiantes||[]).map(s=>[v(s.id),s]));
  const stored=fields(local.firebaseSync?.baseline);
- const blockedKeys=new Set(snapshot.blocked.map(x=>x.key));
+ const blockedKeys=new Set([...snapshot.blocked,...l.issues].map(x=>x.key));
  const pull=[],push=[],same=[],conflicts=[...snapshot.blocked,...l.issues],foreign=[];
  const keys=new Set([...l.items.keys(),...snapshot.items.keys()]);
  for(const key of keys){
@@ -209,7 +210,7 @@ function plan(local,remote){
 }
 function applyPull(local,assessment){
  const next=G().migrate(local),baseline={...fields(next.firebaseSync?.baseline)};
- let added=0,updated=0,conflicts=0;
+ let added=0,updated=0,conflicts=0;const pullConflicts=[];
  const students=new Map(next.estudiantes.map(s=>[v(s.id),s]));
  for(const row of assessment.pull){
   const r=row.record,st=students.get(r.cedula);
@@ -222,7 +223,9 @@ function applyPull(local,assessment){
    if(index<0){items.push(rec);added++}
    else{
     const prior=items[index];
-    if(destination==='cursosNucleos'&&prior.verificado!==true||isPending(prior)){conflicts++;continue}
+    if((destination==='cursosNucleos'&&prior.verificado!==true)||isPending(prior)){
+     conflicts++;pullConflicts.push({collection:row.collection,key:row.key,reason:'Existe un registro local sin cotejar; se conserva y se solicita conciliación antes de recibir Firebase'});continue;
+    }
     items[index]={...prior,...rec};updated++;
    }
    next[destination]=items;
@@ -235,11 +238,11 @@ function applyPull(local,assessment){
   baseline[row.key]={signature:signature(r),updateTime:row.updateTime,documentId:row.id};
  }
  for(const row of assessment.same)baseline[row.key]={signature:row.signature,updateTime:row.updateTime};
- next.firebaseSync={...next.firebaseSync,baseline,conflicts:assessment.conflicts,
+ next.firebaseSync={...next.firebaseSync,baseline,conflicts:[...assessment.conflicts,...pullConflicts],
   lastPull:new Date().toISOString()};
  next.auditoria.push({tipo:'firebase_sync_pull',fecha:new Date().toISOString(),
   colecciones:[...COLLECTIONS],agregados:added,actualizados:updated,conflictos:assessment.conflicts.length+conflicts});
- return {next,stats:{added,updated,conflicts}};
+ return {next,stats:{added,updated,conflicts},conflicts:pullConflicts};
 }
 function applyWriteSuccess(local,successes){
  const next=G().migrate(local),baseline={...fields(next.firebaseSync?.baseline)};

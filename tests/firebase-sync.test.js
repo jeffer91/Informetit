@@ -94,6 +94,17 @@ test('importa calificaciones de Firebase únicamente para cédulas de la nómina
  const unknown={...row,cedula:'0000000002'};
  assert.equal(Sync.plan(s,remote([firebaseDoc('nucleos',unknown)])).stats.unmatched,1);
 });
+test('no sobrescribir curso provisional con Firebase y mostrar conflicto para resolución',()=>{
+ const s=state();s.notas=[];
+ s.cursosNucleos=[{studentId:'0000000001',curso:'Módulo A',nucleo:1,nota:6,verificado:false,estado:'provisional_por_conciliar'}];
+ const record={...Sync.localRecords(state()).items.values().next().value.record,curso:'Módulo A'};
+ const p=Sync.plan(s,remote([firebaseDoc('nucleos',record)]));
+ const pulled=Sync.applyPull(s,p);
+ assert.equal(pulled.stats.conflicts,1);
+ assert.equal(pulled.next.cursosNucleos[0].nota,6);
+ assert.equal(pulled.next.firebaseSync.conflicts.length,1);
+ assert.equal(pulled.next.firebaseSync.baseline[p.pull[0].key],undefined);
+});
 test('coincidencias no duplican las notas ni generan escrituras',()=>{
  const s=state(),row=[...Sync.localRecords(s).items.values()][0];
  const p=Sync.plan(s,remote([firebaseDoc('nucleos',row.record)]));
@@ -101,6 +112,15 @@ test('coincidencias no duplican las notas ni generan escrituras',()=>{
  const next=Sync.applyPull(s,p).next;
  assert.equal(next.notas.length,1);
  assert.ok(next.firebaseSync.baseline[row.key].updateTime);
+});
+test('notas locales duplicadas y contradictorias quedan bloqueadas sin recibir versiones externas',()=>{
+ const s=state();s.notas.push({...s.notas[0],nota:5});
+ const key=[...Sync.localRecords(state()).items.keys()][0];
+ const r=[...Sync.localRecords(state()).items.values()][0].record;
+ const plan=Sync.plan(s,remote([firebaseDoc('nucleos',r)]));
+ assert.equal(plan.pull.length,0);
+ assert.equal(plan.push.length,0);
+ assert.ok(plan.conflicts.some(x=>x.key===key));
 });
 test('nota diferente sin línea base no se sobreescribe',()=>{
  const s=state(),row=[...Sync.localRecords(s).items.values()][0];

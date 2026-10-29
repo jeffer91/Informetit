@@ -759,7 +759,7 @@ async function syncNow({auto=false}={}){
    }
   }
   if(successes.length)state=F.applyWriteSuccess(state,successes);
-  state.firebaseSync.conflicts=[...assessment.conflicts,...assessment.foreign,...failures];
+  state.firebaseSync.conflicts=[...assessment.conflicts,...assessment.foreign,...pulled.conflicts,...failures];
   state.firebaseSync.lastError=failures.length?failures.length+' escrituras pendientes por revisión':'';
   state.firebaseSync.pending=F.pending(state).map(x=>({key:x.key,collection:x.collection}));
   await Store.save(state);

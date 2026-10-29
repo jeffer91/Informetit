@@ -132,12 +132,13 @@ test('nómina completa con cuatro notas tiene cero pendientes',()=>{
  assert.equal(c.pendingStudents.length,0);
  assert.equal(c.individualWithAllNotes,1);
 });
-test('informe presencial incorpora tablas por núcleo y un cuadro aparte de pendientes nominales',()=>{
+test('informe presencial contiene cuatro apartados nominales y consolidado por carrera',()=>{
  const s=state();s.notas=[{studentId:'0000000001',nucleo:1,nota:8.2}];
  const html=window.InformetitFullReport.makeReport(s,'presencial');
  for(const text of ['5. Fase II. Resultados de núcleos estructurantes',
- 'Calificaciones por estudiante y núcleo','Seguimiento de calificaciones faltantes',
- 'Distribución de calificaciones','ESTUDIANTE DE PRUEBA','5.3. Interpretación']){
+ '5.2.1.1. Núcleo 1','5.2.1.2. Núcleo 2','5.2.1.3. Núcleo 3',
+ '5.2.1.4. Núcleo 4','5.2.1.5. Consolidado de Enfermería',
+ 'Estudiantes y notas','Distribución de calificaciones','ESTUDIANTE DE PRUEBA','5.3. Interpretación']){
   assert.ok(html.includes(text),text);
  }
  assert.match(html,/8,20/);
@@ -145,17 +146,54 @@ test('informe presencial incorpora tablas por núcleo y un cuadro aparte de pend
 });
 test('PDF agregado no muestra notas individuales de estudiantes que no estén disponibles',()=>{
  const html=window.InformetitFullReport.makeReport(M.empty(),'presencial');
- assert.match(html,/estadística agregada/);
+ assert.match(html,/estadísticas agregadas/);
  assert.doesNotMatch(html,/ESTUDIANTE DE PRUEBA/);
- assert.doesNotMatch(html,/Calificaciones por estudiante y núcleo/);
+ assert.doesNotMatch(html,/ESTUDIANTE DE PRUEBA/);
  assert.match(html,/19 combinaciones carrera/);
+});
+test('estructura Enfermería mantiene N1, N2, N3, N4 y consolidado en ese orden con la nómina completa',()=>{
+ const s=state();
+ s.estudiantes.push(student('0000000002','SEGUNDO ESTUDIANTE'));
+ s.notas=[{studentId:'0000000001',nucleo:1,nota:8},{studentId:'0000000001',nucleo:2,nota:9},
+  {studentId:'0000000001',nucleo:3,nota:7},{studentId:'0000000001',nucleo:4,nota:10}];
+ const html=window.InformetitFullReport.makeReport(s,'presencial');
+ const names=['Núcleo 1','Núcleo 2','Núcleo 3','Núcleo 4','Consolidado de Enfermería'];
+ let last=-1;
+ for(let i=0;i<names.length;i++){
+  const tag='5.2.1.'+(i+1)+'. '+names[i],pos=html.indexOf(tag);
+  assert.ok(pos>last,'Falta el orden '+tag);last=pos;
+ }
+ for(let i=1;i<=4;i++){
+  const from=html.indexOf('5.2.1.'+i+'. Núcleo '+i),end=html.indexOf('5.2.1.'+(i+1)+'.');
+  const body=html.slice(from,end);
+  assert.match(body,/Estudiantes y notas/);
+  assert.match(body,/0000000001/);
+  assert.match(body,/0000000002/);
+  assert.match(body,/Cobertura por estado/);
+  assert.match(body,/Pendiente/);
+ }
+ assert.match(html,/Consolidado nominal de cuatro núcleos/);
+ assert.match(html,/8,50/);
+ assert.match(html,/Incompleto/);
+ assert.match(html,/Comparación de medias nominales/);
+});
+test('el consolidado no calcula media si falta algún núcleo o existe conflicto',()=>{
+ const s=state();s.notas=[{studentId:'0000000001',nucleo:1,nota:8},
+  {studentId:'0000000001',nucleo:2,nota:9},
+  {studentId:'0000000001',nucleo:3,nota:10}];
+ const html=window.InformetitFullReport.makeReport(s,'presencial');
+ const idx=html.indexOf('Consolidado nominal de cuatro núcleos');
+ const excerpt=html.slice(idx,idx+2800);
+ assert.match(excerpt,/Pendiente/);
+ assert.match(excerpt,/Incompleto/);
+ assert.doesNotMatch(excerpt,/9,00<\/td>/);
 });
 test('el cronograma de cuatro núcleos se conserva como planificación, no como ejecución',()=>{
  const html=window.InformetitFullReport.makeReport(M.empty(),'presencial');
  assert.match(html,/Cronograma planificado de los núcleos estructurantes/);
  assert.match(html,/30\/03\/2026/);
  assert.match(html,/18\/04\/2026/);
- assert.match(html,/no prueban por sí solas/);
+ assert.match(html,/no es evidencia de aprobación/);
 });
 test('media inferior a 7 en un núcleo no declara reprobado el complexivo',()=>{
  const s=state();s.notas=[{studentId:'0000000001',nucleo:1,nota:5.5}];

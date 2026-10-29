@@ -49,8 +49,9 @@ test('los borradores Word no se vuelven notas oficiales y cursos cotejados apare
 });
 test('el informe completo no sustituye tablas individuales por el consolidado',()=>{
  const html=global.InformetitFullReport.makeReport(sample(),'presencial');
- const required=['5.4. Resultados individuales por curso','Calificaciones individuales',
-  '5.5. Registros provisionales','7.7. Desarrollo analítico por carrera',
+ const required=['5.2.1.1. Núcleo 1','5.2.1.5. Consolidado de Enfermería',
+  'Estudiantes y notas','Notas provisionales por cotejar','Curso de control',
+  '7.7. Desarrollo analítico por carrera',
   'Examen ordinario individual','Examen supletorio individual','Resultados definitivos',
   '12. Plan de Mejora','13.5. Matrices nominales','14. Referencias Bibliográficas',
   '9. Resumen Ejecutivo','Matriz FODA','Árbol de clasificación','BORRADOR SIN VALIDAR'];
@@ -60,6 +61,26 @@ test('el informe completo no sustituye tablas individuales por el consolidado',(
  assert.ok(html.indexOf('10. Conclusiones')<html.indexOf('12. Plan de Mejora'));
  assert.match(html,/body>h2\{break-before:page/);
  assert.match(html,/apa-ref/);
+});
+test('los cursos oficiales y provisionales se ubican solo bajo su núcleo y no en capítulos duplicados',()=>{
+ const s=sample(),html=global.InformetitFullReport.makeReport(s,'presencial');
+ const n1=html.indexOf('5.2.1.1. Núcleo 1'),n2=html.indexOf('5.2.1.2. Núcleo 2');
+ const sub=html.slice(n1,n2);
+ assert.match(sub,/Curso de control/);
+ assert.match(sub,/Notas provisionales por cotejar/);
+ assert.match(sub,/ESTUDIANTE DOS/);
+ assert.doesNotMatch(html,/5\.4\. Resultados individuales por curso/);
+ assert.doesNotMatch(html,/5\.5\. Registros provisionales/);
+});
+test('un curso histórico sin núcleo homologado queda en consolidado sin convertirlo en N1-N4',()=>{
+ const s=sample();
+ s.cursosNucleos.push({studentId:'0000000001',nucleo:0,curso:'Materia histórica',nota:8.7,
+  docente:'DOCENTE ANTIGUO',verificado:true});
+ const html=global.InformetitFullReport.makeReport(s,'presencial');
+ const end=html.indexOf('5.2.1.5. Consolidado de Enfermería');
+ assert.doesNotMatch(html.slice(html.indexOf('5.2.1.1. Núcleo 1'),end),/Materia histórica/);
+ assert.match(html.slice(end,html.indexOf('5.3. Interpretación general')),/Materia histórica/);
+ assert.match(html,/sin núcleo homologado/);
 });
 test('Ishikawa, FODA y árbol usan cifras de la base y no valores decorativos',()=>{
  const s=sample(),r=global.InformetitRequirements.analyze(s,'presencial'),

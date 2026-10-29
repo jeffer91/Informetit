@@ -163,7 +163,7 @@ test('los anexos muestran discrepancias de fuentes sin modificar la base origina
 test('las tablas nominales incluyen estudiantes de ambos mecanismos aunque las notas estén vacías',()=>{
  const a=withNominal();
  const html=window.InformetitFullReport.makeReport(a,'presencial');
- assert.match(html,/Calificaciones por estudiante y núcleo/);
+ assert.match(html,/Consolidado nominal de cuatro núcleos/);
  assert.match(html,/Ordinario, supletorio y resultado definitivo/);
  assert.match(html,/Calificaciones del proyecto y defensa/);
  const work=html.slice(html.lastIndexOf('Calificaciones del proyecto y defensa'),html.lastIndexOf('Calificaciones del proyecto y defensa')+5500);

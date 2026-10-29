@@ -158,10 +158,10 @@ test('las tablas nominales incluyen estudiantes de ambos mecanismos aunque las n
  assert.match(html,/Calificaciones finales nominales/);
  assert.match(html,/Ordinario, supletorio y resultado definitivo/);
  assert.match(html,/Calificaciones del proyecto y defensa/);
- const work=html.slice(html.indexOf('Calificaciones del proyecto y defensa'),html.indexOf('Calificaciones del proyecto y defensa')+2200);
+ const work=html.slice(html.lastIndexOf('Calificaciones del proyecto y defensa'),html.lastIndexOf('Calificaciones del proyecto y defensa')+5500);
  assert.match(work,/0000000002/);
  assert.match(work,/—/);
- const exam=html.slice(html.indexOf('Ordinario, supletorio y resultado definitivo'),html.indexOf('Ordinario, supletorio y resultado definitivo')+2400);
+ const exam=html.slice(html.lastIndexOf('Ordinario, supletorio y resultado definitivo'),html.lastIndexOf('Ordinario, supletorio y resultado definitivo')+5500);
  assert.match(exam,/0000000001/);
  assert.match(exam,/—/);
 });

@@ -40,8 +40,8 @@ function build(value,period){
    reason:v.reason};
 }
 function forMode(state,mode){
- const c=state?.config||{},field=mode==='online'?'codigoOnline':'codigoPresencial';
- return build(c[field],state?.periodo||'Octubre 2025 - Marzo 2026');
+ const authorized=mode==='online'?'UTET-INF-02-PRO-95':'UTET-INF-01-PRO-95';
+ return build(authorized,state?.periodo||'Octubre 2025 - Marzo 2026');
 }
 root.InformetitCodigo=Object.freeze({MONTHS,end,issuance,prefix,validity,build,forMode});
 if(typeof module==='object'&&module.exports)module.exports=root.InformetitCodigo;

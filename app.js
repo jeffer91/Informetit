@@ -594,7 +594,7 @@ function identityPanel(compactView=false){
   ];
   out+='<div class="identity-fields">'+configs.map(([id,label,value,placeholder])=>
    '<label class="field">'+h(label)+'<input class="control" data-code-prefix="'+h(id)+'" value="'+h(value)+
-   '" placeholder="'+h(placeholder)+'"></label>').join('')+
+   '" placeholder="'+h(placeholder)+'" disabled aria-readonly="true"></label>').join('')+
    '<label class="field">Fecha real de elaboración (día del mes previsto)<input type="date" class="control" data-config="fechaElaboracion" value="'+h(state.config.fechaElaboracion||'')+'"></label>'+
    '<label class="field">Versión del documento<input class="control" data-config="version" value="'+h(state.config.version||'1.0')+'"></label></div>'+
    '<p class="hint">Escribe solo el prefijo del código; Informetit añadirá <b>-'+h(month.stamp)+

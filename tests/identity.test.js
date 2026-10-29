@@ -37,7 +37,7 @@ test('el código online conserva un prefijo independiente',()=>{
  const s=M.empty();s.config.codigoPresencial='UTET-INF-01-PRO-95';
  s.config.codigoOnline='UTET-INF-04-PRO-95';
  assert.equal(D.fields(s,'presencial').code,'UTET-INF-01-PRO-95-2026-05');
- assert.equal(D.fields(s,'online').code,'UTET-INF-04-PRO-95-2026-05');
+ assert.equal(D.fields(s,'online').code,'UTET-INF-02-PRO-95-2026-05');
 });
 test('no inventa consecutivo ni proceso cuando faltan prefijos institucionales',()=>{
  const s=M.empty();

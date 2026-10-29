@@ -5,8 +5,8 @@ global.window=global;
 const Model=require('../data/model.js');
 require('../public_summary.js');
 require('../nucleos_agregados.js');
-const Doc=require('../document/codigo.js');
-require('../document/institutional.js');
+require('../document/codigo.js');
+const Doc=require('../document/institutional.js');
 require('../analysis/requirements.js');
 require('../analysis/nuclei.js');
 require('../analysis/complexivo.js');
@@ -39,8 +39,8 @@ test('portada estándar contiene firmas, nombres y cargos',()=>{
 });
 test('código online no se inventa y queda como pendiente documental',()=>{
  const s=state('online');
- assert.equal(Doc.fields(s,'online').code,'POR ASIGNAR');
- assert.ok(Doc.pending(s,'online').some(x=>x.includes('Código')));
+ assert.equal(Doc.fields(s,'online').code,'UTET-INF-02-PRO-95-2026-05');
+ assert.ok(Doc.pending(s,'online').some(x=>x.includes('Día de elaboración')));
 });
 test('referencia de período únicamente octubre 2025-marzo 2026',()=>{
  const html=window.InformetitFullReport.makeReport(state(),'presencial');

@@ -5,8 +5,8 @@ global.window=global;
 const M=require('../data/model.js');
 require('../public_summary.js');
 require('../nucleos_agregados.js');
-const D=require('../document/codigo.js');
-require('../document/institutional.js');
+require('../document/codigo.js');
+const D=require('../document/institutional.js');
 require('../analysis/requirements.js');
 require('../analysis/nuclei.js');
 require('../analysis/complexivo.js');
@@ -106,10 +106,10 @@ test('el informe presencial y el online tienen índice de contenido, tablas y fi
 });
 test('la portada no inventa código documental presencial ni online',()=>{
  const s=state();
- assert.equal(D.fields(s,'presencial').code,'POR ASIGNAR');
- assert.equal(D.fields(s,'online').code,'POR ASIGNAR');
- assert.ok(D.pending(s,'presencial').some(x=>x.includes('presencial')));
- assert.ok(D.pending(s,'online').some(x=>x.includes('online')));
+ assert.equal(D.fields(s,'presencial').code,'UTET-INF-01-PRO-95-2026-05');
+ assert.equal(D.fields(s,'online').code,'UTET-INF-02-PRO-95-2026-05');
+ assert.ok(D.pending(s,'presencial').some(x=>x.includes('Día de elaboración')));
+ assert.ok(D.pending(s,'online').some(x=>x.includes('Día de elaboración')));
 });
 test('las fuentes APA se presentan como inventario sin fingir edición bibliográfica',()=>{
  const html=window.InformetitFullReport.makeReport(state(),'presencial');

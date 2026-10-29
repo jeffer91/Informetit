@@ -180,10 +180,15 @@ function renderReport(dataset,helpers){
    for(const n of c.nuclei){
      out+=para('Núcleo '+n.number+'. '+narrative(c,n));
      if(dataset.individual){
+       const nominalRows=[
+         ...n.entries.map(x=>[x.name,x.id,v(x.grade),x.source,'Registrada']),
+         ...n.pending.map(x=>[x.name,x.id,'—','Sin calificación','Pendiente']),
+         ...n.unresolved.map(x=>[x.name,x.id,'—','Sin calificación','Conflicto por resolver'])
+       ].sort((x,y)=>x[0].localeCompare(y[0],'es')||x[1].localeCompare(y[1]));
        out+=Table('Calificaciones finales nominales — '+c.name+' — Núcleo '+n.number,
-         ['Estudiante','Cédula','Calificación final','Fuente'],
-         n.entries.map(x=>[x.name,x.id,v(x.grade),x.source]),
-         'Solo estudiantes de Complexivo con calificación individual disponible; la ausencia de una nota no se representa como cero');
+         ['Estudiante','Cédula','Calificación final','Fuente','Estado'],
+         nominalRows,
+         'Se incluyen TODOS los estudiantes de Complexivo de la carrera. Las notas no cargadas se dejan vacías (—) y se identifican como pendientes o en conflicto, nunca como cero');
      }
      if(n.summary.source==='individual'){
        out+=Table('Distribución de calificaciones — '+c.name+' — Núcleo '+n.number,

@@ -124,6 +124,8 @@ function analyze(state,mod){
   }
   // Las notas del Word permanecen provisionales: nunca se promocionan automáticamente al consolidado oficial.
   // Deben conciliarse con Moodle y guardarse en notas con evidencia de validación.
+  // Para conservar compatibilidad: las notas Word previamente aceptadas (sin estado provisional) se mantienen.
+  for(const g of state.notasBorrador||[])if(!['PROVISIONAL','PROVISIONAL POR CONCILIAR','SIN VERIFICAR','BORRADOR'].includes(key(g.estado||g.status)))admit(g,'word');
   const notes=[...index.values()].sort((a,b)=>career(a.carrera).localeCompare(career(b.carrera))||a.nucleo-b.nucleo||a.studentId.localeCompare(b.studentId));
   const conflicts=[...new Set([...unresolved,...contradictory])];
   const byNucleus=new Map();

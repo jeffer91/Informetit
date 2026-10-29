@@ -25,7 +25,7 @@ test('migración v1 preserva estudiantes y notas y asigna Complexivo por defecto
  const migrated=Model.migrate(old);
  assert.equal(migrated.version,2);
  assert.equal(migrated.estudiantes[0].id,'0123456789');
- assert.equal(migrated.estudiantes[0].tipoTitulacion,'complexivo');
+ assert.equal(migrated.estudiantes[0].tipoTitulacion,'sin_definir');
  assert.equal(migrated.estudiantes[1].tipoTitulacion,'trabajo');
  assert.equal(migrated.notas.length,1);
 });

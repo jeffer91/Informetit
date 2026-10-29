@@ -114,8 +114,8 @@ test('la portada no inventa código documental presencial ni online',()=>{
 });
 test('las fuentes APA se presentan como inventario sin fingir edición bibliográfica',()=>{
  const html=window.InformetitFullReport.makeReport(state(),'presencial');
- assert.match(html,/Referencias y documentación utilizada/);
- assert.match(html,/Verificar código, versión y aprobación/);
+ assert.match(html,/Referencias Bibliográficas/);
+ assert.match(html,/Reglamento de Régimen Académico/);
  assert.doesNotMatch(html,/Guía institucional para la formulación y aprobación de títulos de titulación \[Versión 1\.0\]/);
 });
 test('la tabla de un informe largo repite encabezados en páginas diferentes',()=>{

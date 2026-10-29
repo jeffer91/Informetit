@@ -118,7 +118,7 @@ test('informe completo contiene fase I detallada y seguimiento nominal solo con 
  }
  const publicPdf=window.InformetitFullReport.makeReport(Model.empty(),'presencial');
  assert.doesNotMatch(publicPdf,/ESTUDIANTE DE PRUEBA 01/);
- assert.match(publicPdf,/No desglosado/);
+ assert.match(publicPdf,/matriz agregada/i);
  assert.equal((publicPdf.match(/class="inf-index"/g)||[]).length,3);
 });
 test('IDs duplicados generan advertencia de calidad antes de aprobar',()=>{

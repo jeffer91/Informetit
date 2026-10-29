@@ -14,15 +14,21 @@ function analyze(state,mode='presencial'){
   referenced:r.verified})),...t.entries.map(r=>({id:r.id,name:r.name,career:r.career,
   key:r.key,mechanism:'trabajo',status:r.status,grade:r.grade,
   referenced:!!r.record?.actaReferenced}))];
+ const unclassified=students.filter(st=>!['complexivo','trabajo'].includes(st.tipoTitulacion)).map(st=>({
+  id:st.id,name:st.nombre,career:st.carrera,key:M().career(st.carrera),mechanism:'sin_definir',
+  status:'sin_clasificar',grade:null,referenced:false}));
+ all.push(...unclassified);
  const compile=list=>{
   const counts={total:list.length,complexivo:list.filter(r=>r.mechanism==='complexivo').length,
     trabajo:list.filter(r=>r.mechanism==='trabajo').length,
+    unclassified:list.filter(r=>r.mechanism==='sin_definir').length,
     approvedOrdinary:list.filter(r=>r.status==='aprobado_ordinario').length,
     approvedRescue:list.filter(r=>r.status==='aprobado_supletorio').length,
     failed:list.filter(r=>r.status==='reprobado').length,
     absent:list.filter(r=>r.status.startsWith('no_presentado')).length,
     duplicate:list.filter(r=>r.status==='conflicto_duplicado').length,
     pending:list.filter(r=>['pendiente','supletorio_pendiente'].includes(r.status)).length,
+    withoutMechanism:list.filter(r=>r.status==='sin_clasificar').length,
     referenced:list.filter(r=>r.referenced&&r.grade!==null).length};
   counts.approved=counts.approvedOrdinary+counts.approvedRescue;
   counts.calculatedRate=percent(counts.approved,counts.total);
@@ -51,6 +57,7 @@ function renderReport(d,{Table,Figure,H,para}){
     d.complexivo.counts.noPresentado,d.complexivo.counts.pending,d.complexivo.counts.duplicate],
   ['Trabajo de Titulación',d.trabajo.counts.eligible,d.trabajo.counts.approved,d.trabajo.counts.failed,
     d.trabajo.counts.noPresented,d.trabajo.counts.pending,d.trabajo.counts.duplicates],
+  ['Mecanismo por clasificar',c.unclassified,0,0,0,c.unclassified,0],
   ['Total cohorte',c.total,c.approved,c.failed,c.absent,c.pending,c.duplicate]
  ],'Estados académicos calculados; no certifican incorporación, actas autenticadas ni emisión de títulos');
  out+=Table('Indicadores integrados de cierre de evaluación',
@@ -61,12 +68,13 @@ function renderReport(d,{Table,Figure,H,para}){
   ['Reprobados después de evaluación supletoria',c.failed,pct(percent(c.failed,c.total))],
   ['No presentados declarados',c.absent,pct(percent(c.absent,c.total))],
   ['Pendientes de resultados completos',c.pending,pct(percent(c.pending,c.total))],
+  ['Sin mecanismo definido',c.unclassified,pct(percent(c.unclassified,c.total))],
   ['Registros duplicados o en conflicto',c.duplicate,pct(percent(c.duplicate,c.total))],
   ['Notas finales con referencia de acta',c.referenced,pct(percent(c.referenced,c.total))]
  ],'Tasa calculada sobre la nómina local de la modalidad; no equivale a eficiencia terminal ni tasa de graduación');
  out+=Table('Distribución por carrera y mecanismo',
- ['Carrera','Total','Examen Complexivo','Trabajo de Titulación'],
- d.careers.map(x=>[x.name,x.counts.total,x.counts.complexivo,x.counts.trabajo]),
+ ['Carrera','Total','Examen Complexivo','Trabajo de Titulación','Sin clasificar'],
+ d.careers.map(x=>[x.name,x.counts.total,x.counts.complexivo,x.counts.trabajo,x.counts.unclassified]),
  'Distribución según nómina nominal de esta modalidad');
  out+=Table('Estados de evaluación por carrera',
  ['Carrera','Aprobados','Reprobados','Ausentes','Pendientes','Duplicados'],
@@ -76,7 +84,7 @@ function renderReport(d,{Table,Figure,H,para}){
   d.careers.map(x=>[x.name,x.counts.calculatedRate??0]),
   {max:100,percentage:true,decimals:2,
    note:'Porcentaje sobre la nómina de cada carrera. Un 0 % puede representar notas aún no registradas, no reprobación; consultar las tablas.'});
- out+=para('Se dispone de '+c.approved+' aprobaciones calculadas, '+c.failed+' reprobaciones posteriores al proceso supletorio y '+c.pending+
+ out+=para('Se dispone de '+c.approved+' aprobaciones calculadas, '+c.failed+' reprobaciones posteriores al proceso supletorio, '+c.unclassified+' estudiantes sin mecanismo definido y '+c.pending+
   ' casos pendientes, entre '+c.total+' estudiantes. '+c.referenced+
   ' notas finales tienen referencia de acta, sujeta a revisión documental. '+(c.closed?
   'La clasificación académica no contiene estados pendientes o duplicados; falta verificar la documentación institucional de cierre.':

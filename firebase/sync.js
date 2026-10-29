@@ -197,8 +197,8 @@ function plan(local,remote){
   }else if(b){
    pull.push(b);
   }else if(a){
-   if(base&&base.signature===localSig){
-    conflicts.push({collection:a.collection,key,reason:'Documento previamente sincronizado desapareció de Firebase'});continue;
+   if(base){
+    conflicts.push({collection:a.collection,key,reason:'Documento previamente sincronizado desapareció de Firebase; no se recrea automáticamente'});continue;
    }
    push.push({...a,precondition:{mode:'create'}});
   }

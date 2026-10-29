@@ -51,9 +51,9 @@ function render(state,mode,data,{Table,Figure,H,para,F,P}){
  const strength=total?('Matriz agregada identificada; '+complete+' de '+total+' estudiantes con nueve controles completos.'):'No hay datos suficientes para identificar fortalezas cuantitativas.';
  const weakness=important.length?important.map(x=>x.label).slice(0,3).join('; ')+'.':'No se informan incidencias críticas en las fuentes disponibles.';
  out+=Table('Matriz FODA: situación y acciones de mejora',
- ['Fortalezas (evidencia disponible)','Oportunidades (propuestas)'],
- [[strength,'Unificar libros académicos, nóminas y actas mediante controles de trazabilidad.'],
- ['Debilidades o limitaciones observadas: '+weakness,'Amenazas o riesgos potenciales: retrasos de validación documental y emisión de resultados sin respaldo suficiente.']],
+ ['Análisis interno','Análisis externo'],
+ [['Fortalezas: '+strength,'Oportunidades: unificar libros académicos, nóminas y actas mediante controles de trazabilidad.'],
+ ['Debilidades: '+weakness,'Amenazas o riesgos potenciales: retrasos de validación documental y emisión de resultados sin respaldo suficiente.']],
  'Las oportunidades y amenazas son escenarios de gestión; no se presentan como hechos ocurridos');
  out+=H(3,'Árbol de población y resultados');
  out+=para('El árbol muestra la población de referencia y la clasificación individual cuando existe. No se distribuye la cohorte entre mecanismos a partir de estadísticas globales.');

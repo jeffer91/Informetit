@@ -452,7 +452,7 @@ function trabajo(){
   [['pendiente','Por confirmar'],['presentado','Presentado'],['no_presentado','No presentado']].map(x=>
     '<option value="'+x[0]+'"'+(x[0]===value?' selected':'')+'>'+x[1]+'</option>').join('')+'</select></label>';
  let out=head("Trabajo de Titulación",
-  "Actas de grado, tutor, lector, evaluación práctica y defensa por tres vocales.",switcher());
+  "Actas de grado, tutor, lector, evaluación práctica y defensa por tres vocales.",switcher()+'<button class="btn primary" data-action="trabajo-file">Importar listado de proyectos</button>');
  out+='<div class="cards">'
    +card("Estudiantes de proyecto",c.eligible)
    +card("Rúbricas completas",c.complete)
@@ -820,6 +820,42 @@ async function parseGradeAndSave(save){
 function parseRows(rows){let header=rows[0]?.map(compact)||[],field=(r,...keys)=>{for(let k of keys){let j=header.indexOf(compact(k));if(j>=0)return String(r[j]??"").trim()}return ""},result=[];if(!header.includes("NUMEROIDENTIFICACION"))throw Error("Falta la columna numeroIdentificacion.");for(let r of rows.slice(1)){let id=field(r,"numeroIdentificacion");if(!id)continue;let original=field(r,"NombreCarrera"),code=field(r,"CodigoCarrera"),mode=normal(original).endsWith("ONLINE")?"online":/-L-/i.test(code)?"online":"presencial",req={};let aliases={Practicas:["PrácticasVinculacion","PracticasVinculacion","Practicas"],Seguimiento:["SeguimientoGraduados","Seguimiento"],Datos:["ActualizaciónDatos","ActualizacionDatos","Datos"],Ingles:["Ingles","Inglés"]};for(let k of R)req[k]=field(r,...(aliases[k]||[k]));result.push({id,nombre:field(r,"Nombres"),codigo:code,carrera:original.replace(/\s+ONLINE\s*$/i,"").trim(),modalidad:mode,horario:field(r,"HorarioComplexivo"),sede:field(r,"Sede"),correo:field(r,"CorreoInstitucional").toLowerCase(),correoPersonal:field(r,"CorreoPersonal"),telefono:field(r,"Celular"),requisitos:req,aprobacionTitulacion:field(r,"AprobacionTitulacion"),aprobacionComplexivoProyecto:field(r,"AprobacionComplexivoProyecto"),tipoTitulacion:"complexivo"})}if(!result.length)throw Error("No hay filas con cédula.");return result}
 function parseHTML(txt){let doc=new DOMParser().parseFromString(txt,"text/html"),table=doc.querySelector("table");if(!table)throw Error("El archivo HTML no tiene tablas.");return [...table.querySelectorAll("tr")].map(tr=>[...tr.querySelectorAll("td,th")].map(td=>td.textContent.trim()))}
 async function readExcel(file){let bytes=await file.arrayBuffer(),prefix=new TextDecoder("latin1").decode(bytes.slice(0,400));if(/<table|<!doctype|<html|<style/i.test(prefix)){let html=new TextDecoder("windows-1252").decode(bytes);return parseRows(parseHTML(html))}if(file.name.toLowerCase().endsWith(".csv")){if(!window.XLSX)throw Error("Conecta Internet para importar CSV o pega directamente un JSON.");let x=XLSX.read(bytes,{type:"array"});return parseRows(XLSX.utils.sheet_to_json(x.Sheets[x.SheetNames[0]],{header:1,defval:"",raw:false}))}if(!window.XLSX)throw Error("No se ha cargado la biblioteca de Excel; comprueba la conexión.");let wb=XLSX.read(bytes,{type:"array"});for(let sh of wb.SheetNames){let rows=XLSX.utils.sheet_to_json(wb.Sheets[sh],{header:1,defval:"",raw:false});if(rows[0]&&rows[0].some(x=>compact(x)==="NUMEROIDENTIFICACION"))return parseRows(rows)}throw Error("No se encontró una hoja con numeroIdentificacion.")}
+async function handleTrabajoFile(ev){
+ const file=ev.target.files?.[0];if(!file)return;
+ try{
+  if(!window.XLSX)throw Error('No se cargó la biblioteca de Excel.');
+  if(!state.estudiantes.length)throw Error('Primero importa la nómina institucional de estudiantes.');
+  const wb=XLSX.read(await file.arrayBuffer(),{type:'array'});
+  const rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{defval:'',raw:false});
+  if(!rows.length)throw Error('El archivo no contiene estudiantes.');
+  const val=(row,...keys)=>{const k=Object.keys(row).find(x=>keys.some(n=>compact(x)===compact(n)));return k?String(row[k]??'').trim():''};
+  const index=new Map(state.estudiantes.map(s=>[s.id,s])),matches=[],unmatched=[],seen=new Set();
+  for(const row of rows){
+   let id=val(row,'Cédula','Cedula','numeroIdentificacion').replace(/\.0$/,'');
+   if(/^\d{9}$/.test(id))id='0'+id;
+   if(!/^\d{10}$/.test(id)||seen.has(id))throw Error('Identificación vacía, inválida o repetida: '+id);
+   seen.add(id);
+   const st=index.get(id),career=val(row,'Carrera');
+   if(!st||(career&&Data.career(st.carrera)!==Data.career(career)))
+    unmatched.push({id,nombre:val(row,'Nombre'),carrera:career,motivo:st?'Carrera diferente':'No pertenece a la nómina'});
+   else matches.push({id,tutor:val(row,'Tutor'),sede:val(row,'Sede'),fecha:val(row,'Fecha de vinculación')});
+  }
+  if(!matches.length)throw Error('No hay cédulas con carrera coincidente en la base local.');
+  const outside=matches.filter(x=>/2026/.test(x.fecha)&&/\/0?[4-9]\/2026|\/1[0-2]\/2026/.test(x.fecha));
+  const note=outside.length?' ATENCIÓN: existen fechas de vinculación posteriores al cierre de marzo de 2026; verifica la pertenencia a la cohorte.':'';
+  if(!confirm('Se conciliarán '+matches.length+' estudiantes por cédula y carrera; '+unmatched.length+' quedarán sin vincular.'+note+' ¿Confirmas la clasificación como Trabajo de Titulación?'))return;
+  const next=Data.migrate(state),byId=new Map(matches.map(x=>[x.id,x]));
+  for(const st of next.estudiantes){const x=byId.get(st.id);if(!x)continue;st.tipoTitulacion='trabajo';
+   if(x.tutor)st.tutorTrabajo=x.tutor;if(x.fecha)st.fechaVinculacionTrabajo=x.fecha;
+   if(x.sede&&!st.sede)st.sede=x.sede;st.origenTrabajo=file.name;}
+  for(const row of unmatched)next.complementarios.push({fuente:file.name,tipo:'trabajo_sin_conciliar',registro:row,estado:row.motivo});
+  next.importaciones.push({nombre:file.name,tipo:'listado_trabajo',filas:rows.length,coincidentes:matches.length,noConciliados:unmatched.length,fecha:today()});
+  next.auditoria.push({tipo:'clasificacion_trabajo',fecha:today(),fuente:file.name,estudiantes:matches.map(x=>x.id)});
+  await Store.save(next);state=next;draw();notify('Trabajo de Titulación: '+matches.length+' clasificados; '+unmatched.length+' sin conciliar.');
+ }catch(e){console.error(e);notify('Listado de Trabajo de Titulación: '+e.message)}
+ finally{ev.target.value=''}
+}
+
 async function handleFiles(ev){
  const file=ev.target.files?.[0];if(!file)return;
  try{
@@ -859,7 +895,7 @@ async function handleFiles(ev){
  }catch(e){console.error(e);notify("Error de importación: "+e.message)}
  finally{ev.target.value=""}
 }
-async function action(code){switch(code){case"student-file":el("student-file").click();break;case"logo-file":el("logo-file").click();break;case"remove-logo":{
+async function action(code){switch(code){case"student-file":el("student-file").click();break;case"trabajo-file":el("trabajo-file").click();break;case"logo-file":el("logo-file").click();break;case"remove-logo":{
  if(state.config.logoDataUrl&&confirm("¿Quitar el logotipo institucional de ambos informes?")){
   const next=Data.migrate(state);delete next.config.logoDataUrl;
   await Store.save(next);state=next;draw();notify("Logotipo quitado de ambos informes.");
@@ -964,6 +1000,7 @@ document.addEventListener("change",async ev=>{let field=ev.target;if(field.datas
  await persist();draw();notify("Código de "+(key==='codigoOnline'?'online':'presencial')+" actualizado con el mes automático.");
 }else if(field.dataset.config){state.config[field.dataset.config]=field.type==="checkbox"?field.checked:field.value;await persist();draw()}});
 el("student-file").addEventListener("change",handleFiles);el("backup-file").addEventListener("change",handleFiles);
+el("trabajo-file").addEventListener("change",handleTrabajoFile);
 el("firebase-file").addEventListener("change",firebaseLoadFile);
 el("logo-file").addEventListener("change",async ev=>{const file=ev.target.files?.[0];if(!file)return;try{if(!["image/png","image/jpeg","image/webp"].includes(file.type))throw Error("Solo se admiten archivos PNG, JPG o WebP.");if(file.size>2000000)throw Error("La imagen debe tener menos de 2 MB.");const dataURL=await new Promise((res,rej)=>{let fr=new FileReader();fr.onload=()=>res(fr.result);fr.onerror=()=>rej(new Error("No se pudo leer imagen."));fr.readAsDataURL(file)});if(!/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/.test(dataURL))throw Error("Imagen no reconocida; utiliza PNG, JPG o WebP.");const next=Data.migrate(state);next.config.logoDataUrl=dataURL;await Store.save(next);state=next;draw();notify("Logotipo guardado para la portada y encabezado de ambos PDF.");}catch(e){notify(e.message)}finally{ev.target.value=""}});
 (async()=>{state=await load();try{const imported=await loadPrivateGPT();if(imported&&!imported.unchanged){console.info("Base GPT privada disponible:",imported.students,"estudiantes nuevos,",imported.grades,"notas nuevas.")}}catch(e){console.error("No se pudo cargar la base GPT privada:",e);notify("No se pudo cargar la base GPT local: "+e.message)}ready=true;draw()})().catch(e=>{el("main").textContent="No fue posible iniciar Informetit: "+e.message});

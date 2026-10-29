@@ -45,7 +45,7 @@ test('aplica los dos códigos institucionales autorizados por defecto',()=>{
  assert.equal(D.fields(s,'presencial').code,'UTET-INF-01-PRO-95-2026-05');
  assert.equal(D.fields(s,'online').code,'UTET-INF-02-PRO-95-2026-05');
  assert.equal(C.forMode(s,'presencial').stamp,'2026-05');
- assert.ok(D.pending(s,'online').some(x=>x.includes('Día de elaboración')));
+ assert.equal(D.fields(s,'online').date,'29-mayo-2026');
 });
 test('logo subido localmente aparece en portada y encabezado de ambos informes',()=>{
  const s=M.empty();

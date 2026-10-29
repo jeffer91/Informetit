@@ -7,7 +7,8 @@ test('logo ITSQMET entregado se utiliza de forma predeterminada en las dos modal
  const s=M.empty();
  for(const mode of ['presencial','online']){
   assert.ok(D.fields(s,mode).logo.startsWith('data:image/webp;base64,'));
-  assert.match(D.cover(s,mode),/class="inf-cover-logo"/);
+  assert.match(D.cover(s,mode),/class="inf-logo"/);
+  assert.doesNotMatch(D.cover(s,mode),/class="inf-cover-logo"/);
   assert.match(D.printHeader(s,mode),/class="inf-logo"/);
   assert.ok(!D.pending(s,mode).some(x=>x.includes('Logo institucional pendiente')));
  }

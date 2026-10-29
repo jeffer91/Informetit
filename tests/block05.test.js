@@ -134,7 +134,7 @@ test('informe presencial incorpora tablas por núcleo y un cuadro aparte de pend
  const s=state();s.notas=[{studentId:'0000000001',nucleo:1,nota:8.2}];
  const html=window.InformetitFullReport.makeReport(s,'presencial');
  for(const text of ['5. Fase II. Resultados de núcleos estructurantes',
- 'Calificaciones finales nominales','Seguimiento de calificaciones faltantes',
+ 'Calificaciones por estudiante y núcleo','Seguimiento de calificaciones faltantes',
  'Distribución de calificaciones','ESTUDIANTE DE PRUEBA','5.3. Interpretación']){
   assert.ok(html.includes(text),text);
  }
@@ -145,7 +145,7 @@ test('PDF agregado no muestra notas individuales de estudiantes que no estén di
  const html=window.InformetitFullReport.makeReport(M.empty(),'presencial');
  assert.match(html,/estadística agregada/);
  assert.doesNotMatch(html,/ESTUDIANTE DE PRUEBA/);
- assert.doesNotMatch(html,/Calificaciones finales nominales/);
+ assert.doesNotMatch(html,/Calificaciones por estudiante y núcleo/);
  assert.match(html,/19 combinaciones carrera/);
 });
 test('el cronograma de cuatro núcleos se conserva como planificación, no como ejecución',()=>{

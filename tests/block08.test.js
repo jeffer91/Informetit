@@ -109,8 +109,8 @@ test('la portada no inventa código documental presencial ni online',()=>{
  const s=state();
  assert.equal(D.fields(s,'presencial').code,'UTET-INF-01-PRO-95-2026-05');
  assert.equal(D.fields(s,'online').code,'UTET-INF-02-PRO-95-2026-05');
- assert.ok(D.pending(s,'presencial').some(x=>x.includes('Día de elaboración')));
- assert.ok(D.pending(s,'online').some(x=>x.includes('Día de elaboración')));
+ assert.equal(D.fields(s,'presencial').date,'29-mayo-2026');
+ assert.equal(D.fields(s,'online').date,'29-mayo-2026');
 });
 test('las fuentes APA se presentan como inventario sin fingir edición bibliográfica',()=>{
  const html=window.InformetitFullReport.makeReport(state(),'presencial');
@@ -157,7 +157,7 @@ test('los anexos muestran discrepancias de fuentes sin modificar la base origina
 test('las tablas nominales incluyen estudiantes de ambos mecanismos aunque las notas estén vacías',()=>{
  const a=withNominal();
  const html=window.InformetitFullReport.makeReport(a,'presencial');
- assert.match(html,/Calificaciones finales nominales/);
+ assert.match(html,/Calificaciones por estudiante y núcleo/);
  assert.match(html,/Ordinario, supletorio y resultado definitivo/);
  assert.match(html,/Calificaciones del proyecto y defensa/);
  const work=html.slice(html.lastIndexOf('Calificaciones del proyecto y defensa'),html.lastIndexOf('Calificaciones del proyecto y defensa')+5500);

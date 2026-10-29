@@ -111,9 +111,9 @@ test('informe completo contiene fase I detallada y seguimiento nominal solo con 
  local.estudiantes[0].requisitos.Ingles='NO CUMPLE';
  const html=window.InformetitFullReport.makeReport(local,'presencial');
  for(const needle of ['4.1. Caracterización','4.2. Cumplimiento','4.3. Incidencias',
- '4.4. Incidencias por carrera','4.5. Cumplimiento integral','4.6. Seguimiento',
+ '4.4. Desglose de requisitos por carrera','4.5. Cumplimiento integral','4.6. Seguimiento',
  '4.7. Continuidad','4.8. Análisis','ESTUDIANTE DE PRUEBA 01',
- 'Incumplimientos y estados no verificados por carrera']){
+ 'Cumplimiento de los nueve requisitos']){
    assert.ok(html.includes(needle),needle);
  }
  const publicPdf=window.InformetitFullReport.makeReport(Model.empty(),'presencial');

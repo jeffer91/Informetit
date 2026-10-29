@@ -4,6 +4,15 @@
 const E=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const PERIOD='Octubre 2025 a marzo 2026',TITLE='Informe final del proceso de titulación',UNIT='Unidad de Titulación y Eficiencia Terminal';
 function date(s){const m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(String(s||'')),names=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];return m&&+m[2]>=1&&+m[2]<=12?+m[3]+'-'+names[+m[2]-1]+'-'+m[1]:String(s||'Por confirmar')}
+function lastWorkdayOfMonth(stamp){
+ const m=/^(\d{4})-(\d{2})$/.exec(String(stamp||''));
+ if(!m)return '';
+ const year=Number(m[1]),month=Number(m[2]);
+ if(month<1||month>12)return '';
+ const day=new Date(Date.UTC(year,month,0));
+ while(day.getUTCDay()===0||day.getUTCDay()===6)day.setUTCDate(day.getUTCDate()-1);
+ return day.toISOString().slice(0,10);
+}
 function fields(state,mode){
  const c=state?.config||{},online=mode==='online';
  const info=root.InformetitCodigo?.forMode(state,mode);
@@ -11,7 +20,7 @@ function fields(state,mode){
  const logo=/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/.test(c.logoDataUrl||'')?c.logoDataUrl:(root.InformetitDefaultLogo||'');
  return {modality:online?'Online':'Presencial',code:info.code,codePrefix:info.prefix,
    codeValid:info.valid,codeReason:info.reason,codeStamp:info.stamp,codeMonth:info.label,
-   version:c.version||'1.0',date:c.fechaElaboracion?date(c.fechaElaboracion):info.label,
+   version:c.version||'1.0',date:date(c.fechaElaboracion||lastWorkdayOfMonth(info.stamp)),
    logo,prepared:c.elaborado||'Mgs. Jefferson Villarreal',
    reviewed:c.revisado||'Ing. Martha Tomalá',
    approved:c.aprobado||'Dr. Alex León',
@@ -20,8 +29,7 @@ function fields(state,mode){
 function pending(state,mode){
  const f=fields(state,mode),a=[];
  if(!f.codeValid)a.push('Prefijo/consecutivo documental '+(mode==='online'?'online':'presencial')+' por confirmar');
- if(!state?.config?.fechaElaboracion)a.push('Día de elaboración por registrar (mes previsto: '+f.codeMonth+')');
- else if(String(state.config.fechaElaboracion).slice(0,7)!==f.codeStamp)
+ if(state?.config?.fechaElaboracion&&String(state.config.fechaElaboracion).slice(0,7)!==f.codeStamp)
   a.push('La fecha de elaboración difiere del mes programado '+f.codeMonth);
  if(!f.logo)a.push('Logo institucional pendiente');
  if(!f.legal)a.push('Vigencia del marco normativo pendiente');
@@ -34,7 +42,7 @@ function header(f,real){
  return '<table class="inf-header"><colgroup><col style="width:26.6667%"><col style="width:52.7778%"><col style="width:20.5555%"></colgroup><tbody>'
  +'<tr class="inf-headrow-1"><td rowspan="2">'+logo(f)+'</td><td rowspan="2">'+UNIT+'</td><td>Código:<div>'+E(f.code)+'</div></td></tr>'
  +'<tr class="inf-headrow-2"><td>Versión: '+E(f.version)+'</td></tr>'
- +'<tr class="inf-headrow-3"><td>Fecha de elaboración:<div>'+E(f.date)+(f.date===f.codeMonth?'<span class="inf-missing"> · DÍA POR CONFIRMAR</span>':'')+'</div></td><td><b>'+TITLE+'</b><div>'+PERIOD+' · '+f.modality+'</div></td><td>Página '+pages+'</td></tr></tbody></table>';
+ +'<tr class="inf-headrow-3"><td>Fecha de elaboración:<div>'+E(f.date)+'</div></td><td><b>'+TITLE+'</b><div>'+PERIOD+' · '+f.modality+'</div></td><td>Página '+pages+'</td></tr></tbody></table>';
 }
 function printHeader(state,mode){
  const css='*{box-sizing:border-box}html,body{margin:0;padding:0;font:8pt Arial,sans-serif;color:#000}.inf-wrap{margin:0 auto;width:18cm}.inf-header{width:18cm;border-collapse:collapse;table-layout:fixed;font:8pt/1.15 Arial,sans-serif}.inf-header td{border:.5pt solid #000;text-align:center;vertical-align:middle;padding:.1cm;overflow-wrap:anywhere}.inf-headrow-1{height:1.28cm}.inf-headrow-2{height:.75cm}.inf-headrow-3{height:1.20cm} .inf-logo{max-height:1.7cm;max-width:3.7cm;object-fit:contain}.inf-missing{color:#b91c1c;text-decoration:underline;font-weight:bold}';
@@ -43,7 +51,7 @@ function printHeader(state,mode){
 function cover(state,mode){
  const f=fields(state,mode);
  const cell=(t,n,j)=>'<td><div class="inf-sign-title">'+t+'</div><div class="inf-sign-space"></div><div class="inf-sign-name"><b>NOMBRE:</b> '+E(n)+'</div><div class="inf-sign-job"><b>CARGO:</b> '+E(j)+'</div></td>';
- return '<section class="inf-cover"><div class="inf-cover-head">'+header(f,false)+'</div><div class="inf-cover-middle">'+(f.logo?'<img class="inf-cover-logo" src="'+E(f.logo)+'" alt="Identidad institucional ITSQMET">':'')+'<h1>'+TITLE+'</h1><p>'+PERIOD+'</p><p>Modalidad '+f.modality+'</p><small>BORRADOR · VALIDACIÓN INSTITUCIONAL PENDIENTE</small></div>'
+ return '<section class="inf-cover"><div class="inf-cover-head">'+header(f,false)+'</div><div class="inf-cover-middle">'<h1>+TITLE+'</h1><p>'+PERIOD+'</p><p>Modalidad '+f.modality+'</p><small>BORRADOR · VALIDACIÓN INSTITUCIONAL PENDIENTE</small></div>'
  +'<table class="inf-signatures"><colgroup><col style="width:33.3333%"><col style="width:33.3333%"><col style="width:33.3333%"></colgroup><tbody><tr>'
  +cell('ELABORADO POR:',f.prepared,'Coordinador de Titulación y Eficiencia Terminal')
  +cell('REVISADO POR:',f.reviewed,'Coordinadora General de Carreras')
@@ -119,7 +127,6 @@ const CSS=[
 '.inf-header td{border:.5pt solid #000;text-align:center;vertical-align:middle;padding:.1cm;overflow-wrap:anywhere}',
 '.inf-headrow-1{height:1.28cm}.inf-headrow-2{height:.75cm}.inf-headrow-3{height:1.20cm}',
 '.inf-logo{max-height:1.7cm;max-width:3.7cm;object-fit:contain}',
-'.inf-cover-logo{display:block;width:7.5cm;max-height:3.4cm;object-fit:contain;margin:0 auto 1.5cm}',
 '.inf-missing{color:#b91c1c!important;text-decoration:underline!important;text-decoration-thickness:1.2pt;font-weight:700}',
 '.inf-cover-middle{text-align:center;padding:2cm 0;font-family:Arial,sans-serif}',
 '.inf-cover-middle h1{font:bold 18pt/1.25 Arial,sans-serif!important;margin:0 0 1cm!important;text-align:center!important}',
@@ -146,7 +153,7 @@ const CSS=[
 '.inf-index{background:#fff;max-width:21cm;margin:0 auto 24px;padding:20px;box-shadow:0 1px 6px #d6dce7}}'
 ].join('\n');
 
-const api=Object.freeze({fields,pending,printHeader,cover,introduction,legal,indexize,paginate,date,CSS});
+const api=Object.freeze({fields,pending,printHeader,cover,introduction,legal,indexize,paginate,date,lastWorkdayOfMonth,CSS});
 root.InformetitDocument=api;
 if(typeof module==='object'&&module.exports)module.exports=api;
 })(typeof window!=='undefined'?window:globalThis);

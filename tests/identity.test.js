@@ -62,10 +62,11 @@ test('archivo de logo con tipo no permitido no se imprime como HTML',()=>{
  assert.equal(D.fields(s,'presencial').logo,'');
  assert.ok(D.pending(s,'presencial').some(x=>x.includes('Logo')));
 });
-test('fecha visible utiliza mes de emisión derivado sin inventar el día',()=>{
+test('fecha de informe por defecto es el último día laborable del mes previsto',()=>{
  const s=M.empty();
- assert.equal(D.fields(s,'presencial').date,'mayo de 2026');
- assert.ok(D.pending(s,'presencial').some(x=>x.includes('Día de elaboración')));
+ assert.equal(D.fields(s,'presencial').date,'29-mayo-2026');
+ assert.equal(D.lastWorkdayOfMonth('2026-05'),'2026-05-29');
+ assert.ok(!D.pending(s,'presencial').some(x=>x.includes('Día de elaboración')));
  s.config.fechaElaboracion='2026-05-20';
  assert.equal(D.fields(s,'presencial').date,'20-mayo-2026');
  assert.ok(!D.pending(s,'presencial').some(x=>x.includes('difiere')));

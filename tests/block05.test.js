@@ -186,7 +186,7 @@ test('el consolidado no calcula media si falta algún núcleo o existe conflicto
  const excerpt=html.slice(idx,idx+2800);
  assert.match(excerpt,/Pendiente/);
  assert.match(excerpt,/Incompleto/);
- assert.doesNotMatch(excerpt,/9,00<\/td>/);
+ assert.match(excerpt,/<td>—<\/td><td>Incompleto<\/td>/);
 });
 test('el cronograma de cuatro núcleos se conserva como planificación, no como ejecución',()=>{
  const html=window.InformetitFullReport.makeReport(M.empty(),'presencial');

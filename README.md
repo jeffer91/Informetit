@@ -1,3 +1,17 @@
+## Informetit — actualización aplicada directamente en main (octubre 2026)
+
+- **Códigos oficiales automáticos:** presencial `UTET-INF-01-PRO-95-2026-05`, online `UTET-INF-02-PRO-95-2026-05`. El sufijo cambia automáticamente dos meses después de finalizar cada período.
+- **Imagen institucional predeterminada:** el logo entregado está incorporado como recurso local comprimido, con la opción de sustituirlo y restaurarlo desde la app.
+- **Informe:** introducción desarrollada, marco jurídico narrativo sin tabla y señalización roja subrayada de datos faltantes. Índices compactados y numeración consecutiva en apartados condicionales.
+- **Resumen ejecutivo:** inmediatamente después de la síntesis de resultados, antes de conclusiones, con Ishikawa de ámbitos a verificar, FODA de evidencias/escenarios y árbol de la población.
+- **Datos privados:** el Excel de 363 registros (262 presencial y 101 online) se importa localmente. El listado XLSX de Trabajo de Titulación puede conciliarse en ese módulo por cédula y carrera antes de clasificar estudiantes. No se publican expedientes en GitHub.
+- **Resultados:** si la nómina nominal falta, no se presentan conclusiones ficticias de cero estudiantes o de cero titulados. Se mantienen separados los estados CUMPLE de las notas numéricas.
+- **Pruebas:** ejecutar `npm run check && npm test`; la impresión PDF nativa en Windows y las actas se verifican antes de emisión definitiva.
+
+**Actualizar Windows:** `git pull origin main`, `npm install`, `npm start`. Después importar la nómina privada y, si corresponde, el listado de Trabajo de Titulación.
+
+---
+
 ## Correcciones del formato INF — logo institucional y emisión dos meses después del período (28/10/2026)
 
 **Aplicadas directamente a `main`** para los informes presencial y online.

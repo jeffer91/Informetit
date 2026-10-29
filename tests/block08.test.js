@@ -89,7 +89,7 @@ test('anexo C contiene incidencias y acciones, separado del análisis nominal',(
    if(x==='BORRADOR')continue;
    assert.ok(html.includes(x),x);
  }
- assert.match(html,/no certifica/i);
+ assert.match(html,/no constituyen firma/i);
 });
 test('el informe presencial y el online tienen índice de contenido, tablas y figuras',()=>{
  for(const mode of ['presencial','online']){

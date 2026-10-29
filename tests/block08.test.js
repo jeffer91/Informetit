@@ -151,3 +151,23 @@ test('los anexos muestran discrepancias de fuentes sin modificar la base origina
  assert.match(html,/Anexo C/);
  assert.match(html,/Núcleos en conflicto/);
 });
+
+test('las tablas nominales incluyen estudiantes de ambos mecanismos aunque las notas estén vacías',()=>{
+ const a=withNominal();
+ const html=window.InformetitFullReport.makeReport(a,'presencial');
+ assert.match(html,/Calificaciones finales nominales/);
+ assert.match(html,/Ordinario, supletorio y resultado definitivo/);
+ assert.match(html,/Calificaciones del proyecto y defensa/);
+ const work=html.slice(html.indexOf('Calificaciones del proyecto y defensa'),html.indexOf('Calificaciones del proyecto y defensa')+2200);
+ assert.match(work,/0000000002/);
+ assert.match(work,/—/);
+ const exam=html.slice(html.indexOf('Ordinario, supletorio y resultado definitivo'),html.indexOf('Ordinario, supletorio y resultado definitivo')+2400);
+ assert.match(exam,/0000000001/);
+ assert.match(exam,/—/);
+});
+test('las tablas nominales online nunca incorporan los estudiantes presenciales',()=>{
+ const a=withNominal(),html=window.InformetitFullReport.makeReport(a,'online');
+ assert.match(html,/0000000003/);
+ assert.doesNotMatch(html,/<td>0000000001<\/td>/);
+ assert.doesNotMatch(html,/<td>0000000002<\/td>/);
+});

@@ -168,7 +168,7 @@ test('45 estudiantes sintéticos de Enfermería aparecen en las cuatro tablas y 
   to=html.lastIndexOf('5.3. Interpretación general');
  const consolidated=html.slice(from,to);
  assert.equal((consolidated.match(/<td>ESTUDIANTE SINTETICO \d{2}<\/td>/g)||[]).length,45);
- assert.match(consolidated,/Cuatro notas/);
+ assert.match(consolidated,/Con cuatro notas/);
  assert.match(consolidated,/Incompleto/);
  assert.match(consolidated,/8,25/);
 });

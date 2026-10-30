@@ -19,13 +19,18 @@ function project(state,mode,career,nucleus){
   if(validIds.has(sid)&&Number(row.nucleo)===number&&M().grade(row.nota)!==null)provisionalIds.add(sid);
  };
  for(const row of state.notasBorrador||[])addProvisional(row);
- for(const row of state.cursosNucleos||[])if(row.verificado!==true||provisional(row))addProvisional(row);
+ for(const row of state.cursosNucleos||[])addProvisional(row);
  for(const row of state.notas||[]){
   const sid=id(row.studentId),value=M().grade(row.nota);
   if(!validIds.has(sid)||Number(row.nucleo)!==number)continue;
   if(row.verificado!==true||provisional(row)||value===null){if(value!==null)provisionalIds.add(sid);continue}
   if(verified.has(sid)&&verified.get(sid)!==value)conflictIds.add(sid);
   verified.set(sid,value);
+ }
+ for(const draft of [...state.notasBorrador||[],...state.cursosNucleos||[]]){
+  const sid=id(draft.studentId),value=M().grade(draft.nota);
+  if(!validIds.has(sid)||Number(draft.nucleo)!==number||value===null)continue;
+  if(verified.has(sid)&&verified.get(sid)!==value)conflictIds.add(sid);
  }
  const observed=[],missing=[],pending=[],conflicts=[];
  for(const st of students){

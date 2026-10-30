@@ -1019,7 +1019,8 @@ function saveStatus(){
  else text+=' Firebase: '+(pending?pending+' registros verificados pendientes de confirmación.':'sin cambios verificados pendientes de envío.')+
    ' Última escritura: '+(state.firebaseSync.lastPush||'sin confirmar')+'.';
  text+=' Solo núcleos verificados y Complexivo con acta cotejada pueden sincronizarse; requisitos y Trabajo permanecen locales.';
- return '<p class="hint load-sync-status" role="status">'+h(text)+'</p>';
+ return '<div class="load-sync-status"><p class="hint" role="status">'+h(text)+'</p>'+
+  (!state.firebaseSync?.enabled?'<button type="button" class="btn small" data-page="firebase">Conectar con base institucional</button>':'')+'</div>';
 }
 function manualView(){
  const catalogue=window.InformetitNucleiCatalog,groups=catalogue.list();

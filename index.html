@@ -32,6 +32,7 @@
   <script src="./report_institucional.js" defer></script>
   <script src="./report_pdf.js" defer></script>
   <script src="./moodle/importer.js" defer></script>
+  <script src="./moodle/intelligent.js" defer></script>
   <script src="./firebase/sync.js" defer></script>
   <script src="./app.js" defer></script>
 </head>
@@ -48,6 +49,7 @@
       <nav id="nav" aria-label="Módulos">
         <button class="nav active" data-page="inicio"><span>▤</span> Resumen</button>
         <button class="nav" data-page="estudiantes"><span>♟</span> Estudiantes y requisitos</button>
+        <button class="nav" data-page="carga"><span>⇪</span> Centro de Carga Inteligente</button>
         <button class="nav" data-page="nucleos"><span>▦</span> Notas de núcleos</button>
         <button class="nav" data-page="evaluaciones"><span>◉</span> Examen Complexivo</button>
         <button class="nav" data-page="trabajo"><span>▧</span> Trabajo de Titulación</button>
@@ -64,6 +66,7 @@
   <div id="toast" role="status" aria-live="polite"></div>
   <input hidden id="firebase-file" type="file" accept=".json,.txt,application/json,text/plain">
   <input hidden id="student-file" type="file" accept=".xls,.xlsx,.csv,.html,.htm">
+  <input hidden id="smart-file" type="file" multiple accept=".txt,.tsv,.csv,.xls,.xlsx">
   <input hidden id="trabajo-file" type="file" accept=".xls,.xlsx">
   <input hidden id="cursos-file" type="file" accept=".xls,.xlsx,.csv">
   <input hidden id="backup-file" type="file" accept=".json">

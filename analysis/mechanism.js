@@ -25,11 +25,14 @@ function planBatch(state,rows,nextType,source='Listado de mecanismo'){
  if(!Array.isArray(rows)||!rows.length)throw Error('Listado sin estudiantes');
  const roster=new Map((state.estudiantes||[]).map(s=>[id(s.id),s]));
  if(roster.size!==(state.estudiantes||[]).length)throw Error('La nómina contiene identificaciones duplicadas');
+ const counts=new Map();
+ for(const row of rows){let sid=id(row.id??row.cedula??row.numeroIdentificacion).replace(/\.0$/,'');if(/^\d{9}$/.test(sid))sid='0'+sid;counts.set(sid,(counts.get(sid)||0)+1)}
  const seen=new Set(),changes=[],rejected=[],unchanged=[];
  for(const row of rows){
   let sid=id(row.id??row.cedula??row.numeroIdentificacion).replace(/\.0$/,'');
   if(/^\d{9}$/.test(sid))sid='0'+sid;
   if(!/^\d{10}$/.test(sid)){rejected.push({id:sid,reason:'Cédula inválida'});continue}
+  if((counts.get(sid)||0)>1){rejected.push({id:sid,reason:'Cédula duplicada en la carga; todas sus filas quedan bloqueadas'});continue}
   if(seen.has(sid)){rejected.push({id:sid,reason:'Cédula duplicada en la carga'});continue}
   seen.add(sid);
   const st=roster.get(sid);

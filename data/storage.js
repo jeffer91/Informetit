@@ -3,7 +3,7 @@
 'use strict';
 const DATABASE='informetit-v1',STORE='data',MASTER='master';
 const LEGACY='master-backup-before-block01';
-let dbPromise=null,backend='indexeddb';
+let dbPromise=null,backend='indexeddb',lastBackup={ok:null,reason:'Aún sin guardar'};
 const model=()=>root.InformetitDataModel;
 function open(){
  if(dbPromise)return dbPromise;
@@ -50,9 +50,18 @@ async function load(){
  return M.migrate(raw);
 }
 async function backupMaster(value){
- if(typeof root.informetitDesktop?.backupMaster!=='function')return;
- try{await root.informetitDesktop.backupMaster(value)}
- catch(error){console.warn('[Informetit] No se completó el respaldo GPT automático:',error.message)}
+ if(typeof root.informetitDesktop?.backupMaster!=='function'){
+  lastBackup={ok:null,reason:'Copia GPT no disponible fuera de Electron'};return lastBackup;
+ }
+ try{
+  const result=await root.informetitDesktop.backupMaster(value);
+  if(!result?.saved)throw Error('El sistema no confirmó que se guardara la copia GPT.');
+  lastBackup={ok:true,when:new Date().toISOString(),reason:'Copia privada actualizada'};
+ }catch(error){
+  lastBackup={ok:false,when:new Date().toISOString(),reason:error.message};
+  console.warn('[Informetit] No se completó el respaldo GPT automático:',error.message);
+ }
+ return lastBackup;
 }
 async function save(data){
  const M=model(),value=M.migrate(data),issues=M.audit(value).issues.filter(p=>['id_vacio','cedula_repetida'].includes(p.type));
@@ -82,7 +91,8 @@ async function hasLegacyBackup(){
   const req=store.get(LEGACY);req.onsuccess=()=>set(req.result||null);
  }));
 }
-const api=Object.freeze({load,save,hasLegacyBackup,backend:()=>backend,key:DATABASE});
+const api=Object.freeze({load,save,hasLegacyBackup,backend:()=>backend,
+ lastBackup:()=>({...lastBackup}),key:DATABASE});
 root.InformetitStore=api;
 if(typeof module==='object'&&module.exports)module.exports=api;
 })(typeof window!=='undefined'?window:globalThis);

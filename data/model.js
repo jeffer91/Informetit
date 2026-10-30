@@ -7,7 +7,7 @@ const REQUIREMENTS=['Academico','Documentacion','Financiero','Practicas','Vincul
 const arrays=['estudiantes','notas','notasBorrador','cursosNucleos','evaluaciones','trabajos','conflictos','sinVincular','complementarios','importaciones','auditoria','firebaseDiferencias'];
 const empty=()=>({
   version:SCHEMA_VERSION,periodo:PERIOD,estudiantes:[],notas:[],notasBorrador:[],cursosNucleos:[],
-  evaluaciones:[],trabajos:[],ejecucion:{},cronogramaPersonalizado:{},conflictos:[],sinVincular:[],complementarios:[],
+  evaluaciones:[],trabajos:[],ejecucion:{},cronogramaPersonalizado:{},flujoNucleos:{},conflictos:[],sinVincular:[],complementarios:[],
   importaciones:[],auditoria:[],firebaseDiferencias:[],gptSeedFingerprint:'',
   firebaseSync:{enabled:false,baseline:{},pending:[],conflicts:[],lastError:'',lastPull:'',lastPush:''},
   config:{codigoPresencial:'UTET-INF-01-PRO-95',codigoOnline:'UTET-INF-02-PRO-95',version:'1.0',fechaElaboracion:'',
@@ -53,6 +53,7 @@ function migrate(raw){
   d.estudiantes=d.estudiantes.filter(s=>s&&typeof s==='object').map(normalizeStudent);
   if(raw.ejecucion&&typeof raw.ejecucion==='object'&&!Array.isArray(raw.ejecucion))d.ejecucion={...raw.ejecucion};
   if(raw.cronogramaPersonalizado&&typeof raw.cronogramaPersonalizado==='object'&&!Array.isArray(raw.cronogramaPersonalizado))d.cronogramaPersonalizado={...raw.cronogramaPersonalizado};
+  if(raw.flujoNucleos&&typeof raw.flujoNucleos==='object'&&!Array.isArray(raw.flujoNucleos))d.flujoNucleos={...raw.flujoNucleos};
   if(raw.config&&typeof raw.config==='object'&&!Array.isArray(raw.config))d.config={...d.config,...raw.config};
   if(typeof raw.gptSeedFingerprint==='string')d.gptSeedFingerprint=raw.gptSeedFingerprint;
   if(raw.firebaseSync&&typeof raw.firebaseSync==='object'&&!Array.isArray(raw.firebaseSync)){

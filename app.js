@@ -1136,7 +1136,8 @@ function intelligentView(){
   +'<div class="actions"><button class="btn" data-action="student-file">Listado de estudiantes (Excel)</button>'+
     '<button class="btn" data-action="cursos-file">Cursos (Excel)</button>'+
     '<button class="btn" data-action="trabajo-file">Listado de Trabajo (Excel)</button>'+
-    '<button class="btn" data-action="manual-global-exam">Resultados de Complexivo</button></div>'
+    '<button class="btn" data-action="manual-global-exam">Resultados de Complexivo</button></div>'+
+  '<label class="field block"><input type="checkbox" id="cursos-verificados"> Certifico que las notas del Excel de cursos fueron cotejadas con Moodle o las actas originales.</label>'
   +'<div class="actions"><button class="btn" data-action="smart-file">Elegir archivos Moodle (.txt, .csv, .tsv, Excel)</button>'
   +'<button class="btn" data-action="smart-clear">Limpiar entrada</button></div>'
   +'<label class="field block">Pegar contenido de Moodle<textarea id="smart-text" rows="8" placeholder="Pega aquí los cuatro libros de Moodle. No necesitas ordenarlos.">'+h(smartText)+'</textarea></label>'
@@ -1384,13 +1385,46 @@ async function handleCursosFile(ev){
    ' observaciones por conciliar. Estado: '+(confirmed?'COTEJADO expresamente':'PROVISIONAL')+
    '. Los registros se guardan solo en este equipo. ¿Confirmas?'))return;
   const next=Data.migrate(state),records=new Map((next.cursosNucleos||[]).map(x=>[x.studentId+'|'+x.nucleo+'|'+Data.key(x.curso),x]));
-  for(const e of entries)records.set(e.studentId+'|'+e.nucleo+'|'+Data.key(e.curso),e);
+  let duplicates=0,changes=0;
+  const conflictKeys=new Set((next.conflictos||[]).map(x=>String(x.id)));
+  for(const e of entries){
+   const key=e.studentId+'|'+e.nucleo+'|'+Data.key(e.curso);
+   const previous=records.get(key);
+   if(previous){
+    if(Data.grade(previous.nota)!==Data.grade(e.nota)||previous.estadoAcademico!==e.estadoAcademico){
+     if(!conflictKeys.has(key)){
+      next.conflictos.push({id:key,anterior:previous,nuevo:e,fecha:today(),fuente:file.name});
+      conflictKeys.add(key);changes++;
+     }
+     continue;
+    }
+    // Un Excel provisional no puede degradar un registro ya verificado.
+    records.set(key,previous.verificado?previous:(confirmed?{...previous,verificado:true,
+     estado:'cotejado_por_coordinacion',fuenteCotejo:file.name}:previous));
+    duplicates++;continue;
+   }
+   // Conservar también la nota nominal verificada del mismo estudiante y núcleo;
+   // un contenido diferente no puede sustituirla silenciosamente.
+   const master=(next.notas||[]).find(n=>String(n.studentId)===String(e.studentId)
+      &&Number(n.nucleo)===Number(e.nucleo)&&n.verificado===true);
+   if(master&&Data.grade(master.nota)!==Data.grade(e.nota)){
+    if(!conflictKeys.has(key)){
+     next.conflictos.push({id:key,anterior:master,nuevo:e,fecha:today(),fuente:file.name});
+     conflictKeys.add(key);changes++;
+    }
+    continue;
+   }
+   records.set(key,e);
+  }
   next.cursosNucleos=[...records.values()];
   for(const e of unmatched)next.complementarios.push({fuente:file.name,tipo:'curso_sin_conciliar',registro:e,estado:e.motivo});
   next.importaciones.push({nombre:file.name,tipo:'cursos_nucleos',filas:entries.length,noConciliados:unmatched.length,
    validado:confirmed,fecha:today()});
-  next.auditoria.push({tipo:'cursos_nucleos',fecha:today(),fuente:file.name,total:entries.length,verificado:confirmed});
-  await Store.save(next);state=next;scheduleFirebaseSync();draw();notify(entries.length+' registros de cursos importados; '+unmatched.length+' requieren revisión.');
+  next.auditoria.push({tipo:'cursos_nucleos',fecha:today(),fuente:file.name,total:entries.length,
+   verificado:confirmed,duplicados:duplicates,conflictosNuevos:changes});
+  await Store.save(next);state=next;scheduleFirebaseSync();draw();
+  notify('Carga revisada: '+entries.length+' filas; '+duplicates+' existentes, '+
+   changes+' diferencias bloqueadas, '+unmatched.length+' sin vincular.');
  }catch(e){console.error(e);notify('Importación de cursos: '+e.message)}
  finally{ev.target.value=''}
 }

@@ -20,14 +20,21 @@ const para=(x)=>'<p>'+E(x)+'</p>';
 const missingText=x=>/^(?:sin (?:datos|información|desglose|nómina|calificación)|no (?:disponible|calculable|cargada)|por (?:confirmar|asignar|conciliar|validar)|pendiente|ejecución por verificar)/i.test(String(x??'').trim())?'<span class="inf-missing">'+E(x)+'</span>':E(x);
 const H=(n,t)=>{const level=n===3&&/^\d+\.\d+\.\d+\./.test(String(t))?4:n;return '<h'+level+'>'+E(t)+'</h'+level+'>'};
 function Table(name,heads,rows,note='Datos disponibles de la cohorte, según registros institucionales'){
- tables++;let html='<div class="tbl"><p class="tlabel">Tabla '+tables+'</p><p class="tname">'+E(name)+'</p><table><thead><tr>'+heads.map(x=>'<th>'+E(x)+'</th>').join('')+'</tr></thead><tbody>';
+ tables++;
+ const commentary=window.InformetitTableCommentary?.commentary(name,heads,rows,note,tables);
+ const before=commentary?.before||('La Tabla '+tables+' presenta '+name+'. Su lectura permite identificar la información registrada en la fuente.');
+ const after=commentary?.after||(!rows.length?'No se dispone de registros suficientes para interpretar esta tabla.':
+  'Las '+rows.length+' filas deben interpretarse dentro del alcance de la fuente; no se infieren resultados ausentes.');
+ let html='<p class="apa-table-context">'+E(before)+'</p><div class="tbl"><p class="tlabel">Tabla '+tables+'</p><p class="tname">'+E(name)+'</p><table><thead><tr>'+heads.map(x=>'<th scope="col">'+E(x)+'</th>').join('')+'</tr></thead><tbody>';
  html+=(rows.length?rows.map(r=>'<tr>'+r.map(x=>'<td>'+missingText(x)+'</td>').join('')+'</tr>').join(''):'<tr><td colspan="'+heads.length+'">Sin información verificada</td></tr>');
- return html+'</tbody></table><p class="note">Nota. '+E(note)+'.</p></div>';
+ const cleanNote=String(note??'').trim().replace(/[.\s]+$/,'');
+ return html+'</tbody></table><p class="note"><em>Nota.</em> '+E(cleanNote)+'.</p></div>'+
+  '<p class="apa-table-commentary">'+E(after)+'</p>';
 }
 function Figure(name,rows,{max,percentage=false,decimals=0,note='No se interpolan los valores faltantes.',diagramSvg=null}={}){
  if(!rows.length)return '';
  figs++;
- if(diagramSvg)return '<div class="fig"><p class="flabel">Figura '+figs+'</p><p class="fname">'+E(name)+'</p>'+diagramSvg+'<p class="note">Nota. '+E(note)+'.</p></div>';
+ if(diagramSvg)return '<div class="fig"><p class="flabel">Figura '+figs+'</p><p class="fname">'+E(name)+'</p>'+diagramSvg+'<p class="note"><em>Nota.</em> '+E(String(note).trim().replace(/[.\\s]+$/,''))+'.</p></div>';
  const W=615,left=254,right=65,bw=W-left-right,rh=27,height=36+rows.length*rh;
  const ceiling=max||Math.max(1,...rows.map(r=>Number(r[1])||0));
  let svg='<svg xmlns="http://www.w3.org/2000/svg" role="img" aria-label="'+E(name)+'" viewBox="0 0 '+W+' '+height+'"><rect width="'+W+'" height="'+height+'" fill="#fff"/>';

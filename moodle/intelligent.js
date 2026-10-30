@@ -230,33 +230,45 @@ function apply(state,assessment,reviewed,stamp){
  return {next,stats};
 }
 function pending(state){
- const records=(state.estudiantes||[]),notes=[...(state.notas||[]),...(state.notasBorrador||[])];
- const rows=[],actions=[];
+ const records=(state.estudiantes||[]),notes=[...(state.notas||[]),...(state.notasBorrador||[]),...(state.cursosNucleos||[])];
+ const rows=[],actions=[],conflictIds=new Set((state.conflictos||[]).map(x=>String(x.id)));
+ const isProvisional=x=>['PROVISIONAL','ESTIMADO','SIMULADO','BORRADOR','SIN VERIFICAR','PROVISIONAL POR CONCILIAR']
+  .includes(key(x.status||x.estado));
  for(const mode of ['presencial','online']){
   const byMode=records.filter(s=>s.modalidad===mode);
   for(const group of C().list()){
    const people=byMode.filter(s=>C().canonical(s.carrera)===C().canonical(group.name));
    if(!people.length)continue;
-   const known=people.filter(s=>s.tipoTitulacion==='complexivo'),unknown=people.filter(s=>s.tipoTitulacion==='sin_definir');
+   const known=people.filter(s=>s.tipoTitulacion==='complexivo'),
+     projects=people.filter(s=>s.tipoTitulacion==='trabajo'),
+     unknown=people.filter(s=>s.tipoTitulacion==='sin_definir');
+   const ids=new Set(known.map(s=>String(s.id)));
    const nuclei=group.nuclei.map(n=>{
-    const ids=new Set(people.map(s=>s.id));
     const relevant=notes.filter(x=>ids.has(String(x.studentId))&&Number(x.nucleo)===n.number&&grade(x.nota)!==null);
     const present=new Set(relevant.map(x=>String(x.studentId)));
-    const verified=new Set((state.notas||[]).filter(x=>ids.has(String(x.studentId))&&Number(x.nucleo)===n.number&&x.verificado===true).map(x=>String(x.studentId)));
+    const verified=new Set((state.notas||[]).filter(x=>ids.has(String(x.studentId))&&Number(x.nucleo)===n.number
+      &&x.verificado===true&&!isProvisional(x)&&grade(x.nota)!==null&&!conflictIds.has(String(x.studentId)+'|'+n.number))
+      .map(x=>String(x.studentId)));
+    const conflicted=known.filter(s=>conflictIds.has(String(s.id)+'|'+n.number)).length;
+    const missing=known.filter(s=>!present.has(String(s.id))&&!conflictIds.has(String(s.id)+'|'+n.number)).length;
+    const provisional=known.filter(s=>present.has(String(s.id))&&!verified.has(String(s.id))&&!conflictIds.has(String(s.id)+'|'+n.number)).length;
     const expected=known.length;
-    const missing=known.filter(s=>!present.has(s.id)).length;
-    let status=!relevant.length?'Cargar':'Cotejar';
-    if(expected>0&&missing===0&&verified.size===expected)status='Verificado';
-    if(!relevant.length)actions.push('Cargar '+group.name+' · '+(mode==='online'?'Online':'Presencial')+' · Núcleo '+n.number+' ('+n.title+')');
-    else if(missing>0)actions.push('Completar '+missing+' notas · '+group.name+' · '+mode+' · Núcleo '+n.number);
-    else if(verified.size<relevant.length)actions.push('Cotejar '+group.name+' · '+mode+' · Núcleo '+n.number);
-    return {number:n.number,title:n.title,present:present.size,verified:verified.size,expected,missing,status};
+    let status='Sin Complexivo confirmado';
+    if(expected){
+     status=verified.size===expected&&conflicted===0?'Verificado':
+      conflicted?'Conciliar conflictos':missing?'Cargar notas':provisional?'Cotejar':'Revisar';
+     if(missing)actions.push('Completar '+missing+' notas · '+group.name+' · '+mode+' · Núcleo '+n.number);
+     if(provisional)actions.push('Verificar '+provisional+' notas · '+group.name+' · '+mode+' · Núcleo '+n.number);
+     if(conflicted)actions.push('Resolver '+conflicted+' conflictos · '+group.name+' · '+mode+' · Núcleo '+n.number);
+    }
+    return {number:n.number,title:n.title,present:present.size,verified:verified.size,
+     expected,missing,provisional,conflicts:conflicted,status};
    });
-   rows.push({career:group.name,mode,students:people.length,unknown:unknown.length,known:known.length,nuclei});
+   rows.push({career:group.name,mode,students:people.length,projects:projects.length,
+    unknown:unknown.length,known:known.length,nuclei});
    if(unknown.length)actions.push('Clasificar mecanismo de '+unknown.length+' estudiantes · '+group.name+' · '+mode);
   }
  }
- if(state.conflictos?.length)actions.unshift('Resolver '+state.conflictos.length+' conflictos de notas');
  if(state.sinVincular?.length)actions.unshift('Conciliar '+state.sinVincular.length+' registros sin vinculación segura');
  return {rows,actions};
 }

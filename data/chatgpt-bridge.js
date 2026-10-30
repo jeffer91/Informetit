@@ -34,6 +34,16 @@ async function setFolder(userData,folder,applicationPath){
   throw Error('No puedes usar la carpeta del proyecto GitHub para datos privados');
  if(inside(real,await fs.realpath(userData)))
   throw Error('Selecciona una carpeta sincronizada fuera del perfil interno de Informetit');
+ // Nunca escribir datos nominales dentro de un repositorio Git, sea o no el de Informetit.
+ let ancestor=real;
+ while(true){
+  try{
+   await fs.stat(path.join(ancestor,'.git'));
+   throw Error('No puedes usar una carpeta dentro de un repositorio Git para datos personales');
+  }catch(e){if(e.code!=='ENOENT')throw e}
+  const parent=path.dirname(ancestor);if(parent===ancestor)break;ancestor=parent;
+ }
+
  await writeAtomic(path.join(userData,CONFIG),JSON.stringify({folder:real,configuredAt:new Date().toISOString()}));
  return real;
 }

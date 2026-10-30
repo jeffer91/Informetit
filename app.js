@@ -193,9 +193,11 @@ function inicio(){
    '<p class="hint">Solo datos realmente ausentes, no calificaciones reprobadas ni registros preliminares.</p></div>'+
    '<strong class="work-number">'+loads.length+'</strong></div>';
  if(loads.length)out+=loads.map(taskRow).join('');
- else out+='<div class="work-empty">No hay cargas faltantes identificadas para esta carrera. Puedes revisar los registros pendientes de cotejo.</div>';
+ else if(reviews.length)out+='<div class="work-empty">No faltan archivos identificados, pero hay registros por clasificar o cotejar.</div>'+
+  reviews.map(taskRow).join('');
+ else out+='<div class="work-empty">No se identificaron cargas ni revisiones pendientes para esta carrera.</div>';
  out+='</section>';
- if(reviews.length)out+='<details class="panel work-review"><summary>Requieren revisión ('+reviews.length+
+ if(loads.length&&reviews.length)out+='<details class="panel work-review"><summary>Requieren revisión ('+reviews.length+
   ')</summary><p class="hint">Estos datos ya existen o necesitan una decisión; no vuelvas a cargarlos sin cotejarlos.</p>'+
   reviews.map(taskRow).join('')+'</details>';
  return out;

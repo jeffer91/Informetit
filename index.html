@@ -12,6 +12,7 @@
   <script src="./data/student-import.js" defer></script>
   <script src="./data/manual-entry.js" defer></script>
   <script src="./data/nuclei-catalog.js" defer></script>
+  <script src="./data/sequential-nuclei.js" defer></script>
   <script src="./data/storage.js" defer></script>
   <script src="./public_summary.js" defer></script>
   <script src="./nucleos_agregados.js" defer></script>
@@ -51,6 +52,7 @@
       <nav id="nav" aria-label="Navegación de Informetit">
         <button class="nav active" data-page="inicio"><span>⌂</span> Inicio</button>
         <button class="nav" data-page="carga"><span>↑</span> Cargar información</button>
+        <button class="nav" data-page="flujo"><span>▥</span> Núcleos por carrera</button>
         <button class="nav" data-page="estudiantes"><span>♙</span> Estudiantes</button>
         <details class="nav-disclosure" id="nav-evaluaciones">
           <summary><span>▦</span> Evaluaciones</summary>
@@ -79,6 +81,7 @@
   <input hidden id="firebase-file" type="file" accept=".json,.txt,application/json,text/plain">
   <input hidden id="student-file" type="file" accept=".xls,.xlsx,.csv,.html,.htm">
   <input hidden id="smart-file" type="file" multiple accept=".txt,.tsv,.csv,.xls,.xlsx">
+  <input hidden id="nucleo-plantilla-file" type="file" accept=".xlsx">
   <input hidden id="trabajo-file" type="file" accept=".xls,.xlsx">
   <input hidden id="cursos-file" type="file" accept=".xls,.xlsx,.csv">
   <input hidden id="backup-file" type="file" accept=".json">

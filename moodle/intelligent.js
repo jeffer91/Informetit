@@ -50,7 +50,55 @@ function vertical(raw){
  }
  return records;
 }
+function delimitedRow(line,separator){
+ const result=[];let field='',quoted=false;
+ for(let i=0;i<line.length;i++){
+  const char=line[i];
+  if(char==='"'){
+   if(quoted&&line[i+1]==='"'){field+='"';i++}
+   else quoted=!quoted;
+  }else if(char===separator&&!quoted){result.push(field.trim());field=''}
+  else field+=char;
+ }
+ result.push(field.trim());return result;
+}
+function tabular(raw){
+ const lines=String(raw||'').replace(/\r/g,'').split('\n').filter(x=>x.trim());
+ for(const sep of ['\t',';',',']){
+  let head=-1,headers=[];
+  for(let i=0;i<Math.min(50,lines.length);i++){
+   const cols=delimitedRow(lines[i],sep).map(key);
+   if(cols.length<3)continue;
+   if(cols.some(x=>/DIRECCION DE CORREO|CORREO ELECTRONICO|EMAIL|E MAIL/.test(x))&&
+      cols.some(x=>/TOTAL DEL CURSO|COURSE TOTAL|NOTA FINAL|CALIFICACION FINAL/.test(x))){
+    head=i;headers=cols;break;
+   }
+  }
+  if(head<0)continue;
+  const find=re=>headers.findIndex(x=>re.test(x));
+  const emailIndex=find(/DIRECCION DE CORREO|CORREO ELECTRONICO|EMAIL|E MAIL/);
+  const finals=headers.map((x,i)=>/TOTAL DEL CURSO|COURSE TOTAL|NOTA FINAL|CALIFICACION FINAL/.test(x)?i:-1).filter(i=>i>=0);
+  if(finals.length!==1)return null;
+  const first=find(/^NOMBRE|^FIRST NAME/),last=find(/^APELLIDO|^SURNAME|^LAST NAME/);
+  const cedula=find(/CEDULA|IDENTIFICACION|ID NUMBER/);
+  const partials=headers.map((x,i)=>i!==finals[0]&&/EVALUACION PARCIAL|TALLER PRACTICO|CUESTIONARIO|PRUEBA|QUIZ/.test(x)?i:-1).filter(i=>i>=0);
+  const records=[];
+  for(let i=head+1;i<lines.length;i++){
+   const cells=delimitedRow(lines[i],sep);
+   const address=email(cells[emailIndex]);
+   if(!mailRE.test(address))continue;
+   const n=[first>=0?clean(cells[first]):'',last>=0?clean(cells[last]):''].filter(Boolean).join(' ');
+   const rawGrade=clean(cells[finals[0]]),number=grade(rawGrade);
+   records.push({name:n,email:address,id:cedula>=0?clean(cells[cedula]):'',
+     grade:number,partials:partials.map(j=>grade(cells[j])),reason:number===null?'Total del curso vacío o no válido':'',
+     rawLine:i+1});
+  }
+  if(records.length)return records;
+ }
+ return null;
+}
 function parseRows(block){
+ const tab=tabular(block.text);if(tab)return tab;
  const existing=root.InformetitMoodle?.parse(block.text);
  if(existing&&existing.format!=='texto_vertical'&&existing.records.length)
   return existing.records.map(x=>({...x,grade:grade(x.grade),reason:''}));

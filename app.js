@@ -1081,7 +1081,8 @@ function manualView(){
 }
 async function manualAction(code){
  if(code==='manual-special'){
-  const student=state.estudiantes.find(s=>s.id===manualStudentId)||state.estudiantes.find(s=>s.modalidad===manualMode&&Data.career(s.carrera)===Data.career(manualCareer));
+  const selectedId=el('manual-student')?.value||manualStudentId;
+  const student=state.estudiantes.find(s=>s.id===selectedId);
   if(!student){notify('Selecciona un estudiante.');return}
   if(student.tipoTitulacion!==manualType){notify('Confirma primero el mecanismo del estudiante.');return}
   tab=student.modalidad;

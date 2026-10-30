@@ -42,7 +42,8 @@ test('El cotejo preserva sin_definir y separa oficial de provisional',()=>{
  assert.equal(next.notas.find(n=>n.nucleo===4).nota,9.83);
  assert.equal(next.notasBorrador[0].modalidad,'presencial');
  const again=I.assess(input,next);
- assert.equal(again.counts.already,3);
+ assert.equal(again.counts.already,2);
+ assert.equal(again.courses[0].rows[1].status,'draft_same');
 });
 test('Sin nota final inequívoca, no inventa un total',()=>{
  const raw='T-NUCLEO - GESTIÓN COMERCIAL [Mod 13]\n'+

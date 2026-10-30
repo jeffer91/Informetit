@@ -25,8 +25,8 @@ const input=[
 test('Identifica cursos por nombre, nunca por Mod 13 ni Mod 11',()=>{
  const x=I.assess(input,master());
  assert.equal(x.courses.length,2);
- assert.equal(x.courses[0].nucleus,4);
- assert.equal(x.courses[1].nucleus,3);
+ assert.equal(x.courses[0].nucleus,1);
+ assert.equal(x.courses[1].nucleus,4);
  assert.equal(x.courses[1].career,'Administración');
  assert.equal(x.courses[0].rows[0].student.modalidad,'online');
  assert.equal(x.courses[0].rows[1].student.modalidad,'presencial');
@@ -39,7 +39,7 @@ test('El cotejo preserva sin_definir y separa oficial de provisional',()=>{
  assert.equal(next.notas.length,2);
  assert.equal(next.notasBorrador.length,1);
  assert.equal(next.estudiantes[1].tipoTitulacion,'sin_definir');
- assert.equal(next.notas.find(n=>n.nucleo===4).nota,9.83);
+ assert.equal(next.notas.find(n=>n.nucleo===1).nota,9.83);
  assert.equal(next.notasBorrador[0].modalidad,'presencial');
  const again=I.assess(input,next);
  assert.equal(again.counts.already,2);
@@ -62,7 +62,7 @@ test('Identidad diferente o correo extra quedan en cuarentena',()=>{
  assert.equal(s.stats.quarantine,1);
 });
 test('Nunca sobrescribe notas distintas: registra conflicto',()=>{
- const s=master();s.notas=[{id:'1234567890|4',studentId:'1234567890',nucleo:4,nota:7,verificado:true}];
+ const s=master();s.notas=[{id:'1234567890|1',studentId:'1234567890',nucleo:1,nota:7,verificado:true}];
  const a=I.assess(input,s);
  assert.equal(a.courses[0].rows[0].status,'conflict');
  const out=I.apply(s,a,false,'2026-10-30');
@@ -91,7 +91,7 @@ test('TSV o Excel Moodle con Total del curso explícito conserva nota cero',()=>
  const raw='Nombre / Apellido(s)\tDirección de correo\tCuestionarioEVALUACIÓN PARCIAL 1\tMedia de calificacionesTotal del curso\n'
    +'CARLOS EDUARDO ACOSTA CHICA\tcaacosta@itsqmet.edu.ec\t9,00\t9,83\n'
    +'MALENA RACHELL ALVARADO PEREZ\tmalvarado@itsqmet.edu.ec\t0,00\t0,00';
- const a=I.assess(raw,master(),{career:'Administración',nucleus:4});
+ const a=I.assess(raw,master(),{career:'Administración',nucleus:1});
  assert.equal(a.counts.ready,2);
  assert.equal(a.courses[0].rows[0].grade,9.83);
  assert.equal(a.courses[0].rows[1].grade,0);
@@ -105,13 +105,13 @@ test('no permite guardar vista previa si cambia una nota o mecanismo sin variar 
  old.estudiantes[0].tipoTitulacion='trabajo';
  assert.throws(()=>I.apply(old,staged,false,'2026-10-30'),/base cambió/);
  const fresh=master(),preview=I.assess(raw,fresh);
- fresh.notas.push({studentId:'1234567890',nucleo:4,nota:8,verificado:true});
+ fresh.notas.push({studentId:'1234567890',nucleo:1,nota:8,verificado:true});
  assert.throws(()=>I.apply(fresh,preview,true,'2026-10-30'),/base cambió/);
 });
 
 test('cotejar Moodle promociona borrador coincidente sin duplicar nota, conserva procedencia',()=>{
  const s=master();
- s.notasBorrador.push({id:'1234567890|4',studentId:'1234567890',nucleo:4,nota:9.83,
+ s.notasBorrador.push({id:'1234567890|1',studentId:'1234567890',nucleo:1,nota:9.83,
   status:'provisional_por_conciliar',fuente:'Word preliminar'});
  const raw='T-NUCLEO - GESTIÓN COMERCIAL [Mod 13]\n'+
  row('CARLOS EDUARDO ACOSTA CHICA','caacosta@itsqmet.edu.ec',

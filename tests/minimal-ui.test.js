@@ -14,7 +14,8 @@ test('el inicio es una bandeja operativa y no una portada de estadísticas agreg
  const app=read('app.js');
  const first=app.slice(app.indexOf('function inicio(){'),app.indexOf('function estudiantes(){'));
  assert.match(first,/InformetitWorkQueue/);
- assert.match(first,/Importar base privada/);
+ assert.match(first,/Subir listado de estudiantes/);
+ assert.doesNotMatch(first,/Importar respaldo JSON/);
  assert.match(first,/taskRow/);
  assert.match(app,/data-queue-id/);
  assert.doesNotMatch(first,/statsPublic|publicStatsTable|nucleos_agregados|card\(/);
@@ -24,7 +25,10 @@ test('el inicio es una bandeja operativa y no una portada de estadísticas agreg
 });
 test('carga inteligente conserva vista previa y simplifica opciones avanzadas',()=>{
  const app=read('app.js'),slice=app.slice(app.indexOf('function intelligentView(){'),app.indexOf('async function smartAction('));
- assert.match(slice,/Subir calificaciones/);
+ assert.match(slice,/Carga global de calificaciones/);
+ assert.match(slice,/Formulario individual/);
+ assert.match(app,/function manualView/);
+ assert.match(app,/data-load-mode/);
  assert.match(slice,/smart-analyze/);
  assert.match(slice,/smart-apply/);
  assert.match(slice,/subtle-details/);

@@ -172,11 +172,10 @@ function inicio(){
  if(!queue.hasRoster){
   return head('Qué falta cargar','Primero necesitamos la información individual de esta computadora.')+
    '<section class="panel work-onboarding"><div class="work-onboarding-icon" aria-hidden="true">↑</div>'+
-   '<h2>Importar base privada de estudiantes</h2>'+
-   '<p>Los datos del repositorio son resúmenes generales; todavía no podemos identificar quién necesita una nota o un documento.</p>'+
-   '<div class="actions"><button class="btn primary" data-action="backup-file">Importar respaldo JSON</button>'+
-   '<button class="btn" data-page="datos">Abrir Datos y respaldo</button></div>'+
-   '<p class="hint">Si tienes <code>base-gpt.cjs</code>, colócalo en Descargas y reinicia Informetit. La aplicación lo detectará sin subirlo a GitHub.</p></section>';
+   '<h2>Subir listado de estudiantes</h2>'+
+   '<p>Para saber qué núcleo o evaluación falta, carga primero el Excel de estudiantes del período. Es un paso que se realiza una sola vez.</p>'+
+   '<div class="actions"><button class="btn primary" data-action="student-file">Seleccionar Excel de estudiantes</button>'+
+   '<button class="btn" data-page="carga">Ver otras opciones de carga</button></div></section>';
  }
  const chosen=queue.careers.find(c=>c.id===homeScope)||
   queue.careers.find(c=>queue.upload.some(t=>t.scope===c.id))||queue.careers[0];
@@ -1012,9 +1011,9 @@ function saveStatus(){
  const backup=Store.lastBackup?.(),F=window.InformetitFirebase;
  const pending=F?F.pending(state).length:0;
  let text='Guardado local: al confirmar la carga, los datos se conservan en este equipo.';
- if(backup?.ok===true)text+=' Copia privada GPT: actualizada.';
- else if(backup?.ok===false)text+=' Copia privada GPT: ERROR, revisa Datos y respaldo.';
- else text+=' Copia GPT: se genera automáticamente en Electron al guardar.';
+ if(backup?.ok===true)text+=' Respaldo automático: actualizado.';
+ else if(backup?.ok===false)text+=' Respaldo automático: error, revisa Configuración.';
+ else text+=' Respaldo automático: disponible al guardar desde Informetit Desktop.';
  if(!state.firebaseSync?.enabled)text+=' Firebase: sin autorización de envío automático.';
  else if(!firebaseConnection?.connected)text+=' Firebase: sin conexión autorizada, pendiente de sincronizar.';
  else text+=' Firebase: '+(pending?pending+' registros verificados pendientes de confirmación.':'sin cambios verificados pendientes de envío.')+
@@ -1109,8 +1108,8 @@ async function manualAction(code){
   if(result.kind==='verified')scheduleFirebaseSync();
   draw();
   const backup=Store.lastBackup?.();
-  const local='Guardado en el equipo'+(backup?.ok===true?' y copia privada GPT':
-    backup?.ok===false?' · no se pudo actualizar la copia GPT':'');
+  const local='Guardado en el equipo'+(backup?.ok===true?' · respaldo privado actualizado':
+    backup?.ok===false?' · no se pudo actualizar el respaldo privado':'');
   notify(local+(result.kind==='conflict'?' · conflicto pendiente de revisar':'')+
    (result.kind==='verified'?' · Firebase sujeto a conexión y autorización':''));
  }catch(error){notify('No se guardó: '+error.message)}

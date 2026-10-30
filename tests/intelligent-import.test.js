@@ -107,3 +107,24 @@ test('no permite guardar vista previa si cambia una nota o mecanismo sin variar 
  fresh.notas.push({studentId:'1234567890',nucleo:4,nota:8,verificado:true});
  assert.throws(()=>I.apply(fresh,preview,true,'2026-10-30'),/base cambió/);
 });
+
+test('cotejar Moodle promociona borrador coincidente sin duplicar nota, conserva procedencia',()=>{
+ const s=master();
+ s.notasBorrador.push({id:'1234567890|4',studentId:'1234567890',nucleo:4,nota:9.83,
+  status:'provisional_por_conciliar',fuente:'Word preliminar'});
+ const raw='T-NUCLEO - GESTIÓN COMERCIAL [Mod 13]\n'+
+ row('CARLOS EDUARDO ACOSTA CHICA','caacosta@itsqmet.edu.ec',
+ ['9,00','10,00','10,00','10,00','10,00','10,00','9,83']);
+ let preview=I.assess(raw,s);
+ assert.equal(preview.courses[0].rows[0].status,'draft_same');
+ const without=I.apply(s,preview,false,'2026-10-30');
+ assert.equal(without.next.notas.length,0);
+ assert.equal(without.next.notasBorrador.length,1);
+ const applied=I.apply(s,preview,true,'2026-10-30');
+ assert.equal(applied.stats.promoted,1);
+ assert.equal(applied.next.notas.length,1);
+ assert.equal(applied.next.notasBorrador.length,0);
+ assert.equal(applied.next.notas[0].verificado,true);
+ assert.equal(applied.next.notas[0].origenBorrador[0].fuente,'Word preliminar');
+ assert.equal(applied.next.auditoria.some(x=>x.tipo==='cotejo_nota_borrador'),true);
+});

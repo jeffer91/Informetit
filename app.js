@@ -16,6 +16,7 @@ let firebaseComparison=null,firebaseConnection=null,firebaseMessage="";
 let studentImportStage=null;
 let smartText="",smartStage=null,smartCareer="auto",smartNucleus="auto",smartFilter="todos",smartReviewed=false;
 let mechanismBatchStage=null,interpolationTarget=null;
+let homeScope="";
 const $=x=>document.querySelector(x), el=id=>document.getElementById(id), h=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])), normal=Data.key, compact=s=>normal(s).replace(/\s/g,""), getNum=Data.grade, num=s=>s===null||s===undefined?"—":Number(s).toLocaleString("es-EC",{minimumFractionDigits:2,maximumFractionDigits:2}), today=()=>new Date().toISOString().slice(0,10);
 function notify(t){const node=el("toast");node.textContent=t;node.style.display="block";clearTimeout(notify.timer);notify.timer=setTimeout(()=>node.style.display="none",4300)}
 function notifyPdfResult(result){
@@ -156,18 +157,49 @@ function showReportPreview(mode){
  close.focus();
  return true;
 }
-function publicDashboard(){
- const p=statsPublic('presencial'),o=statsPublic('online');
- if(!p||!o)return head("Panel general","Sin base disponible");
- return head("Panel general","Cohorte institucional desde GitHub · resumen agregado de libre consulta.")
- +'<div class="goodbox block"><b>Resumen estadístico disponible desde main.</b> Puedes generar borradores con los agregados del período; verifica las fuentes antes del cierre. Las fichas individuales se importan desde una base privada del equipo, aunque el código del repositorio sea público. Nunca publicamos nombres, cédulas ni notas individuales.</div>'
- +'<div class="cards">'+card("Registros de la cohorte",p.total+o.total,"Resumen agrupado")+card("Presencial",p.total,"Cumplen requisitos: "+p.completos9)+card("Online",o.total,"Cumplen requisitos: "+o.completos9)+card("Notas resumidas en Word",Object.values(window.InformetitNucleos?.datos||{}).flat().reduce((n,r)=>n+r[0],0),"19 núcleos · sin datos personales")+'</div>'
- +'<section class="panel"><h2>Descargar informes institucionales PDF</h2><p class="hint">Informes APA 7 con tablas, gráficos y análisis de los datos agregados. No incluyen expedientes individuales ni resultados pendientes de la fase final.</p><div class="actions"><button class="btn" data-action="preview-presencial">Vista previa presencial</button><button class="btn primary" data-action="draft-presencial">Exportar borrador presencial</button><button class="btn" data-action="preview-online">Vista previa online</button><button class="btn primary" data-action="draft-online">Exportar borrador online</button></div></section>'
- +'<div class="grid2"><section class="panel"><h2>Presencial</h2><p><b>'+p.completos8+'</b> cumplen ocho requisitos previos; <b>'+p.completos9+'</b> cumplen los nueve.</p>'+publicStatsTable('presencial')+'</section>'
- +'<section class="panel"><h2>Online</h2><p><b>'+o.completos8+'</b> cumplen ocho requisitos previos; <b>'+o.completos9+'</b> cumplen los nueve.</p>'+publicStatsTable('online')+'</section></div>'
- +'<p class="hint">Para cargar expedientes individuales, coloca la base GPT privada en Descargas y reinicia Electron, o utiliza Datos y respaldo para importar tu JSON.</p>';
+/* Inicio operativo: muestra únicamente cargas por carrera. Los pendientes no son reprobaciones. */
+function taskRow(item){
+ return '<div class="work-task"><div class="work-task-body"><strong>'+h(item.label)+
+  '</strong><span class="work-task-detail">'+h(item.detail)+'</span></div>'+
+  '<span class="work-task-count">'+h(item.count)+' pendientes</span>'+
+  '<button class="btn small" data-queue-id="'+h(item.id)+'">Abrir</button></div>';
 }
-function inicio(){if(!state.estudiantes.length&&window.InformetitPublicSummary)return publicDashboard();let p=aggregates("presencial"),o=aggregates("online");return head("Panel general","Una sola base local y dos informes institucionales.",'<button class="btn primary" data-action="backup-file">Importar respaldo privado (opcional)</button>')+(state.estudiantes.length?'':'<div class="warnbox block"><b>Base de Electron vacía.</b> Descarga el archivo privado de código base-gpt.cjs en la carpeta Descargas y reinicia Electron. La app encontrará automáticamente los 363 estudiantes y las notas. Los estudiantes y las notas no se suben al código público.</div>')+'<div class="cards">'+card("Registros totales",state.estudiantes.length,"Presencial + online")+card("Presencial",p.students.length,"Requisitos: "+p.completeN+" completos")+card("Online",o.students.length,"Requisitos: "+o.completeN+" completos")+card("Notas de núcleos",state.notas.length,"Verificar procedencia por registro")+'</div><section class="panel"><div class="row between"><div><h2>Descargar borrador del informe</h2><p class="hint">PDF APA 7 con gráficos y datos actualmente registrados. No incluye notas faltantes ni valores estimados.</p></div><div class="actions"><button class="btn" data-action="preview-presencial">Vista previa presencial</button><button class="btn primary" data-action="draft-presencial">Descargar PDF presencial</button><button class="btn" data-action="preview-online">Vista previa online</button><button class="btn primary" data-action="draft-online">Descargar PDF online</button></div></div></section><div class="grid2"><section class="panel"><h2>Avance por modalidad</h2>'+["presencial","online"].map(m=>{let a=aggregates(m);return '<div class="block"><div class="row between"><strong>'+modeLabel(m)+'</strong><span class="tiny muted">'+a.completeN+' de '+a.students.length+' cumplen nueve requisitos</span></div><div class="progress"><div style="width:'+(a.students.length?a.completeN/a.students.length*100:0)+'%"></div></div></div>'}).join("")+'</section><section class="panel"><h2>Estado de cargas</h2><p><b>'+state.notas.length+'</b> notas de núcleos registradas · <b>'+state.evaluaciones.length+'</b> resultados de evaluación final.</p><p><b>'+state.conflictos.length+'</b> notas en conflicto · <b>'+state.sinVincular.length+'</b> notas sin identificar.</p><p class="hint">Las notas que falten seguirán pendientes. Las estimaciones nunca se presentan como resultados oficiales.</p></section></div>'+'<section class="panel"><h2>Información ya configurada</h2><div class="grid2"><div><p>• Cronogramas institucionales de Complexivo y Trabajo de Titulación.</p><p>• Dos informes separados por modalidad.</p></div><div><p>• Portada INF según guía institucional.</p><p>• Almacenamiento privado de Electron, con exportación JSON y base GPT.</p></div></div></section>'}
+function inicio(){
+ const engine=window.InformetitWorkQueue;
+ if(!engine)return head('Pendientes de carga','No se encontró el motor de seguimiento.');
+ const queue=engine.build(state);
+ if(!queue.hasRoster){
+  return head('Qué falta cargar','Primero necesitamos la información individual de esta computadora.')+
+   '<section class="panel work-onboarding"><div class="work-onboarding-icon" aria-hidden="true">↑</div>'+
+   '<h2>Importar base privada de estudiantes</h2>'+
+   '<p>Los datos del repositorio son resúmenes generales; todavía no podemos identificar quién necesita una nota o un documento.</p>'+
+   '<div class="actions"><button class="btn primary" data-action="backup-file">Importar respaldo JSON</button>'+
+   '<button class="btn" data-page="datos">Abrir Datos y respaldo</button></div>'+
+   '<p class="hint">Si tienes <code>base-gpt.cjs</code>, colócalo en Descargas y reinicia Informetit. La aplicación lo detectará sin subirlo a GitHub.</p></section>';
+ }
+ const chosen=queue.careers.find(c=>c.id===homeScope)||
+  queue.careers.find(c=>queue.upload.some(t=>t.scope===c.id))||queue.careers[0];
+ if(!chosen)return head('Qué falta cargar','No se encontraron carreras en el padrón local.');
+ homeScope=chosen.id;
+ const loads=queue.upload.filter(x=>x.scope===chosen.id);
+ const reviews=queue.review.filter(x=>x.scope===chosen.id||x.scope==='global');
+ let out=head('Qué falta cargar','Selecciona una carrera y resuelve los pendientes uno por uno.');
+ out+='<div class="work-toolbar"><label class="field" for="home-scope">Carrera y modalidad'+
+  '<select id="home-scope">'+queue.careers.map(g=>'<option value="'+h(g.id)+'"'+
+   (g.id===chosen.id?' selected':'')+'>'+h(g.career)+' · '+(g.mode==='online'?'Online':'Presencial')+
+   '</option>').join('')+'</select></label>'+
+  '<span class="work-total">'+h(chosen.total)+' estudiantes en la nómina local</span></div>';
+ out+='<section class="panel work-list"><div class="work-heading"><div><h2>Información por cargar</h2>'+
+   '<p class="hint">Solo datos realmente ausentes, no calificaciones reprobadas ni registros preliminares.</p></div>'+
+   '<strong class="work-number">'+loads.length+'</strong></div>';
+ if(loads.length)out+=loads.map(taskRow).join('');
+ else out+='<div class="work-empty">No hay cargas faltantes identificadas para esta carrera. Puedes revisar los registros pendientes de cotejo.</div>';
+ out+='</section>';
+ if(reviews.length)out+='<details class="panel work-review"><summary>Requieren revisión ('+reviews.length+
+  ')</summary><p class="hint">Estos datos ya existen o necesitan una decisión; no vuelvas a cargarlos sin cotejarlos.</p>'+
+  reviews.map(taskRow).join('')+'</details>';
+ return out;
+}
 function estudiantes(){
  const Req=window.InformetitRequirements;
  if(!Req)return head("Requisitos","El motor de requisitos no está disponible.");
@@ -1111,7 +1143,16 @@ async function smartFileChange(ev){
 }
 
 const views={inicio,estudiantes,carga:intelligentView,nucleos:grades,evaluaciones:evaluations,trabajo,cronogramas:schedule,informes:reports,identidad,firebase:firebaseView,datos:data};
-function draw(){el("main").innerHTML=views[page]();document.querySelectorAll(".nav").forEach(x=>x.classList.toggle("active",x.dataset.page===page));}
+function draw(){
+ el("main").innerHTML=views[page]();
+ document.querySelectorAll(".nav[data-page]").forEach(x=>x.classList.toggle("active",x.dataset.page===page));
+ const evaluationPages=['nucleos','evaluaciones','trabajo'],configPages=['identidad','firebase','datos'];
+ for(const [name,items] of [['nav-evaluaciones',evaluationPages],['nav-configuracion',configPages]]){
+  const group=el(name);if(!group)continue;
+  group.classList.toggle('active-group',items.includes(page));
+  if(items.includes(page))group.open=true;
+ }
+}
 function download(name,type,content){let blob=new Blob([content],{type}),u=URL.createObjectURL(blob),a=document.createElement("a");a.href=u;a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),2000)}
 async function parseGradeAndSave(save){
  const engine=window.InformetitMoodle;
@@ -1370,7 +1411,23 @@ case"apply-eval-import":{
   }
  }catch(error){notify("Trabajo de Titulación: "+error.message)}
 }break;case"doc":if(!window.InformetitFullReport){notify("Generador institucional no disponible");break}download("Informe_"+tab+"_"+today()+".doc","application/msword;charset=utf-8",window.InformetitFullReport.makeReport(state,tab));break;case"pdf":if(window.InformetitFullReport){try{notifyPdfResult(await window.InformetitFullReport.download(state,tab))}catch(e){notify("No se pudo generar PDF: "+e.message)}}else notify("Informe institucional no disponible.");break;case"preview-current":case"preview-presencial":case"preview-online":{const m=code==="preview-current"?tab:code==="preview-online"?"online":"presencial";try{showReportPreview(m)}catch(e){notify("No se pudo abrir la vista previa: "+e.message)}break}case"draft-presencial":case"draft-online":{const mode=code==="draft-online"?"online":"presencial";if(window.InformetitFullReport){try{const result=await window.InformetitFullReport.download(state,mode);notifyPdfResult(result);}catch(err){notify("Error al generar el informe: "+err.message);console.error(err)}}else notify("Generador institucional no disponible.");break}case"print":if(window.InformetitFullReport){try{notifyPdfResult(await window.InformetitFullReport.download(state,tab))}catch(e){notify("No se pudo generar PDF: "+e.message)}}else notify("Informe institucional no disponible.");break;}}
-document.addEventListener("click",async ev=>{let nav=ev.target.closest("[data-page]");if(nav){page=nav.dataset.page;query="";lastParse=null;draw();return}let m=ev.target.closest("[data-mode]");if(m){tab=m.dataset.mode;lastParse=null;examImportStage=null;evaluationStudentId="";trabajoStudentId="";draw();return}let cmd=ev.target.closest("[data-action]");if(cmd){if(cmd.dataset.action.startsWith("firebase-"))await firebaseAction(cmd.dataset.action);else await action(cmd.dataset.action);return}let pending=ev.target.closest("[data-link-unmatched]");if(pending){
+document.addEventListener("click",async ev=>{
+ let taskButton=ev.target.closest("[data-queue-id]");
+ if(taskButton){
+  const queue=window.InformetitWorkQueue?.build(state);
+  const task=[...(queue?.upload||[]),...(queue?.review||[])].find(x=>x.id===taskButton.dataset.queueId);
+  if(!task)return;
+  if(task.action==='backup-file'){el('backup-file').click();return}
+  if(task.mode)tab=task.mode;
+  if(task.page==='carga'){
+    smartCareer=task.career||'auto';
+    smartNucleus=task.nucleus?String(task.nucleus):'auto';
+    smartFilter=task.mode||'todos';smartStage=null;
+  }
+  if(task.page==='estudiantes'){query=task.career||'';reqFilter='todos';reqStatus='todos'}
+  page=task.page||'inicio';draw();return;
+ }
+ let nav=ev.target.closest("[data-page]");if(nav){page=nav.dataset.page;query="";lastParse=null;draw();return}let m=ev.target.closest("[data-mode]");if(m){tab=m.dataset.mode;lastParse=null;examImportStage=null;evaluationStudentId="";trabajoStudentId="";draw();return}let cmd=ev.target.closest("[data-action]");if(cmd){if(cmd.dataset.action.startsWith("firebase-"))await firebaseAction(cmd.dataset.action);else await action(cmd.dataset.action);return}let pending=ev.target.closest("[data-link-unmatched]");if(pending){
  const idx=Number(pending.dataset.linkUnmatched),record=state.sinVincular[idx];
  if(!record)return;
  const studentId=el("unmatched-student-"+idx)?.value;
@@ -1401,6 +1458,8 @@ let conflict=ev.target.closest("[data-use-conflict], [data-keep-conflict]");if(c
 }});
 document.addEventListener("input",ev=>{if(ev.target.id==="student-search"){query=ev.target.value;let pos=ev.target.selectionStart;draw();let search=el("student-search");search.focus();search.setSelectionRange(pos,pos)}if(ev.target.id==="moodle-text"){inputText=ev.target.value;lastParse=null}if(ev.target.id==="exam-import-text"){examImportText=ev.target.value;examImportStage=null}if(ev.target.id==="smart-text"){smartText=ev.target.value;smartStage=null}});
 document.addEventListener("change",async ev=>{let field=ev.target;
+if(field.id==='home-scope'){homeScope=field.value;draw();return}
+
 if(field.id==='smart-filter'){smartFilter=field.value;draw();return}
 if(field.id==='smart-verified'){smartReviewed=field.checked;return}
 if(field.id==='smart-career'){smartCareer=field.value;smartStage=null;draw();return}

@@ -15,6 +15,7 @@ let examImportText="",examImportStage=null;
 let firebaseComparison=null,firebaseConnection=null,firebaseMessage="";
 let studentImportStage=null;
 let smartText="",smartStage=null,smartCareer="auto",smartNucleus="auto",smartFilter="todos",smartReviewed=false;
+let mechanismBatchStage=null,interpolationTarget=null;
 const $=x=>document.querySelector(x), el=id=>document.getElementById(id), h=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])), normal=Data.key, compact=s=>normal(s).replace(/\s/g,""), getNum=Data.grade, num=s=>s===null||s===undefined?"—":Number(s).toLocaleString("es-EC",{minimumFractionDigits:2,maximumFractionDigits:2}), today=()=>new Date().toISOString().slice(0,10);
 function notify(t){const node=el("toast");node.textContent=t;node.style.display="block";clearTimeout(notify.timer);notify.timer=setTimeout(()=>node.style.display="none",4300)}
 function notifyPdfResult(result){
@@ -337,7 +338,7 @@ function grades(){
   for(const n of selected.nuclei){
    const grades=new Map(n.entries.map(x=>[x.id,x]));
    const conflicts=new Set(n.unresolved.map(x=>x.id));
-   out+='<div class="block"><h3>Núcleo '+n.number+(n.title?' — '+h(n.title):'')+' · '+h(selected.name)+'</h3>'
+   out+='<div class="block"><h3>Núcleo '+n.number+(n.title?' — '+h(n.title):'')+' · '+h(selected.name)+'</h3>'+interpolationButton(tab,selected.name,n.number)+interpolationPanel(tab,selected.name,n.number)
     +'<p class="hint">'+h(window.InformetitNuclei.narrative(selected,n))+'</p>';
    out+=table(['N.º','Estudiante','Cédula','Nota final','Estado','Fuente'],
     people.map((person,i)=>{
@@ -934,6 +935,42 @@ async function firebaseLoadFile(event){
 }
 
 
+
+/* Proyección solo en pantalla: nunca forma parte de state, JSON, Firebase ni PDF. */
+function interpolationKey(mode,career,nucleus){
+ return mode+'|'+Data.career(career)+'|'+Number(nucleus);
+}
+function interpolationButton(mode,career,nucleus){
+ const k=interpolationKey(mode,career,nucleus);
+ return '<button type="button" class="btn small" data-interpolate="'+h(k)+'">'+
+  (interpolationTarget===k?'Cerrar proyección':'Interpolar')+'</button>';
+}
+function interpolationPanel(mode,career,nucleus){
+ const k=interpolationKey(mode,career,nucleus);
+ if(interpolationTarget!==k)return '';
+ const engine=window.InformetitInterpolation;
+ if(!engine)return '<p class="hint">El simulador no está disponible.</p>';
+ try{
+  const x=engine.project(state,mode,career,nucleus);
+  let html='<section class="panel"><h3>SIMULACIÓN — '+h(career)+' · Núcleo '+h(nucleus)+' · '+h(modeLabel(mode))+'</h3>'
+   +'<p class="hint"><b>No es una calificación real ni se registra en la base.</b> Se calcula solo con notas identificadas y verificadas de estudiantes de Complexivo. Los proyectos no forman parte del denominador.</p>'
+   +'<div class="cards">'+card('Estudiantes Complexivo',x.expected)+card('Notas verificadas',x.verified)
+   +card('Sin nota',x.missing)+card('Con nota provisional',x.provisional)+card('Conflictos',x.conflicts)+'</div>';
+  if(x.possible){
+   html+='<div class="cards">'+card('Promedio real',num(x.realMean))
+    +card('Proyección con media',num(x.projectedMean))
+    +card('Valor simulado por faltante',num(x.estimatedValue))+'</div>'
+    +'<p class="hint">Proyección hipotética de '+x.simulated+' notas faltantes usando la media de las '+x.verified+
+    ' notas verificadas. La cobertura real permanece en '+x.verified+' de '+x.expected+'.</p>'
+    +table(['Estudiante sin nota','Valor hipotético','Estado'],
+      x.missingStudents.map(s=>'<tr>'+td(s.name)+td(num(x.estimatedValue))+td('SIMULADO · No registrar como nota')+'</tr>'));
+  }else html+='<div class="warnbox block">La simulación requiere al menos una nota verificada y una nota realmente ausente. Las notas provisionales y los conflictos deben cotejarse; no se interpolan.</div>';
+  html+='<p class="hint">Esta simulación desaparece al cerrarla o al cargar una nueva nota. Ningún valor interpolado se exporta ni sincroniza.</p>'
+   +'<button class="btn" data-interpolate="'+h(k)+'">Cerrar simulación</button></section>';
+  return html;
+ }catch(err){return '<div class="warnbox block">'+h(err.message)+'</div>'}
+}
+
 /* Centro de Carga Inteligente: análisis primero; escritura privada solo al confirmar. */
 function intelligentView(){
  const engine=window.InformetitCargaInteligente;
@@ -980,9 +1017,13 @@ function intelligentView(){
   +'<label class="field">Ver modalidad<select id="smart-filter">'
   +[['todos','Ambas modalidades'],['presencial','Presencial'],['online','Online']]
    .map(([val,label])=>'<option value="'+val+'"'+(smartFilter===val?' selected':'')+'>'+label+'</option>').join('')+'</select></label>'
-  +table(["Carrera","Modalidad","Estudiantes","Sin clasificar","Núcleo 1","Núcleo 2","Núcleo 3","Núcleo 4"],
-  rows.map(x=>'<tr>'+td(x.career)+td(modeLabel(x.mode))+td(x.students)+td(x.unknown)
-   +x.nuclei.map(n=>td(n.present+' / '+x.students+' · '+n.status)).join('')+'</tr>'))
+  +table(["Carrera","Modalidad","Total","Complexivo","Trabajo","Sin clasificar","Núcleo 1","Núcleo 2","Núcleo 3","Núcleo 4"],
+  rows.map(x=>'<tr>'+td(x.career)+td(modeLabel(x.mode))+td(x.students)+td(x.known)+td(x.projects)+td(x.unknown)
+   +x.nuclei.map(n=>'<td>'+h(n.verified)+' verificadas / '+h(n.expected)+' Complexivo · '+h(n.status)
+    +(n.provisional?' · '+h(n.provisional)+' provisionales':'')
+    +(n.missing?' · '+h(n.missing)+' faltantes':'')
+    +'<div class="actions">'+interpolationButton(x.mode,x.career,n.number)+'</div></td>').join('')+'</tr>'))
+  +rows.flatMap(x=>x.nuclei.map(n=>interpolationPanel(x.mode,x.career,n.number))).join('')
   +'<h3>Próximas cargas sugeridas</h3>';
  const filteredActions=pending.actions.filter(x=>smartFilter==='todos'||x.toLowerCase().includes(smartFilter));
  out+='<div class="tablewrap"><ol>'+filteredActions.slice(0,28).map(x=>'<li>'+h(x)+'</li>').join('')+'</ol></div>';
@@ -1342,6 +1383,10 @@ document.addEventListener("click",async ev=>{let nav=ev.target.closest("[data-pa
  }catch(error){console.error(error);notify("No se pudo vincular: "+error.message)}
  return;
 }
+let sim=ev.target.closest("[data-interpolate]");if(sim){
+ interpolationTarget=interpolationTarget===sim.dataset.interpolate?null:sim.dataset.interpolate;
+ draw();return;
+}
 let conflict=ev.target.closest("[data-use-conflict], [data-keep-conflict]");if(conflict){
  const useNew=conflict.hasAttribute("data-use-conflict"),i=Number(useNew?conflict.dataset.useConflict:conflict.dataset.keepConflict);
  const c=state.conflictos[i];if(!c)return;
@@ -1358,7 +1403,24 @@ if(field.id==='smart-filter'){smartFilter=field.value;draw();return}
 if(field.id==='smart-verified'){smartReviewed=field.checked;return}
 if(field.id==='smart-career'){smartCareer=field.value;smartStage=null;draw();return}
 if(field.id==='smart-nucleus'){smartNucleus=field.value;smartStage=null;draw();return}
-if(field.dataset.studentType){let s=state.estudiantes.find(x=>x.id===field.dataset.studentType);if(s){if(!["sin_definir","complexivo","trabajo"].includes(field.value)){notify("Mecanismo inválido");draw();return}if(s.tipoTitulacion!==field.value){s.tipoTitulacion=field.value;studentImportStage=null;await persist();draw();notify("Mecanismo de titulación actualizado.")}}}else if(field.hasAttribute("data-work-student")){trabajoStudentId=field.value;draw()}else if(field.hasAttribute("data-eval-select")){evaluationStudentId=field.value;draw()}else if(field.hasAttribute("data-nucleus-career")){nucleusCareerKey=field.value;draw()}else if(field.hasAttribute("data-requirement-filter")){reqFilter=field.value;draw()}else if(field.hasAttribute("data-status-filter")){reqStatus=field.value;draw()}else if(field.hasAttribute('data-program-date')){
+if(field.dataset.studentType){
+ const s=state.estudiantes.find(x=>x.id===field.dataset.studentType);
+ if(!s){draw();return}
+ try{
+  const planned=window.InformetitMechanism.planOne(state,s.id,field.value);
+  if(!planned.changes.length){draw();return}
+  const change=planned.changes[0],e=change.evidence;
+  const evidence='Notas Moodle: '+e.notas+', provisionales: '+e.provisionales+
+   ', cursos: '+e.cursos+', evaluaciones: '+e.examenes+', proyectos: '+e.proyectos+'.';
+  if(!confirm('¿Cambiar el mecanismo de '+s.nombre+' de '+change.from+' a '+change.to+'?\n'+
+    'Se mantendrá toda la evidencia anterior, pero solo se calcularán resultados del mecanismo elegido.\n'+
+    evidence+'\nEl cambio quedará registrado en auditoría.')){draw();return}
+  const result=window.InformetitMechanism.apply(state,planned,today());
+  await Store.save(result.next);state=result.next;studentImportStage=null;smartStage=null;
+  mechanismBatchStage=null;interpolationTarget=null;draw();
+  notify('Mecanismo actualizado; calificaciones y antecedentes conservados en la base privada.');
+ }catch(err){console.error(err);draw();notify('No se cambió el mecanismo: '+err.message)}
+}else if(field.hasAttribute("data-work-student")){trabajoStudentId=field.value;draw()}else if(field.hasAttribute("data-eval-select")){evaluationStudentId=field.value;draw()}else if(field.hasAttribute("data-nucleus-career")){nucleusCareerKey=field.value;draw()}else if(field.hasAttribute("data-requirement-filter")){reqFilter=field.value;draw()}else if(field.hasAttribute("data-status-filter")){reqStatus=field.value;draw()}else if(field.hasAttribute('data-program-date')){
  const index=field.dataset.programDate,fieldName=field.dataset.programType;
  if(!['inicio','fin'].includes(fieldName)||!index)return;
  if(!state.cronogramaPersonalizado)state.cronogramaPersonalizado={};

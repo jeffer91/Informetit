@@ -17,6 +17,7 @@ let studentImportStage=null;
 let smartText="",smartStage=null,smartCareer="auto",smartNucleus="auto",smartFilter="todos",smartReviewed=false;
 let mechanismBatchStage=null,interpolationTarget=null;
 let homeScope="";
+let loadMethod="global",manualType="nucleo",manualMode="presencial",manualCareer="",manualStudentId="",manualNucleus="1";
 const $=x=>document.querySelector(x), el=id=>document.getElementById(id), h=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])), normal=Data.key, compact=s=>normal(s).replace(/\s/g,""), getNum=Data.grade, num=s=>s===null||s===undefined?"—":Number(s).toLocaleString("es-EC",{minimumFractionDigits:2,maximumFractionDigits:2}), today=()=>new Date().toISOString().slice(0,10);
 function notify(t){const node=el("toast");node.textContent=t;node.style.display="block";clearTimeout(notify.timer);notify.timer=setTimeout(()=>node.style.display="none",4300)}
 function notifyPdfResult(result){
@@ -1006,20 +1007,122 @@ function interpolationPanel(mode,career,nucleus){
 }
 
 /* Centro de Carga Inteligente: análisis primero; escritura privada solo al confirmar. */
+
+function manualView(){
+ const catalogue=window.InformetitNucleiCatalog,groups=catalogue.list();
+ const careers=[...new Map(state.estudiantes.filter(s=>s.modalidad===manualMode)
+  .map(s=>[Data.career(s.carrera),s.carrera])).values()].sort((a,b)=>a.localeCompare(b,'es'));
+ const selectedCareer=careers.find(s=>Data.career(s)===Data.career(manualCareer))||careers[0]||'';
+ const available=state.estudiantes.filter(s=>s.modalidad===manualMode&&Data.career(s.carrera)===Data.career(selectedCareer));
+ const selected=available.find(s=>s.id===manualStudentId)||available[0];
+ const course=catalogue.list().find(x=>catalogue.canonical(x.name)===catalogue.canonical(selectedCareer));
+ const set=(id,value,label)=>'<label class="field">'+label+'<select id="'+id+'">'+value+'</select></label>';
+ const option=(value,label,current)=>'<option value="'+h(value)+'"'+(value===current?' selected':'')+'>'+h(label)+'</option>';
+ let out='<section class="panel upload-panel"><h2>Formulario individual</h2>'+
+  '<p class="hint">Completa o corrige un estudiante a la vez. Lo que ya esté registrado se conserva; cualquier nota diferente se marca para revisión.</p>'+
+  '<div class="field-row">'+set('manual-type',
+   [['nucleo','Nota de núcleo'],['requisito','Requisito'],['complexivo','Examen Complexivo'],['trabajo','Trabajo de Titulación']]
+    .map(x=>option(x[0],x[1],manualType)).join(''),'¿Qué necesitas registrar?')+
+   set('manual-mode',[['presencial','Presencial'],['online','Online']]
+    .map(x=>option(x[0],x[1],manualMode)).join(''),'Modalidad')+'</div>';
+ if(!state.estudiantes.length)return out+'<p>No hay estudiantes registrados. Sube primero el listado institucional de estudiantes.</p>'+
+  '<div class="actions"><button class="btn primary" data-action="student-file">Subir listado Excel</button></div></section>';
+ out+='<div class="field-row">'+set('manual-career',careers.map(s=>option(s,s,selectedCareer)).join(''),'Carrera')+
+   set('manual-student',available.map(s=>option(s.id,s.nombre+' · '+s.id,selected?.id||'')).join(''),'Estudiante')+'</div>';
+ if(!selected)return out+'<p>Sin estudiantes para esta selección.</p></section>';
+ if(manualType==='complexivo'||manualType==='trabajo'){
+  const expected=manualType==='complexivo'?'complexivo':'trabajo';
+  if(selected.tipoTitulacion!==expected){
+   out+='<p class="hint">Este estudiante figura como '+h(typeLabel(selected.tipoTitulacion))+
+    '. Revisa su mecanismo en Estudiantes antes de registrar una evaluación.</p>'+
+    '<button class="btn" data-page="estudiantes">Abrir Estudiantes</button>';
+  }else{
+   out+='<p class="hint">Se abrirá el formulario completo de '+(expected==='complexivo'?'Examen Complexivo':'Trabajo de Titulación')+
+     ', con sus componentes, actas y verificación.</p>'+
+    '<div class="actions"><button class="btn primary" data-action="manual-special">Abrir formulario de evaluación</button></div>';
+  }
+ }else if(manualType==='nucleo'){
+  if(selected.tipoTitulacion!=='complexivo')out+='<p class="hint">Para registrar notas de núcleos, primero confirma que el estudiante pertenece a Examen Complexivo.</p>';
+  const nuclei=course?.nuclei||[];
+  const n=nuclei.some(x=>x.number===Number(manualNucleus))?String(manualNucleus):String(nuclei[0]?.number||1);
+  const key=selected.id+'|'+n,
+    current=[...(state.notas||[]),...(state.notasBorrador||[]),...(state.cursosNucleos||[])]
+     .find(x=>String(x.studentId)+'|'+Number(x.nucleo)===key);
+  out+='<div class="field-row">'+set('manual-nucleus',nuclei.map(x=>option(String(x.number),
+    'Núcleo '+x.number+' · '+x.title,n)).join(''),'Núcleo')+
+   '<label class="field">Nota final (0 a 10)<input id="manual-score" class="control" type="text" inputmode="decimal" placeholder="Ejemplo: 8,75"></label></div>'+
+   '<p class="hint">Nota que ya consta: '+(current?num(current.nota)+(current.verificado?' · Verificada':' · Por cotejar'):'Sin nota registrada')+'</p>'+
+   '<label class="field block">Fuente o referencia<input class="control" id="manual-source" type="text" placeholder="Ejemplo: Moodle, libro de calificaciones del núcleo"></label>'+
+   '<label class="field block"><input type="checkbox" id="manual-reviewed"> Confirmo que comprobé esta nota con la fuente original y la identidad del estudiante.</label>'+
+   '<div class="actions"><button class="btn primary" data-action="manual-save"'+(selected.tipoTitulacion!=='complexivo'?' disabled':'')+'>Guardar nota</button></div>';
+ }else{
+  const fields=R.map(k=>option(k,LABEL[k],R[0])).join('');
+  out+='<div class="field-row">'+set('manual-requirement',fields,'Requisito')+
+    set('manual-status',[['CUMPLE','Cumple'],['NO CUMPLE','No cumple'],['SIN VERIFICAR','Sin verificar'],['NO APLICA','No aplica']]
+      .map(x=>option(x[0],x[1],'SIN VERIFICAR')).join(''),'Estado')+'</div>'+
+   '<label class="field block">Documento o fuente<input class="control" id="manual-source" type="text" placeholder="Ejemplo: expediente institucional revisado"></label>'+
+   '<div class="actions"><button class="btn primary" data-action="manual-save">Guardar requisito</button></div>';
+ }
+ out+='<p class="hint">Los cambios se guardan en este equipo. Las notas verificadas de Complexivo se pueden enviar a Firebase únicamente si la sincronización está autorizada y disponible. Los requisitos y proyectos no se envían.</p></section>';
+ return out;
+}
+async function manualAction(code){
+ if(code==='manual-special'){
+  const student=state.estudiantes.find(s=>s.id===manualStudentId)||state.estudiantes.find(s=>s.modalidad===manualMode&&Data.career(s.carrera)===Data.career(manualCareer));
+  if(!student){notify('Selecciona un estudiante.');return}
+  if(student.tipoTitulacion!==manualType){notify('Confirma primero el mecanismo del estudiante.');return}
+  tab=student.modalidad;
+  if(manualType==='complexivo'){evaluationStudentId=student.id;page='evaluaciones'}
+  else{trabajoStudentId=student.id;page='trabajo'}
+  draw();return;
+ }
+ if(code!=='manual-save')return;
+ const studentId=el('manual-student')?.value,source=el('manual-source')?.value;
+ try{
+  let result;
+  if(manualType==='nucleo'){
+   result=window.InformetitManualEntry.nucleus(state,{
+    studentId,nucleus:el('manual-nucleus')?.value,score:el('manual-score')?.value,
+    source,reviewed:!!el('manual-reviewed')?.checked},today());
+  }else if(manualType==='requisito'){
+   result=window.InformetitManualEntry.requirement(state,{
+    studentId,field:el('manual-requirement')?.value,value:el('manual-status')?.value,
+    source},today());
+  }else return;
+  if(result.kind==='already'){notify('Ya existe el mismo registro. No se ha duplicado.');return}
+  if(result.kind==='conflict'&&!confirm('Se encontró una nota diferente. Se registrará para conciliación sin reemplazar la anterior. ¿Continuar?'))return;
+  await Store.save(result.next);state=result.next;smartStage=null;
+  if(result.kind==='verified')scheduleFirebaseSync();
+  draw();
+  const backup=Store.lastBackup?.();
+  const local='Guardado en el equipo'+(backup?.ok===true?' y copia privada GPT':
+    backup?.ok===false?' · no se pudo actualizar la copia GPT':'');
+  notify(local+(result.kind==='conflict'?' · conflicto pendiente de revisar':'')+
+   (result.kind==='verified'?' · Firebase sujeto a conexión y autorización':''));
+ }catch(error){notify('No se guardó: '+error.message)}
+}
 function intelligentView(){
  const engine=window.InformetitCargaInteligente;
+ let header=head('Cargar información','Elige si deseas ingresar una ficha individual o cargar información de varios estudiantes.');
+ header+='<div class="load-switch"><button type="button" class="btn '+(loadMethod==='individual'?'primary':'')+
+  '" data-load-mode="individual">Formulario individual</button><button type="button" class="btn '+(loadMethod==='global'?'primary':'')+
+  '" data-load-mode="global">Carga global</button></div>';
+ if(loadMethod==='individual')return header+manualView();
  if(!engine)return head("Centro de Carga Inteligente","No está disponible el motor de reconocimiento académico.");
- if(!state.estudiantes.length)return head('Cargar información','Primero importa la base privada.')+
- '<section class="panel work-onboarding"><h2>Necesitamos la nómina individual</h2>'+
- '<p>Esta computadora solo contiene estadísticas agregadas. Importa el respaldo JSON o coloca base-gpt.cjs en Descargas y reinicia Informetit.</p>'+
- '<div class="actions"><button class="btn primary" data-action="backup-file">Importar JSON privado</button>'+
- '<button class="btn" data-page="datos">Datos y respaldo</button></div></section>';
+ if(!state.estudiantes.length)return header+
+ '<section class="panel upload-panel"><h2>Subir listado de estudiantes</h2>'+
+ '<p>Para reconocer nombres y calificaciones, comienza con el Excel institucional de estudiantes.</p>'+
+ '<div class="actions"><button class="btn primary" data-action="student-file">Subir Excel de estudiantes</button></div></section>';
 
  const pending=engine.pending(state),rows=pending.rows.filter(x=>smartFilter==='todos'||x.mode===smartFilter);
  const careers=window.InformetitNucleiCatalog.list();
- let out=head("Cargar información","Sube libros de Moodle o pega sus calificaciones. Revisaremos los datos antes de guardar.");
- out+='<section class="panel upload-panel"><h2>Subir calificaciones</h2>'
+ let out=header;
+ out+='<section class="panel upload-panel"><h2>Carga global de calificaciones</h2>'
   +'<p class="hint">Puedes cargar varios núcleos juntos. Identificamos los cursos por su nombre y cotejamos la nómina.</p>'
+  +'<div class="actions"><button class="btn" data-action="student-file">Listado de estudiantes (Excel)</button>'+
+    '<button class="btn" data-action="cursos-file">Cursos (Excel)</button>'+
+    '<button class="btn" data-action="trabajo-file">Listado de Trabajo (Excel)</button>'+
+    '<button class="btn" data-action="manual-global-exam">Resultados de Complexivo</button></div>'
   +'<div class="actions"><button class="btn" data-action="smart-file">Elegir archivos Moodle (.txt, .csv, .tsv, Excel)</button>'
   +'<button class="btn" data-action="smart-clear">Limpiar entrada</button></div>'
   +'<label class="field block">Pegar contenido de Moodle<textarea id="smart-text" rows="8" placeholder="Pega aquí los cuatro libros de Moodle. No necesitas ordenarlos.">'+h(smartText)+'</textarea></label>'
@@ -1339,7 +1442,11 @@ async function handleFiles(ev){
  finally{ev.target.value=''}
 }
 
-async function action(code){if(code.startsWith("smart-"))return smartAction(code);switch(code){case"apply-student-import":{
+async function action(code){
+ if(code.startsWith('manual-'))return manualAction(code);
+ if(code.startsWith("smart-"))return smartAction(code);
+ if(code==='manual-global-exam'){page='evaluaciones';draw();return}
+ switch(code){case"apply-student-import":{
  if(!studentImportStage){notify('Primero selecciona y revisa un Excel.');break}
  try{
   const stage=studentImportStage,preview=window.InformetitStudentImport.plan(state,stage.rows,stage.fileName);
@@ -1417,6 +1524,8 @@ case"apply-eval-import":{
  }catch(error){notify("Trabajo de Titulación: "+error.message)}
 }break;case"doc":if(!window.InformetitFullReport){notify("Generador institucional no disponible");break}download("Informe_"+tab+"_"+today()+".doc","application/msword;charset=utf-8",window.InformetitFullReport.makeReport(state,tab));break;case"pdf":if(window.InformetitFullReport){try{notifyPdfResult(await window.InformetitFullReport.download(state,tab))}catch(e){notify("No se pudo generar PDF: "+e.message)}}else notify("Informe institucional no disponible.");break;case"preview-current":case"preview-presencial":case"preview-online":{const m=code==="preview-current"?tab:code==="preview-online"?"online":"presencial";try{showReportPreview(m)}catch(e){notify("No se pudo abrir la vista previa: "+e.message)}break}case"draft-presencial":case"draft-online":{const mode=code==="draft-online"?"online":"presencial";if(window.InformetitFullReport){try{const result=await window.InformetitFullReport.download(state,mode);notifyPdfResult(result);}catch(err){notify("Error al generar el informe: "+err.message);console.error(err)}}else notify("Generador institucional no disponible.");break}case"print":if(window.InformetitFullReport){try{notifyPdfResult(await window.InformetitFullReport.download(state,tab))}catch(e){notify("No se pudo generar PDF: "+e.message)}}else notify("Informe institucional no disponible.");break;}}
 document.addEventListener("click",async ev=>{
+ let modeButton=ev.target.closest("[data-load-mode]");
+ if(modeButton){loadMethod=modeButton.dataset.loadMode;draw();return}
  let taskButton=ev.target.closest("[data-queue-id]");
  if(taskButton){
   const queue=window.InformetitWorkQueue?.build(state);
@@ -1464,6 +1573,11 @@ let conflict=ev.target.closest("[data-use-conflict], [data-keep-conflict]");if(c
 document.addEventListener("input",ev=>{if(ev.target.id==="student-search"){query=ev.target.value;let pos=ev.target.selectionStart;draw();let search=el("student-search");search.focus();search.setSelectionRange(pos,pos)}if(ev.target.id==="moodle-text"){inputText=ev.target.value;lastParse=null}if(ev.target.id==="exam-import-text"){examImportText=ev.target.value;examImportStage=null}if(ev.target.id==="smart-text"){smartText=ev.target.value;smartStage=null}});
 document.addEventListener("change",async ev=>{let field=ev.target;
 if(field.id==='home-scope'){homeScope=field.value;draw();return}
+if(field.id==='manual-type'){manualType=field.value;draw();return}
+if(field.id==='manual-mode'){manualMode=field.value;manualCareer='';manualStudentId='';draw();return}
+if(field.id==='manual-career'){manualCareer=field.value;manualStudentId='';draw();return}
+if(field.id==='manual-student'){manualStudentId=field.value;draw();return}
+if(field.id==='manual-nucleus'){manualNucleus=field.value;draw();return}
 
 if(field.id==='smart-filter'){smartFilter=field.value;draw();return}
 if(field.id==='smart-verified'){smartReviewed=field.checked;return}

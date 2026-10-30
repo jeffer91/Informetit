@@ -15,7 +15,7 @@ function scope(state,career){
  const cat=C().lookup(career);
  if(!cat)throw Error('La carrera no consta en el catálogo de cuatro núcleos.');
  const students=(state.estudiantes||[]).filter(s=>C().canonical(s.carrera)===cat.key)
-  .sort((a,b)=>a.modalidad.localeCompare(b.modalidad)||a.nombre.localeCompare(b.nombre,'es')||a.id.localeCompare(b.id));
+  .sort((a,b)=>(a.modalidad==='presencial'?0:1)-(b.modalidad==='presencial'?0:1)||a.nombre.localeCompare(b.nombre,'es')||a.id.localeCompare(b.id));
  if(!students.length)throw Error('No hay estudiantes de esta carrera en la nómina privada.');
  const ids=new Set();
  for(const s of students){

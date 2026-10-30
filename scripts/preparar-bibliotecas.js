@@ -10,9 +10,7 @@ const dest = path.join(project, 'vendor');
 fs.mkdirSync(dest, { recursive: true });
 
 const libs = [
-  ['xlsx/dist/xlsx.full.min.js', 'xlsx.full.min.js'],
-  ['pdfmake/build/pdfmake.min.js', 'pdfmake.min.js'],
-  ['pdfmake/build/vfs_fonts.js', 'vfs_fonts.js']
+  ['xlsx/dist/xlsx.full.min.js', 'xlsx.full.min.js']
 ];
 
 for (const [modulePath, output] of libs) {

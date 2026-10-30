@@ -56,7 +56,8 @@ async function backupMaster(value){
  try{
   const result=await root.informetitDesktop.backupMaster(value);
   if(!result?.saved)throw Error('El sistema no confirmó que se guardara la copia GPT.');
-  lastBackup={ok:true,when:new Date().toISOString(),reason:'Copia privada actualizada'};
+  lastBackup={ok:true,when:new Date().toISOString(),reason:'Copia privada actualizada',
+   bridge:result.bridge||{enabled:false,ok:null}};
  }catch(error){
   lastBackup={ok:false,when:new Date().toISOString(),reason:error.message};
   console.warn('[Informetit] No se completó el respaldo GPT automático:',error.message);

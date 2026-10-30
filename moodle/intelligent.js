@@ -133,6 +133,17 @@ function detectCourse(title,rows,selectedCareer){
  }
  return matches.length===1?matches[0]:null;
 }
+function academicSignature(state){
+ return JSON.stringify({
+  students:(state.estudiantes||[]).map(s=>[s.id,s.nombre,s.carrera,s.modalidad,s.tipoTitulacion,
+    s.correo,s.correoPersonal,s.CorreoInstitucional,s.CorreoPersonal]),
+  notes:(state.notas||[]).map(n=>[n.id,n.studentId,n.nucleo,n.curso,n.nota,n.status,n.verificado,n.parciales]),
+  drafts:(state.notasBorrador||[]).map(n=>[n.id,n.studentId,n.nucleo,n.curso,n.nota,n.status,n.verificado,n.parciales]),
+  courses:(state.cursosNucleos||[]).map(n=>[n.studentId,n.nucleo,n.curso,n.nota,n.verificado]),
+  conflicts:(state.conflictos||[]).map(n=>[n.id,n.anterior,n.nuevo]),
+  unmatched:(state.sinVincular||[]).map(n=>[n.tipo,n.carrera,n.nucleo,n.registro?.email,n.registro?.name])
+ });
+}
 function assess(raw,state,opts={}){
  if(!state?.estudiantes?.length)throw Error('Primero carga la nómina privada de estudiantes.');
  const chunks=blocks(raw),results=[],seen=new Map();
@@ -182,12 +193,10 @@ function assess(raw,state,opts={}){
  const all=results.flatMap(c=>c.rows);
  const counts={courses:results.length,students:all.length,ready:all.filter(x=>x.status==='ready').length,
   already:all.filter(x=>x.status==='already').length,review:all.filter(x=>!['ready','already'].includes(x.status)).length};
- return {courses:results,counts,raw,signature:JSON.stringify({students:state.estudiantes.length,
-  notes:state.notas.length,drafts:state.notasBorrador.length,conflicts:state.conflictos.length})};
+ return {courses:results,counts,raw,signature:academicSignature(state)};
 }
 function apply(state,assessment,reviewed,stamp){
- const current=JSON.stringify({students:state.estudiantes.length,notes:state.notas.length,
-  drafts:state.notasBorrador.length,conflicts:state.conflictos.length});
+ const current=academicSignature(state);
  if(current!==assessment.signature)throw Error('La base cambió después del análisis. Vuelve a revisar.');
  const next=M().migrate(state),stats={verified:0,provisional:0,duplicates:0,conflicts:0,quarantine:0};
  const existingQ=new Set((next.sinVincular||[]).map(x=>[x.tipo,x.carrera,x.nucleo,x.registro?.email,x.registro?.name].join('|')));

@@ -107,7 +107,8 @@ ipcMain.handle('informetit:read-master', async event => {
         .map(item => path.join(directory, item.name));
       const found = await Promise.all(matches.map(async file => {
         const stat = await fs.stat(file);
-        return { file, mtime: stat.mtimeMs, size: stat.size };
+        return { file, mtime: stat.mtimeMs, size: stat.size,
+          priority: path.resolve(directory)===path.resolve(app.getPath('userData'))?0:1 };
       }));
       found.sort((a, b) => b.mtime - a.mtime);
       selectedFiles.push(...found);
@@ -117,7 +118,9 @@ ipcMain.handle('informetit:read-master', async event => {
       }
     }
   }
-  selectedFiles.sort((a,b)=>b.mtime-a.mtime);
+  // Las copias automáticas del perfil no deben ocultar una base GPT nueva colocada
+  // en Descargas, escritorio o carpeta privada para su importación.
+  selectedFiles.sort((a,b)=>b.priority-a.priority||b.mtime-a.mtime);
   let problem;
   for (const entry of selectedFiles) {
     if (entry.size > 12 * 1024 * 1024 || entry.size < 10) continue;

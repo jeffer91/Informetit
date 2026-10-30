@@ -18,6 +18,15 @@ La aplicación se abre en Electron. `npm run web` es solo un servidor diagnósti
 
 Para comprobar el PDF sin datos reales, ejecutar `npm run smoke:pdf` en un entorno con escritorio compatible. La automatización de GitHub Actions ejecuta las pruebas JavaScript y la impresión PDF con datos ficticios en Linux.
 
+## Dos modalidades de carga · versión 1.2.3
+
+Desde **Cargar información** puedes seleccionar **Formulario individual** o **Carga global**, sin trabajar con JSON o código. Si aún no hay nómina, Informetit solicita primero el Excel institucional de estudiantes.
+
+- **Formulario individual:** elige carrera, modalidad y estudiante; registra una nota de núcleo con su fuente, o actualiza el estado de un requisito. Para un examen Complexivo o un Trabajo de Titulación abre su formulario especializado con el estudiante preseleccionado. Una nota distinta de la registrada no se reemplaza: se archiva como conflicto para cotejo. Tras guardar, el Inicio presenta la siguiente tarea.
+- **Carga global:** importa el Excel de estudiantes, listados de Trabajo, cursos y libros Moodle (o pega Moodle). El motor reconoce núcleo, carrera y estudiante, revisa diferencias y permite marcar como cotejada la información cuando existe evidencia. Una segunda carga nunca debe reemplazar silenciosamente calificaciones distintas. Al confirmar, vuelve a los pendientes.
+
+**Persistencia y sincronización reales:** cada cambio confirmado se guarda primero en IndexedDB y en la copia automática privada `base-gpt.cjs` del perfil Electron. La interfaz muestra si esa copia se guardó o dio error; no se asume éxito si falla. Esto **no actualiza automáticamente la Biblioteca de ChatGPT**. Firebase `utet-4387a` es una base externa independiente: solamente se envían, cuando la sincronización está habilitada y autorizada, notas de núcleos **verificadas y sin conflictos** o resultados de Examen Complexivo con acta cotejada, exclusivamente a `nucleos` y `complexivos`. Requisitos, trabajos, notas provisionales y estimaciones permanecen locales. Sin credenciales, red o permisos, el envío queda pendiente; no se anuncia como completado. Ninguna prueba CI utiliza datos académicos reales ni credenciales productivas.
+
 ## Interfaz operativa minimalista · versión 1.2.2
 
 El **Inicio** deja de ser un panel estadístico y muestra **solo las tareas de carga pendientes** de la carrera y modalidad elegidas. Con una instalación nueva sin base privada muestra únicamente la solicitud de importación: las cifras agregadas de GitHub no se hacen pasar por expedientes nominales. Con nómina local agrupa por carrera los requisitos sin información, libros de núcleos, registros de Examen Complexivo y de Trabajo de Titulación realmente ausentes.

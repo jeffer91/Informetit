@@ -899,6 +899,8 @@ async function firebaseAction(code){
    const id=el('firebase-backup-id')?.value,password=el('firebase-restore-secret')?.value||'';
    if(!id||password.length<12)throw Error('Selecciona un respaldo e introduce su clave');
    const found=await bridge.firebaseBackupDownload(id,password);
+   if(Number(found.data?.version||1)>Data.SCHEMA_VERSION)
+    throw Error('Este respaldo usa una versión de datos más reciente. Actualiza Informetit antes de recuperarlo.');
    const restored=Data.migrate(found.data);
    const issues=Data.audit(restored).issues.filter(p=>['id_vacio','cedula_repetida'].includes(p.type));
    if(issues.length)throw Error('El respaldo tiene identificaciones duplicadas o inválidas');

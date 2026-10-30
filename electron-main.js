@@ -396,18 +396,10 @@ ipcMain.handle('informetit:firebase-connect',async(event,method)=>{
  if(!mainWindow||event.sender!==mainWindow.webContents)throw Error('Ventana no autorizada');
  return firestoreReader.connect({method,selectFile:async()=>{
   const picked=await dialog.showOpenDialog(mainWindow,{
-   title:'Seleccionar cuenta de servicio de solo lectura para UTET (sin subirla)',
+   title:'Seleccionar credencial autorizada para respaldos Firebase (sin subirla)',
    properties:['openFile'],filters:[{name:'Credencial Google JSON',extensions:['json']}]});
   return picked.canceled?null:picked.filePaths[0];
  }});
-});
-ipcMain.handle('informetit:firebase-read',async(event)=>{
- if(!mainWindow||event.sender!==mainWindow.webContents)throw Error('Ventana no autorizada');
- return firestoreReader.readAll();
-});
-ipcMain.handle('informetit:firebase-academic-write',async(event,payload)=>{
- if(!mainWindow||event.sender!==mainWindow.webContents)throw Error('Ventana no autorizada');
- return firestoreReader.writeAcademic(payload);
 });
 ipcMain.handle('informetit:firebase-status',async(event)=>{
  if(!mainWindow||event.sender!==mainWindow.webContents)throw Error('Ventana no autorizada');

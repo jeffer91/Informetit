@@ -60,16 +60,40 @@ function build(state){
    }
   }
   if(complex.length){
-   const evaluated=new Set((state.evaluaciones||[]).filter(e=>e.tipo!=='trabajo'&&e.studentId).map(e=>id(e.studentId)));
+   const eligible=new Set(complex.map(s=>id(s.id)));
+   const entries=(state.evaluaciones||[]).filter(e=>e.tipo!=='trabajo'&&eligible.has(id(e.studentId)));
+   const evaluated=new Set(entries.map(e=>id(e.studentId)));
    add('upload',g,'exam','Cargar registros de Examen Complexivo',
      complex.filter(s=>!evaluated.has(id(s.id))).length,
     'Falta un registro de evaluación; no implica que el estudiante haya reprobado.','evaluaciones');
+   const results=entries.map(e=>root.InformetitComplexivo?.evaluate(e)).filter(Boolean);
+   add('upload',g,'exam-components','Completar teoría y práctica de Complexivo',
+     new Set(results.filter(e=>!e.ordinaryComplete&&e.ordinario.asistencia!=='no_presentado')
+       .map(e=>id(e.studentId))).size,
+     'El registro existe, pero falta completar los componentes ordinarios.','evaluaciones');
+   add('upload',g,'exam-rescue','Completar resultados supletorios',
+     new Set(results.filter(e=>e.status==='supletorio_pendiente').map(e=>id(e.studentId))).size,
+     'Solo casos con ordinario insuficiente y recuperación pendiente.','evaluaciones');
+   add('review',g,'exam-actas','Cotejar actas y resultados de Complexivo',
+     new Set(results.filter(e=>e.finalGrade!==null&&!e.verified).map(e=>id(e.studentId))).size,
+     'Los cálculos no sustituyen una referencia y revisión documental.','evaluaciones');
   }
   if(work.length){
-   const projects=new Set((state.trabajos||[]).filter(e=>e.studentId).map(e=>id(e.studentId)));
+   const eligible=new Set(work.map(s=>id(s.id)));
+   const entries=(state.trabajos||[]).filter(e=>eligible.has(id(e.studentId)));
+   const projects=new Set(entries.map(e=>id(e.studentId)));
    add('upload',g,'project','Cargar registros de Trabajo de Titulación',
      work.filter(s=>!projects.has(id(s.id))).length,
     'Falta un registro de proyecto o defensa; no equivale a nota cero.','trabajo');
+   const results=entries.map(e=>root.InformetitTrabajo?.evaluate(e)).filter(Boolean);
+   add('upload',g,'project-rubric','Completar rúbricas de Trabajo de Titulación',
+     new Set(results.filter(e=>!e.complete&&e.asistencia!=='no_presentado')
+       .map(e=>id(e.studentId))).size,
+     'La ficha existe, pero faltan componentes de evaluación.','trabajo');
+   add('review',g,'project-actas','Cotejar actas de Trabajo de Titulación',
+     new Set(results.filter(e=>e.definitive!==null&&!e.actaReferenced)
+       .map(e=>id(e.studentId))).size,
+     'El resultado calculado requiere documentación.','trabajo');
   }
   const groupIds=new Set(people.map(x=>id(x.id)));
   const conflicts=(state.conflictos||[]).filter(c=>groupIds.has(id(c.studentId||id(c.id).split('|')[0]))).length;

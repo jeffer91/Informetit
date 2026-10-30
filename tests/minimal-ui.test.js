@@ -15,7 +15,8 @@ test('el inicio es una bandeja operativa y no una portada de estadísticas agreg
  const first=app.slice(app.indexOf('function inicio(){'),app.indexOf('function estudiantes(){'));
  assert.match(first,/InformetitWorkQueue/);
  assert.match(first,/Importar base privada/);
- assert.match(first,/data-queue-id/);
+ assert.match(first,/taskRow/);
+ assert.match(app,/data-queue-id/);
  assert.doesNotMatch(first,/statsPublic|publicStatsTable|nucleos_agregados|card\(/);
  assert.match(app,/taskButton\.dataset\.queueId/);
  assert.match(app,/smartNucleus=task.nucleus/);

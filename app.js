@@ -85,7 +85,7 @@ async function loadPrivateGPT(){
   const file=await window.informetitDesktop.loadMasterData();
   if(!file?.data)return null;
   // La copia autoguardada ya refleja IndexedDB; solo recuperarla si la base está vacía.
-  if(file.filename==="base-gpt-autosave.json"&&state.estudiantes.length)
+  if((file.autoSaved||file.filename==="base-gpt-autosave.json")&&state.estudiantes.length)
     return {unchanged:true,students:0,grades:0};
   const result=mergePrivateGPT(file.data,file.fingerprint||"");
   if(result&&!result.unchanged)await persist();

@@ -166,12 +166,14 @@ function assess(raw,state,opts={}){
     status='wrong_mechanism';reason='Estudiante de Trabajo de Titulación: revisar aplicación del núcleo';
    }else if(status==='matched'){
     recordId=student.id+'|'+context.nucleus;
-    const before=(state.notas||[]).find(n=>String(n.studentId)+'|'+Number(n.nucleo)===recordId)
-      ||(state.notasBorrador||[]).find(n=>String(n.studentId)+'|'+Number(n.nucleo)===recordId);
+    const official=(state.notas||[]).find(n=>String(n.studentId)+'|'+Number(n.nucleo)===recordId);
+    const draft=(state.notasBorrador||[]).find(n=>String(n.studentId)+'|'+Number(n.nucleo)===recordId);
+    const before=official||draft;
     if((state.conflictos||[]).some(c=>String(c.id)===recordId)){
      status='conflict';reason='Conflicto previo sin resolver';
     }else if(before&&grade(before.nota)===row.grade){
-     status='already';reason='Nota ya presente, sin duplicar';
+     status=official?'already':'draft_same';
+     reason=official?'Nota ya verificada, sin duplicar':'Coincide con un borrador: requiere cotejo antes de verificar';
     }else if(before){status='conflict';reason='Nota distinta de la registrada';}
     else {status='ready';reason=student.tipoTitulacion==='complexivo'?'Lista para guardar':'Mecanismo pendiente: se guardará provisional';}
     if(seen.has(recordId)){
@@ -191,14 +193,15 @@ function assess(raw,state,opts={}){
    r.status='duplicate_paste';r.reason='Registro repetido en la misma carga';
   }
  const all=results.flatMap(c=>c.rows);
- const counts={courses:results.length,students:all.length,ready:all.filter(x=>x.status==='ready').length,
-  already:all.filter(x=>x.status==='already').length,review:all.filter(x=>!['ready','already'].includes(x.status)).length};
+ const counts={courses:results.length,students:all.length,ready:all.filter(x=>['ready','draft_same'].includes(x.status)).length,
+  already:all.filter(x=>x.status==='already').length,
+  review:all.filter(x=>!['ready','already','draft_same'].includes(x.status)).length};
  return {courses:results,counts,raw,signature:academicSignature(state)};
 }
 function apply(state,assessment,reviewed,stamp){
  const current=academicSignature(state);
  if(current!==assessment.signature)throw Error('La base cambió después del análisis. Vuelve a revisar.');
- const next=M().migrate(state),stats={verified:0,provisional:0,duplicates:0,conflicts:0,quarantine:0};
+ const next=M().migrate(state),stats={verified:0,provisional:0,promoted:0,duplicates:0,conflicts:0,quarantine:0};
  const existingQ=new Set((next.sinVincular||[]).map(x=>[x.tipo,x.carrera,x.nucleo,x.registro?.email,x.registro?.name].join('|')));
  const existingConflicts=new Set((next.conflictos||[]).map(x=>String(x.id)));
  for(const course of assessment.courses)for(const r of course.rows){
@@ -206,6 +209,20 @@ function apply(state,assessment,reviewed,stamp){
   const student=r.student,base={id:r.recordId,studentId:student?.id||'',nucleo:course.nucleus,
    curso:course.title,carrera:student?.carrera||course.career,modalidad:student?.modalidad||'',
    nota:r.grade,parciales:r.partials,email:r.email,source:'Moodle · carga inteligente',fecha:stamp};
+  if(r.status==='draft_same'){
+   if(reviewed&&student.tipoTitulacion==='complexivo'){
+    const previous=(next.notasBorrador||[]).filter(n=>String(n.studentId)+'|'+Number(n.nucleo)===r.recordId);
+    if(!previous.length||previous.some(n=>grade(n.nota)!==r.grade))throw Error('El borrador cambió; revisa nuevamente');
+    next.notasBorrador=next.notasBorrador.filter(n=>String(n.studentId)+'|'+Number(n.nucleo)!==r.recordId);
+    next.notas.push({...base,status:'oficial_registro_moodle',verificado:true,origenBorrador:previous.map(n=>({
+      fuente:n.source||n.fuente||'',estado:n.status||n.estado||'',fecha:n.fecha||n.fechaImportacion||''
+    }))});
+    next.auditoria.push({tipo:'cotejo_nota_borrador',studentId:student.id,nucleo:course.nucleus,
+      fuente:'Moodle · carga inteligente',fecha:stamp,anteriores:previous,notaVerificada:base});
+    stats.promoted++;stats.verified++;
+   }else stats.duplicates++;
+   continue;
+  }
   if(r.status==='ready'){
    if(reviewed&&student.tipoTitulacion==='complexivo'){
     next.notas.push({...base,status:'oficial_registro_moodle',verificado:true});stats.verified++;

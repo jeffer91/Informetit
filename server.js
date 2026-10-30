@@ -84,10 +84,13 @@ const server = http.createServer((req, res) => {
   });
 });
 
-server.listen(PORT, HOST, () => {
-  console.log('Informetit disponible en http://' + HOST + ':' + PORT);
-  console.log('Para detener el servidor: Ctrl + C');
-});
+if (require.main === module) {
+  server.listen(PORT, HOST, () => {
+    console.log('Informetit disponible en http://' + HOST + ':' + PORT);
+    console.log('Para detener el servidor: Ctrl + C');
+  });
+}
+module.exports = { server, isPublicAsset };
 
 server.on('error', err => {
   if (err.code === 'EADDRINUSE') {

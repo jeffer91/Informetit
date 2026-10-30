@@ -1007,17 +1007,20 @@ function interpolationPanel(mode,career,nucleus){
 function intelligentView(){
  const engine=window.InformetitCargaInteligente;
  if(!engine)return head("Centro de Carga Inteligente","No está disponible el motor de reconocimiento académico.");
+ if(!state.estudiantes.length)return head('Cargar información','Primero importa la base privada.')+
+ '<section class="panel work-onboarding"><h2>Necesitamos la nómina individual</h2>'+
+ '<p>Esta computadora solo contiene estadísticas agregadas. Importa el respaldo JSON o coloca base-gpt.cjs en Descargas y reinicia Informetit.</p>'+
+ '<div class="actions"><button class="btn primary" data-action="backup-file">Importar JSON privado</button>'+
+ '<button class="btn" data-page="datos">Datos y respaldo</button></div></section>';
+
  const pending=engine.pending(state),rows=pending.rows.filter(x=>smartFilter==='todos'||x.mode===smartFilter);
  const careers=window.InformetitNucleiCatalog.list();
- let out=head("Centro de Carga Inteligente","Pega Moodle o importa archivos; detecta curso, carrera, núcleo y modalidad usando el padrón institucional.");
- out+='<div class="cards">'+card("Estudiantes",state.estudiantes.length)+card("Notas verificadas",state.notas.filter(x=>x.verificado===true).length)
-  +card("Provisionales",state.notasBorrador.length)+card("Conflictos",state.conflictos.length)
-  +card("Sin vincular",state.sinVincular.length)+'</div>';
- out+='<section class="panel"><h2>1. Pegar o subir libros de calificaciones</h2>'
-  +'<p class="hint">Puedes pegar los cuatro núcleos juntos, incluso si Moodle los muestra como «Mod 11, 12, 13, 14». El catálogo asigna el número real de núcleo por el nombre del curso; la modalidad se toma de la ficha del estudiante.</p>'
+ let out=head("Cargar información","Sube libros de Moodle o pega sus calificaciones. Revisaremos los datos antes de guardar.");
+ out+='<section class="panel upload-panel"><h2>Subir calificaciones</h2>'
+  +'<p class="hint">Puedes cargar varios núcleos juntos. Identificamos los cursos por su nombre y cotejamos la nómina.</p>'
   +'<div class="actions"><button class="btn" data-action="smart-file">Elegir archivos Moodle (.txt, .csv, .tsv, Excel)</button>'
   +'<button class="btn" data-action="smart-clear">Limpiar entrada</button></div>'
-  +'<label class="field block">Contenido de Moodle<textarea id="smart-text" rows="12" placeholder="Pega aquí los cuatro libros de Moodle. No necesitas ordenarlos.">'+h(smartText)+'</textarea></label>'
+  +'<label class="field block">Pegar contenido de Moodle<textarea id="smart-text" rows="8" placeholder="Pega aquí los cuatro libros de Moodle. No necesitas ordenarlos.">'+h(smartText)+'</textarea></label>'
   +'<div class="field-row"><label class="field">Carrera (si no hay encabezado)<select id="smart-career"><option value="auto">Detectar por curso y padrón</option>'
   +careers.map(x=>'<option value="'+h(x.name)+'"'+(smartCareer===x.name?' selected':'')+'>'+h(x.name)+'</option>').join('')+'</select></label>'
   +'<label class="field">Núcleo (si no hay encabezado)<select id="smart-nucleus"><option value="auto">Detectar nombre</option>'
@@ -1044,7 +1047,7 @@ function intelligentView(){
    +'<div class="actions"><button class="btn primary" data-action="smart-apply"'+(!a.counts.ready&&!a.counts.review?' disabled':'')+'>Guardar revisión y actualizar base privada</button>'
    +'<button class="btn" data-action="smart-analyze">Volver a analizar</button></div></section>';
  }
- out+='<section class="panel"><h2>3. ¿Qué falta cargar?</h2>'
+ out+='<details class="panel subtle-details"><summary>Ver cobertura detallada por carrera y núcleo</summary><div class="details-body">'
   +'<p class="hint">La cobertura se calcula por carrera, modalidad y por los cuatro núcleos. La clasificación como Complexivo determina cuántas calificaciones son exigibles; los mecanismos sin definir se muestran aparte.</p>'
   +'<label class="field">Ver modalidad<select id="smart-filter">'
   +[['todos','Ambas modalidades'],['presencial','Presencial'],['online','Online']]
@@ -1060,12 +1063,12 @@ function intelligentView(){
  const filteredActions=pending.actions.filter(x=>smartFilter==='todos'||x.toLowerCase().includes(smartFilter));
  out+='<div class="tablewrap"><ol>'+filteredActions.slice(0,28).map(x=>'<li>'+h(x)+'</li>').join('')+'</ol></div>';
  if(filteredActions.length>28)out+='<p class="hint">Hay '+(filteredActions.length-28)+' tareas adicionales; filtra por modalidad.</p>';
- out+='<p class="hint">Una nota registrada no acredita que la evaluación final o el título estén aprobados. Los casos duplicados y sin vincular requieren conciliación.</p></section>';
- out+='<section class="panel"><h2>4. Copias privadas de las bases</h2>'
+ out+='<p class="hint">Las notas provisionales y las discrepancias exigen cotejo. Las estimaciones no crean calificaciones académicas.</p></div></details>';
+ out+='<details class="panel subtle-details"><summary>Respaldos y exportaciones privadas</summary><div class="details-body">'
   +'<p>Los cambios se guardan en IndexedDB y en el respaldo privado automático de Electron. También puedes descargar la base GPT en formato <code>base-gpt.cjs</code> para conservarla o compartirla de forma privada en ChatGPT.</p>'
   +'<div class="actions"><button class="btn" data-action="smart-export-gpt">Descargar base GPT privada</button>'
   +'<button class="btn" data-action="export-json">Descargar JSON</button></div>'
-  +'<p class="hint">La Biblioteca de ChatGPT no se actualiza por sí sola desde esta aplicación. No subas la base GPT a GitHub: contiene datos personales.</p></section>';
+  +'<p class="hint">La Biblioteca de ChatGPT no se actualiza automáticamente. No publiques datos personales en GitHub.</p></div></details>';
  return out;
 }
 async function smartAction(code){

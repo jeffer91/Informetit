@@ -1254,8 +1254,10 @@ async function handleTrabajoFile(ev){
   if(!matches.length)throw Error('No hay cédulas con carrera coincidente en la base local.');
   const outside=matches.filter(x=>/2026/.test(x.fecha)&&/\/0?[4-9]\/2026|\/1[0-2]\/2026/.test(x.fecha));
   const note=outside.length?' ATENCIÓN: existen fechas de vinculación posteriores al cierre de marzo de 2026; verifica la pertenencia a la cohorte.':'';
-  if(!confirm('Se conciliarán '+matches.length+' estudiantes por cédula y carrera; '+unmatched.length+' quedarán sin vincular.'+note+' ¿Confirmas la clasificación como Trabajo de Titulación?'))return;
-  const next=Data.migrate(state),byId=new Map(matches.map(x=>[x.id,x]));
+  const plan=window.InformetitMechanism.planBatch(state,matches.map(x=>({id:x.id,career:state.estudiantes.find(s=>s.id===x.id)?.carrera})),'trabajo',file.name);
+  if(!confirm('Revisa: '+plan.changes.length+' cambios a Trabajo de Titulación, '+plan.unchanged.length+' ya clasificados, '+unmatched.length+' sin vincular. '+plan.changes.filter(x=>x.from==='complexivo').length+' dejarán Complexivo. Se conservarán todas las notas y actas y se registrará auditoría.'+note+' ¿Confirmas?'))return;
+  const applied=window.InformetitMechanism.apply(state,plan,today());
+  const next=applied.next,byId=new Map(matches.map(x=>[x.id,x]));
   for(const st of next.estudiantes){const x=byId.get(st.id);if(!x)continue;st.tipoTitulacion='trabajo';
    if(x.tutor)st.tutorTrabajo=x.tutor;if(x.fecha)st.fechaVinculacionTrabajo=x.fecha;
    if(x.sede&&!st.sede)st.sede=x.sede;st.origenTrabajo=file.name;}

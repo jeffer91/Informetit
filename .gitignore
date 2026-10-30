@@ -21,3 +21,21 @@ base-gpt.json
 # Evita publicar accidentalmente la base nominal en código
 base-gpt.cjs
 **/base-gpt.cjs
+
+# Respaldos automáticos y copias históricas de datos personales
+base-gpt*.cjs
+base-gpt*.json
+**/base-gpt*.cjs
+**/base-gpt*.json
+*backup*.json
+*respaldo*.json
+
+# Archivos de credenciales y material secreto
+*.pem
+*.p12
+*.pfx
+*.key
+*service-account*.json
+*service_account*.json
+*credentials*.json
+*credenciales*.json

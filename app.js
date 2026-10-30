@@ -83,6 +83,8 @@ function mergePrivateGPT(seed,fingerprint) {
 }
 async function loadPrivateGPT(){
   if(!window.informetitDesktop?.loadMasterData)return null;
+  // La base local existente manda; solo recuperar GPT si la instalación está vacía.
+  if(state.estudiantes.length||state.notas.length)return {unchanged:true,students:0,grades:0};
   const file=await window.informetitDesktop.loadMasterData();
   if(!file?.data)return null;
   // La copia autoguardada ya refleja IndexedDB; solo recuperarla si la base está vacía.
@@ -853,6 +855,7 @@ function firebaseView(){
   '<section class="panel"><h2>Subir respaldo completo</h2>'+
   '<p>Se comprime y cifra toda la base antes de salir de tu equipo. Necesitarás la misma clave de al menos 12 caracteres para recuperarla; no se almacena.</p>'+
   '<label class="field block">Clave privada <input id="firebase-secret" type="password" minlength="12" autocomplete="off" placeholder="Mínimo 12 caracteres"></label>'+
+  '<label class="field block">Repite la clave <input id="firebase-secret-confirm" type="password" minlength="12" autocomplete="off" placeholder="Confirma la clave"></label>'+
   '<div class="actions"><button class="btn primary" data-action="firebase-upload"'+(connected?'':' disabled')+'>Subir respaldo a Firebase</button></div></section>'+
   '<section class="panel"><h2>Bajar y recuperar respaldo</h2>'+
   '<p>Se validará el respaldo antes de restaurarlo y se guardará una copia de tu base actual por seguridad.</p>'+
@@ -882,6 +885,7 @@ async function firebaseAction(code){
   if(code==='firebase-upload'){
    const password=el('firebase-secret')?.value||'';
    if(password.length<12)throw Error('Usa una clave de al menos 12 caracteres');
+   if(password!==(el('firebase-secret-confirm')?.value||''))throw Error('Las dos claves no coinciden');
    if(!confirm('Subir copia CIFRADA de toda la base ('+state.estudiantes.length+
     ' estudiantes) a Firebase, sin modificar la base local?'))return;
    firebaseMessage='Subiendo respaldo cifrado; evita cerrar la aplicación.';

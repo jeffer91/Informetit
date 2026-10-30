@@ -10,7 +10,7 @@ test('la copia GPT refleja cada guardado y puede desvincularse sin eliminar dato
  const temp=await fs.mkdtemp(path.join(os.tmpdir(),'informetit-bridge-test-'));
  try{
   const profile=path.join(temp,'profile'),cloud=path.join(temp,'cloud');
-  await fs.mkdir(profile);await fs.mkdir(cloud);
+  await fs.mkdir(profile);await fs.mkdir(cloud);await fs.mkdir(path.join(temp,'app'));
   assert.equal((await Bridge.status(profile)).enabled,false);
   await Bridge.setFolder(profile,cloud,path.join(temp,'app'));
   const data={estudiantes:[{id:'1712345678'}],notas:[{studentId:'1712345678',nucleo:1,nota:7}]};

@@ -18,6 +18,7 @@ let smartText="",smartStage=null,smartCareer="auto",smartNucleus="auto",smartFil
 let mechanismBatchStage=null,interpolationTarget=null;
 let homeScope="";
 let loadMethod="global",manualType="nucleo",manualMode="presencial",manualCareer="",manualStudentId="",manualNucleus="1";
+let flowCareer="CONTABILIDAD",flowStage=null;
 const $=x=>document.querySelector(x), el=id=>document.getElementById(id), h=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])), normal=Data.key, compact=s=>normal(s).replace(/\s/g,""), getNum=Data.grade, num=s=>s===null||s===undefined?"—":Number(s).toLocaleString("es-EC",{minimumFractionDigits:2,maximumFractionDigits:2}), today=()=>new Date().toISOString().slice(0,10);
 function notify(t){const node=el("toast");node.textContent=t;node.style.display="block";clearTimeout(notify.timer);notify.timer=setTimeout(()=>node.style.display="none",4300)}
 function notifyPdfResult(result){
@@ -181,9 +182,15 @@ function inicio(){
   queue.careers.find(c=>queue.upload.some(t=>t.scope===c.id))||queue.careers[0];
  if(!chosen)return head('Qué falta cargar','No se encontraron carreras en el padrón local.');
  homeScope=chosen.id;
- const loads=queue.upload.filter(x=>x.scope===chosen.id);
+ const F=window.InformetitSequentialNuclei;
+ let currentNucleus=null;
+ try{currentNucleus=F?.progress(state,chosen.career)?.current??null}catch{}
+ const loads=queue.upload.filter(x=>x.scope===chosen.id&&(!x.nucleus||Number(x.nucleus)===currentNucleus));
  const reviews=queue.review.filter(x=>x.scope===chosen.id||x.scope==='global');
  let out=head('Qué falta cargar','Selecciona una carrera y resuelve los pendientes uno por uno.');
+ out+='<section class="panel upload-panel"><h2>Carga guiada de núcleos</h2>'+
+  '<p class="hint">Se completa un núcleo por vez: descarga el Excel con la nómina local, revísalo, súbelo y valida las diferencias. Solo después aparece el siguiente.</p>'+
+  '<button class="btn primary" data-page="flujo">Abrir asistente por carrera</button></section>';
  out+='<div class="work-toolbar"><label class="field" for="home-scope">Carrera y modalidad'+
   '<select id="home-scope">'+queue.careers.map(g=>'<option value="'+h(g.id)+'"'+
    (g.id===chosen.id?' selected':'')+'>'+h(g.career)+' · '+(g.mode==='online'?'Online':'Presencial')+
@@ -1273,7 +1280,112 @@ async function smartFileChange(ev){
  finally{ev.target.value=''}
 }
 
-const views={inicio,estudiantes,carga:intelligentView,nucleos:grades,evaluaciones:evaluations,trabajo,cronogramas:schedule,informes:reports,identidad,firebase:firebaseView,datos:data};
+
+/* Asistente secuencial: los nombres se leen de IndexedDB, no se publican ni se codifican. */
+function sequentialView(){
+ const F=window.InformetitSequentialNuclei;
+ if(!F)return head('Núcleos por carrera','El motor de plantillas no está disponible.');
+ const careers=F.careers(state);
+ let out=head('Núcleos por carrera','Descarga y valida un solo núcleo antes de comenzar el siguiente.');
+ if(!careers.length)return out+'<section class="panel"><p>Primero importa la nómina institucional del período.</p>'+
+  '<button class="btn primary" data-action="student-file">Subir nómina</button></section>';
+ const chosen=careers.find(x=>x.key===flowCareer)||careers[0];
+ flowCareer=chosen.key;
+ const p=F.progress(state,flowCareer);
+ out+='<section class="panel"><div class="field-row"><label class="field">Carrera'+
+  '<select id="flow-career" class="control">'+careers.map(x=>'<option value="'+h(x.key)+'"'+
+   (x.key===p.key?' selected':'')+'>'+h(x.name)+' ('+x.count+' estudiantes)</option>').join('')+
+   '</select></label></div>'+
+  '<p class="hint">La plantilla incluye la nómina de esta carrera en ambas modalidades y las notas locales previas como referencia. Se revisa identidad por cédula.</p>'+
+  '<div class="cards">'+card('Estudiantes',p.students.length)+
+   card('Presencial',p.students.filter(x=>x.modalidad==='presencial').length)+
+   card('Online',p.students.filter(x=>x.modalidad==='online').length)+
+   card('Núcleos completos',p.steps.filter(x=>x.complete).length+' / 4')+'</div>';
+ out+='<div class="work-list">'+p.steps.map(n=>'<div class="work-task">'+
+  '<div class="work-task-body"><strong>Núcleo '+n.number+' · '+h(n.title)+'</strong>'+
+  '<span class="work-task-detail">'+(n.complete?'VALIDADO EN BASE LOCAL'+(n.when?' · '+h(n.when):''):
+    n.number===p.current?'ACTUAL · descargar y completar plantilla':'BLOQUEADO · primero completar el anterior')+
+  '</span></div><span class="work-task-count">'+
+  (n.complete?'Completado':n.number===p.current?'En curso':'Pendiente')+'</span></div>').join('')+'</div></section>';
+ if(p.current===null){
+  out+='<section class="panel"><h2>Carrera completada</h2>'+
+   '<p>Los cuatro núcleos tienen un archivo cotejado en la base local. Revisa aparte los cambios pendientes de Firebase.</p></section>';
+ }else{
+  const title=p.catalog.nuclei[p.current-1].title;
+  out+='<section class="panel upload-panel"><h2>Paso actual: Núcleo '+p.current+' · '+h(title)+'</h2>'+
+   '<p class="hint">1. Descarga el Excel. 2. Revisa o completa cada nota. 3. Marca VALIDADO o NO CURSA. 4. Sube el mismo Excel para detectar errores o diferencias. Las filas pendientes impiden avanzar.</p>'+
+   '<div class="actions"><button class="btn primary" data-action="flow-download">1. Descargar plantilla del Núcleo '+p.current+'</button>'+
+   '<button class="btn" data-action="flow-import">2. Subir plantilla completada</button></div>';
+  if(flowStage&&flowStage.plan.career===p.key&&flowStage.plan.n===p.current){
+   const a=flowStage.plan;
+   out+='<div class="block"><h3>3. Revisión antes de guardar</h3>'+
+    '<p class="hint">Archivo: '+h(flowStage.filename)+'</p>'+
+    '<div class="cards">'+card('Filas esperadas',a.stats.total)+card('Notas revisadas',a.stats.validated)+
+     card('No cursan',a.stats.excluded)+card('Notas provisionales',a.stats.provisional)+
+     card('Incidencias',a.stats.blocked)+'</div>';
+   if(a.errors.length){
+    out+='<div class="warnbox block"><strong>Hay datos pendientes o en conflicto.</strong>'+
+     '<p>No se guardó nada. Corrige el Excel y vuelve a subirlo.</p>'+
+     '<ul>'+a.errors.slice(0,35).map(x=>'<li>'+h(x)+'</li>').join('')+'</ul>'+
+     (a.errors.length>35?'<p>Existen '+(a.errors.length-35)+' incidencias adicionales.</p>':'')+'</div>';
+   }else{
+    out+='<p class="hint">Las notas de estudiantes cuyo mecanismo de titulación aún no está confirmado permanecerán provisionales y no se enviarán a Firebase.</p>'+
+     '<label class="field block"><input type="checkbox" id="flow-reviewed"> Confirmo que revisé las notas finales, la identidad y el núcleo frente a Moodle; autorizo guardarlas.</label>'+
+     '<div class="actions"><button class="btn primary" data-action="flow-apply">3. Guardar y habilitar siguiente núcleo</button></div>';
+   }
+   out+='</div>';
+  }
+  out+='</section>';
+ }
+ out+=saveStatus();
+ return out;
+}
+async function flowFileChange(event){
+ const file=event.target.files?.[0];if(!file)return;
+ try{
+  if(!window.XLSX)throw Error('No está disponible la biblioteca local de Excel.');
+  if(file.size>12*1024*1024)throw Error('La plantilla supera 12 MB.');
+  const bytes=await file.arrayBuffer();
+  const wb=XLSX.read(bytes,{type:'array'});
+  const assessment=window.InformetitSequentialNuclei.plan(state,flowCareer,wb,XLSX,file.name);
+  flowStage={filename:file.name,bytes,plan:assessment};
+  page='flujo';draw();
+  notify('Plantilla revisada: '+assessment.stats.validated+' notas, '+assessment.stats.blocked+' incidencias.');
+ }catch(error){flowStage=null;console.error(error);notify('Plantilla de núcleo: '+error.message)}
+ finally{event.target.value=''}
+}
+async function flowAction(code){
+ const F=window.InformetitSequentialNuclei;
+ try{
+  if(code==='flow-download'){
+   if(!window.XLSX)throw Error('No está instalada la biblioteca Excel.');
+   const out=F.template(state,flowCareer,XLSX);
+   download(out.filename,'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',out.bytes);
+   notify('Plantilla preparada con '+out.total+' estudiantes. Solo el núcleo '+out.step+'.');
+   return;
+  }
+  if(code==='flow-import'){el('nucleo-plantilla-file').click();return}
+  if(code==='flow-apply'){
+   if(!flowStage)throw Error('Sube primero el Excel revisado.');
+   if(!el('flow-reviewed')?.checked)throw Error('Debes confirmar el cotejo contra Moodle.');
+   const wb=XLSX.read(flowStage.bytes,{type:'array'});
+   const assessment=F.plan(state,flowCareer,wb,XLSX,flowStage.filename);
+   if(!assessment.complete)throw Error('El archivo tiene '+assessment.errors.length+' incidencias. Sube una versión corregida.');
+   if(!confirm('Guardar '+assessment.stats.validated+' notas, '+assessment.stats.excluded+
+    ' NO CURSA y '+assessment.stats.provisional+' registros provisionales en la base local? '+
+    'Solo las notas verificadas de Complexivo podrán enviarse a Firebase cuando esté autorizado y conectado.'))return;
+   const result=F.apply(state,assessment,today());
+   await Store.save(result.next);
+   state=result.next;flowStage=null;draw();
+   scheduleFirebaseSync();
+   notify('Núcleo '+assessment.n+' completado en base local. '+result.stats.verified+
+    ' notas verificadas; '+result.stats.provisional+' pendientes de clasificación. Firebase sujeto a conexión y conciliación.');
+   return;
+  }
+ }catch(error){console.error(error);notify('Núcleos por carrera: '+error.message)}
+}
+
+const views={inicio,flujo:sequentialView,estudiantes,carga:intelligentView,nucleos:grades,evaluaciones:evaluations,trabajo,cronogramas:schedule,informes:reports,identidad,firebase:firebaseView,datos:data};
 function draw(){
  el("main").innerHTML=views[page]();
  document.querySelectorAll(".nav[data-page]").forEach(x=>x.classList.toggle("active",x.dataset.page===page));
@@ -1499,6 +1611,7 @@ async function handleFiles(ev){
 }
 
 async function action(code){
+ if(code.startsWith('flow-'))return flowAction(code);
  if(code.startsWith('manual-'))return manualAction(code);
  if(code.startsWith("smart-"))return smartAction(code);
  if(code==='manual-global-exam'){page='evaluaciones';draw();return}
@@ -1629,6 +1742,7 @@ let conflict=ev.target.closest("[data-use-conflict], [data-keep-conflict]");if(c
 document.addEventListener("input",ev=>{if(ev.target.id==="student-search"){query=ev.target.value;let pos=ev.target.selectionStart;draw();let search=el("student-search");search.focus();search.setSelectionRange(pos,pos)}if(ev.target.id==="moodle-text"){inputText=ev.target.value;lastParse=null}if(ev.target.id==="exam-import-text"){examImportText=ev.target.value;examImportStage=null}if(ev.target.id==="smart-text"){smartText=ev.target.value;smartStage=null}});
 document.addEventListener("change",async ev=>{let field=ev.target;
 if(field.id==='home-scope'){homeScope=field.value;draw();return}
+if(field.id==='flow-career'){flowCareer=field.value;flowStage=null;draw();return}
 if(field.id==='manual-type'){manualType=field.value;draw();return}
 if(field.id==='manual-mode'){manualMode=field.value;manualCareer='';manualStudentId='';draw();return}
 if(field.id==='manual-career'){manualCareer=field.value;manualStudentId='';draw();return}
@@ -1675,6 +1789,7 @@ if(field.dataset.studentType){
 }else if(field.dataset.config){state.config[field.dataset.config]=field.type==="checkbox"?field.checked:field.value;await persist();draw()}});
 el("student-file").addEventListener("change",handleFiles);
 el("smart-file").addEventListener("change",smartFileChange);el("backup-file").addEventListener("change",handleFiles);
+el("nucleo-plantilla-file").addEventListener("change",flowFileChange);
 el("trabajo-file").addEventListener("change",handleTrabajoFile);
 el("cursos-file").addEventListener("change",handleCursosFile);
 el("firebase-file").addEventListener("change",firebaseLoadFile);

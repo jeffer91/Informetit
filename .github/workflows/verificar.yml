@@ -3,6 +3,8 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+  pull_request:
+    branches: [main]
 jobs:
   verificar:
     runs-on: ubuntu-latest
@@ -11,6 +13,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
+      - name: Instalar dependencias para tests de Excel
+        run: npm install --no-audit --no-fund --ignore-scripts
       - name: Verificar sintaxis
         run: npm run check
       - name: Ejecutar batería de regresión completa

@@ -18,6 +18,14 @@ La aplicación se abre en Electron. `npm run web` es solo un servidor diagnósti
 
 Para comprobar el PDF sin datos reales, ejecutar `npm run smoke:pdf` en un entorno con escritorio compatible. La automatización de GitHub Actions ejecuta las pruebas JavaScript y la impresión PDF con datos ficticios en Linux.
 
+## Núcleos por carrera · carga guiada secuencial
+
+Desde **Núcleos por carrera**, la aplicación presenta una carrera cada vez y habilita solamente su primer núcleo pendiente. El botón **Descargar plantilla** genera un XLSX en el equipo con la nómina privada presencial y online de esa carrera, las notas anteriores como referencia y el nombre del núcleo vigente. La pestaña CONTROL permite detectar plantillas de otro período, carrera, núcleo o nómina.
+
+El usuario introduce la nota final real y marca cada registro como **VALIDADO** o **NO CURSA**. Si faltan registros, existe **SIN NOTA**, una nota distinta de la base local o se alteró la identidad, el núcleo queda bloqueado. Tras volver a subir el Excel, Informetit muestra incidencias **antes de guardar**. Una confirmación expresa actualiza IndexedDB y su respaldo privado, conserva auditoría y desbloquea solamente el siguiente núcleo. Las cuatro etapas quedan registradas en la base local por carrera y se invalidan si cambia la nómina.
+
+La sincronización de Firebase sigue las restricciones preexistentes: únicamente notas verificadas de estudiantes expresamente clasificados en Examen Complexivo, mediante las colecciones permitidas, con credenciales y autorización. Las notas de estudiantes sin mecanismo definido permanecen **provisionales y locales**, aunque la plantilla pueda quedar revisada. El sistema nunca anuncia una escritura en Firebase si no hubo confirmación. **No se envía la nómina ni una plantilla completa a GitHub o Firebase.**
+
 ## Dos modalidades de carga · versión 1.2.3
 
 Desde **Cargar información** puedes seleccionar **Formulario individual** o **Carga global**, sin trabajar con JSON o código. Si aún no hay nómina, Informetit solicita primero el Excel institucional de estudiantes.

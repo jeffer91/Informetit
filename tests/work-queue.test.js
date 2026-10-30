@@ -54,8 +54,8 @@ test('al existir evaluación y proyecto no repite solicitudes de subida',()=>{
  x.evaluaciones=[{studentId:'0000000001',tipo:'complexivo',ordinario:{}}];
  x.trabajos=[{studentId:'0000000002',numeroActa:''}];
  const r=Q.build(x);
- assert.equal(r.upload.some(x=>x.page==='evaluaciones'),false);
- assert.equal(r.upload.some(x=>x.page==='trabajo'),false);
+ assert.equal(r.upload.some(x=>x.id.endsWith('exam')),false);
+ assert.equal(r.upload.some(x=>x.id.endsWith('project')),false);
 });
 test('sólo clasificados en Complexivo generan faltantes de núcleos',()=>{
  const x=D.empty();x.estudiantes=[s('0000000001','sin_definir'),s('0000000002','trabajo')];

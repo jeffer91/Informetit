@@ -34,7 +34,7 @@ function Table(name,heads,rows,note='Datos disponibles de la cohorte, según reg
 function Figure(name,rows,{max,percentage=false,decimals=0,note='No se interpolan los valores faltantes.',diagramSvg=null}={}){
  if(!rows.length)return '';
  figs++;
- if(diagramSvg)return '<div class="fig"><p class="flabel">Figura '+figs+'</p><p class="fname">'+E(name)+'</p>'+diagramSvg+'<p class="note"><em>Nota.</em> '+E(String(note).trim().replace(/[.\\s]+$/,''))+'.</p></div>';
+ if(diagramSvg)return '<div class="fig"><p class="flabel">Figura '+figs+'</p><p class="fname">'+E(name)+'</p>'+diagramSvg+'<p class="note"><em>Nota.</em> '+E(String(note).trim().replace(/[.\s]+$/,''))+'.</p></div>';
  const W=615,left=254,right=65,bw=W-left-right,rh=27,height=36+rows.length*rh;
  const ceiling=max||Math.max(1,...rows.map(r=>Number(r[1])||0));
  let svg='<svg xmlns="http://www.w3.org/2000/svg" role="img" aria-label="'+E(name)+'" viewBox="0 0 '+W+' '+height+'"><rect width="'+W+'" height="'+height+'" fill="#fff"/>';

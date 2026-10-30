@@ -14,6 +14,7 @@ let trabajoStudentId="";
 let examImportText="",examImportStage=null;
 let firebaseComparison=null,firebaseConnection=null,firebaseMessage="";
 let studentImportStage=null;
+let smartText="",smartStage=null,smartCareer="auto",smartNucleus="auto",smartFilter="todos",smartReviewed=false;
 const $=x=>document.querySelector(x), el=id=>document.getElementById(id), h=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])), normal=Data.key, compact=s=>normal(s).replace(/\s/g,""), getNum=Data.grade, num=s=>s===null||s===undefined?"—":Number(s).toLocaleString("es-EC",{minimumFractionDigits:2,maximumFractionDigits:2}), today=()=>new Date().toISOString().slice(0,10);
 function notify(t){const node=el("toast");node.textContent=t;node.style.display="block";clearTimeout(notify.timer);notify.timer=setTimeout(()=>node.style.display="none",4300)}
 function notifyPdfResult(result){
@@ -932,7 +933,122 @@ async function firebaseLoadFile(event){
  finally{event.target.value=''}
 }
 
-const views={inicio,estudiantes,nucleos:grades,evaluaciones:evaluations,trabajo,cronogramas:schedule,informes:reports,identidad,firebase:firebaseView,datos:data};
+
+/* Centro de Carga Inteligente: análisis primero; escritura privada solo al confirmar. */
+function intelligentView(){
+ const engine=window.InformetitCargaInteligente;
+ if(!engine)return head("Centro de Carga Inteligente","No está disponible el motor de reconocimiento académico.");
+ const pending=engine.pending(state),rows=pending.rows.filter(x=>smartFilter==='todos'||x.mode===smartFilter);
+ const careers=window.InformetitNucleiCatalog.list();
+ let out=head("Centro de Carga Inteligente","Pega Moodle o importa archivos; detecta curso, carrera, núcleo y modalidad usando el padrón institucional.");
+ out+='<div class="cards">'+card("Estudiantes",state.estudiantes.length)+card("Notas verificadas",state.notas.filter(x=>x.verificado===true).length)
+  +card("Provisionales",state.notasBorrador.length)+card("Conflictos",state.conflictos.length)
+  +card("Sin vincular",state.sinVincular.length)+'</div>';
+ out+='<section class="panel"><h2>1. Pegar o subir libros de calificaciones</h2>'
+  +'<p class="hint">Puedes pegar los cuatro núcleos juntos, incluso si Moodle los muestra como «Mod 11, 12, 13, 14». El catálogo asigna el número real de núcleo por el nombre del curso; la modalidad se toma de la ficha del estudiante.</p>'
+  +'<div class="actions"><button class="btn" data-action="smart-file">Elegir archivos Moodle (.txt, .csv, .tsv, Excel)</button>'
+  +'<button class="btn" data-action="smart-clear">Limpiar entrada</button></div>'
+  +'<label class="field block">Contenido de Moodle<textarea id="smart-text" rows="12" placeholder="Pega aquí los cuatro libros de Moodle. No necesitas ordenarlos.">'+h(smartText)+'</textarea></label>'
+  +'<div class="field-row"><label class="field">Carrera (si no hay encabezado)<select id="smart-career"><option value="auto">Detectar por curso y padrón</option>'
+  +careers.map(x=>'<option value="'+h(x.name)+'"'+(smartCareer===x.name?' selected':'')+'>'+h(x.name)+'</option>').join('')+'</select></label>'
+  +'<label class="field">Núcleo (si no hay encabezado)<select id="smart-nucleus"><option value="auto">Detectar nombre</option>'
+  +[1,2,3,4].map(x=>'<option value="'+x+'"'+(smartNucleus===String(x)?' selected':'')+'>Núcleo '+x+'</option>').join('')+'</select></label></div>'
+  +'<div class="actions"><button class="btn primary" data-action="smart-analyze">Analizar y cotejar</button></div>'
+  +'<p class="hint">No se guardará ninguna nota al analizar. Un total ausente o ambiguo queda pendiente; nunca se convierte en cero.</p></section>';
+ if(smartStage){
+  const a=smartStage,all=a.courses.flatMap(course=>course.rows.map(r=>({course,r})));
+  const filtered=all.filter(x=>smartFilter==='todos'||!x.r.student||x.r.student.modalidad===smartFilter);
+  out+='<section class="panel"><h2>2. Revisar antes de incorporar</h2>'
+   +'<div class="cards">'+card("Cursos detectados",a.counts.courses)+card("Filas Moodle",a.counts.students)
+   +card("Listas para guardar",a.counts.ready)+card("Ya existentes",a.counts.already)
+   +card("Para revisar",a.counts.review)+'</div>';
+  out+=table(["Curso detectado","Carrera","Núcleo","Registros","Observación"],
+   a.courses.map(course=>'<tr>'+td(course.title||'Sin nombre')+td(course.career||'Sin identificar')
+    +td(course.nucleus||'—')+td(course.rows.length)+td(course.error||'Detectado')+'</tr>'));
+  out+=table(["Nombre Moodle","Correo","Estudiante vinculado","Modalidad","Nota","Estado / motivo"],
+   filtered.slice(0,180).map(({course,r})=>'<tr>'+td(r.name||'—')+td(r.email||'—')
+    +td(r.student?.nombre||'Sin vincular')+td(r.student?.modalidad||'—')
+    +td(num(r.grade))+td(r.status==='ready'?'LISTO · '+r.reason:r.status==='already'?'EXISTENTE':r.status.toUpperCase()+' · '+r.reason)+'</tr>'));
+  if(filtered.length>180)out+='<p class="hint">Se muestran 180 de '+filtered.length+' filas. Todas se consideran en la revisión.</p>';
+  out+='<label class="field block"><input type="checkbox" id="smart-verified"'+(smartReviewed?' checked':'')+'> Certifico que cotejé personalmente las notas finales contra Moodle. Solo los estudiantes clasificados en Complexivo y sin conflictos podrán quedar como verificados.</label>'
+   +'<p class="hint">Si no marcas la verificación, las notas nuevas se guardarán como PROVISIONALES. Los estudiantes con mecanismo sin definir nunca serán acreditados como Complexivo automáticamente.</p>'
+   +'<div class="actions"><button class="btn primary" data-action="smart-apply"'+(!a.counts.ready&&!a.counts.review?' disabled':'')+'>Guardar revisión y actualizar base privada</button>'
+   +'<button class="btn" data-action="smart-analyze">Volver a analizar</button></div></section>';
+ }
+ out+='<section class="panel"><h2>3. ¿Qué falta cargar?</h2>'
+  +'<p class="hint">La cobertura se calcula por carrera, modalidad y por los cuatro núcleos. La clasificación como Complexivo determina cuántas calificaciones son exigibles; los mecanismos sin definir se muestran aparte.</p>'
+  +'<label class="field">Ver modalidad<select id="smart-filter">'
+  +[['todos','Ambas modalidades'],['presencial','Presencial'],['online','Online']]
+   .map(([val,label])=>'<option value="'+val+'"'+(smartFilter===val?' selected':'')+'>'+label+'</option>').join('')+'</select></label>'
+  +table(["Carrera","Modalidad","Estudiantes","Sin clasificar","Núcleo 1","Núcleo 2","Núcleo 3","Núcleo 4"],
+  rows.map(x=>'<tr>'+td(x.career)+td(modeLabel(x.mode))+td(x.students)+td(x.unknown)
+   +x.nuclei.map(n=>td(n.present+' / '+x.students+' · '+n.status)).join('')+'</tr>'))
+  +'<h3>Próximas cargas sugeridas</h3>';
+ const filteredActions=pending.actions.filter(x=>smartFilter==='todos'||x.toLowerCase().includes(smartFilter));
+ out+='<div class="tablewrap"><ol>'+filteredActions.slice(0,28).map(x=>'<li>'+h(x)+'</li>').join('')+'</ol></div>';
+ if(filteredActions.length>28)out+='<p class="hint">Hay '+(filteredActions.length-28)+' tareas adicionales; filtra por modalidad.</p>';
+ out+='<p class="hint">Una nota registrada no acredita que la evaluación final o el título estén aprobados. Los casos duplicados y sin vincular requieren conciliación.</p></section>';
+ out+='<section class="panel"><h2>4. Copias privadas de las bases</h2>'
+  +'<p>Los cambios se guardan en IndexedDB y en el respaldo privado automático de Electron. También puedes descargar la base GPT en formato <code>base-gpt.cjs</code> para conservarla o compartirla de forma privada en ChatGPT.</p>'
+  +'<div class="actions"><button class="btn" data-action="smart-export-gpt">Descargar base GPT privada</button>'
+  +'<button class="btn" data-action="export-json">Descargar JSON</button></div>'
+  +'<p class="hint">La Biblioteca de ChatGPT no se actualiza por sí sola desde esta aplicación. No subas la base GPT a GitHub: contiene datos personales.</p></section>';
+ return out;
+}
+async function smartAction(code){
+ const engine=window.InformetitCargaInteligente;
+ if(code==='smart-file'){el('smart-file').click();return}
+ if(code==='smart-clear'){smartText='';smartStage=null;draw();return}
+ if(code==='smart-export-gpt'){
+  download('base-gpt.cjs','application/javascript;charset=utf-8',
+   '/* INFORMETIT BASE GPT PRIVADA. NO PUBLICAR EN GITHUB. */\nmodule.exports = '+JSON.stringify(state)+';\n');
+  notify('Archivo GPT privado descargado.');return;
+ }
+ if(code==='smart-analyze'){
+  smartText=el('smart-text')?.value||'';
+  if(!smartText.trim()){notify('Pega información o carga un archivo de Moodle.');return}
+  try{
+   smartStage=engine.assess(smartText,state,{career:smartCareer,nucleus:smartNucleus});
+   draw();notify('Detectados '+smartStage.counts.courses+' cursos y '+smartStage.counts.students+' filas.');
+  }catch(e){smartStage=null;notify('Análisis: '+e.message)}
+  return;
+ }
+ if(code==='smart-apply'){
+  smartText=el('smart-text')?.value||'';
+  if(!smartStage||smartText!==smartStage.raw){notify('La entrada cambió; vuelve a analizar antes de guardar.');return}
+  if(!confirm('Se guardarán '+smartStage.counts.ready+' notas nuevas y los registros pendientes de conciliación. '
+   +(smartReviewed?'Se marcarán como verificadas solo las de Complexivo correctamente cotejadas.':'Las notas nuevas quedarán PROVISIONALES.')
+   +' ¿Confirmas?'))return;
+  try{
+   const result=engine.apply(state,smartStage,smartReviewed,today());
+   await Store.save(result.next);state=result.next;smartStage=null;smartText='';smartReviewed=false;
+   scheduleFirebaseSync();draw();
+   notify('Guardadas: '+result.stats.verified+' verificadas, '+result.stats.provisional+' provisionales, '
+    +result.stats.conflicts+' conflictos, '+result.stats.quarantine+' en revisión.');
+  }catch(e){console.error(e);notify('No se completó la carga: '+e.message)}
+ }
+}
+async function smartFileChange(ev){
+ const files=[...(ev.target.files||[])];if(!files.length)return;
+ try{
+  let pieces=[];
+  for(const file of files){
+   if(file.size>12*1024*1024)throw Error('Archivo mayor a 12 MB: '+file.name);
+   const ext=file.name.toLowerCase().split('.').pop();
+   if(['txt','tsv','csv'].includes(ext))pieces.push(await file.text());
+   else if(['xls','xlsx'].includes(ext)){
+    if(!window.XLSX)throw Error('No está disponible la biblioteca Excel.');
+    const wb=XLSX.read(await file.arrayBuffer(),{type:'array'});
+    for(const name of wb.SheetNames)pieces.push(XLSX.utils.sheet_to_csv(wb.Sheets[name],{FS:'\t',RS:'\n'}));
+   }else throw Error('Formato no admitido: '+file.name);
+  }
+  smartText=[smartText,...pieces].filter(Boolean).join('\n\n');
+  smartStage=null;page='carga';draw();notify(files.length+' archivos añadidos. Pulsa Analizar y cotejar.');
+ }catch(e){notify('Archivo Moodle: '+e.message)}
+ finally{ev.target.value=''}
+}
+
+const views={inicio,estudiantes,carga:intelligentView,nucleos:grades,evaluaciones:evaluations,trabajo,cronogramas:schedule,informes:reports,identidad,firebase:firebaseView,datos:data};
 function draw(){el("main").innerHTML=views[page]();document.querySelectorAll(".nav").forEach(x=>x.classList.toggle("active",x.dataset.page===page));}
 function download(name,type,content){let blob=new Blob([content],{type}),u=URL.createObjectURL(blob),a=document.createElement("a");a.href=u;a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),2000)}
 async function parseGradeAndSave(save){
@@ -1113,7 +1229,7 @@ async function handleFiles(ev){
  finally{ev.target.value=''}
 }
 
-async function action(code){switch(code){case"apply-student-import":{
+async function action(code){if(code.startsWith("smart-"))return smartAction(code);switch(code){case"apply-student-import":{
  if(!studentImportStage){notify('Primero selecciona y revisa un Excel.');break}
  try{
   const stage=studentImportStage,preview=window.InformetitStudentImport.plan(state,stage.rows,stage.fileName);
@@ -1215,8 +1331,13 @@ let conflict=ev.target.closest("[data-use-conflict], [data-keep-conflict]");if(c
   await Store.save(candidate);state=candidate;scheduleFirebaseSync();draw();notify("Conflicto resuelto y registrado en la auditoría.");
  }catch(e){console.error(e);notify("No se resolvió el conflicto: "+e.message)}
 }});
-document.addEventListener("input",ev=>{if(ev.target.id==="student-search"){query=ev.target.value;let pos=ev.target.selectionStart;draw();let search=el("student-search");search.focus();search.setSelectionRange(pos,pos)}if(ev.target.id==="moodle-text"){inputText=ev.target.value;lastParse=null}if(ev.target.id==="exam-import-text"){examImportText=ev.target.value;examImportStage=null}});
-document.addEventListener("change",async ev=>{let field=ev.target;if(field.dataset.studentType){let s=state.estudiantes.find(x=>x.id===field.dataset.studentType);if(s){if(!["sin_definir","complexivo","trabajo"].includes(field.value)){notify("Mecanismo inválido");draw();return}if(s.tipoTitulacion!==field.value){s.tipoTitulacion=field.value;studentImportStage=null;await persist();draw();notify("Mecanismo de titulación actualizado.")}}}else if(field.hasAttribute("data-work-student")){trabajoStudentId=field.value;draw()}else if(field.hasAttribute("data-eval-select")){evaluationStudentId=field.value;draw()}else if(field.hasAttribute("data-nucleus-career")){nucleusCareerKey=field.value;draw()}else if(field.hasAttribute("data-requirement-filter")){reqFilter=field.value;draw()}else if(field.hasAttribute("data-status-filter")){reqStatus=field.value;draw()}else if(field.hasAttribute('data-program-date')){
+document.addEventListener("input",ev=>{if(ev.target.id==="student-search"){query=ev.target.value;let pos=ev.target.selectionStart;draw();let search=el("student-search");search.focus();search.setSelectionRange(pos,pos)}if(ev.target.id==="moodle-text"){inputText=ev.target.value;lastParse=null}if(ev.target.id==="exam-import-text"){examImportText=ev.target.value;examImportStage=null}if(ev.target.id==="smart-text"){smartText=ev.target.value;smartStage=null}});
+document.addEventListener("change",async ev=>{let field=ev.target;
+if(field.id==='smart-filter'){smartFilter=field.value;draw();return}
+if(field.id==='smart-verified'){smartReviewed=field.checked;return}
+if(field.id==='smart-career'){smartCareer=field.value;smartStage=null;draw();return}
+if(field.id==='smart-nucleus'){smartNucleus=field.value;smartStage=null;draw();return}
+if(field.dataset.studentType){let s=state.estudiantes.find(x=>x.id===field.dataset.studentType);if(s){if(!["sin_definir","complexivo","trabajo"].includes(field.value)){notify("Mecanismo inválido");draw();return}if(s.tipoTitulacion!==field.value){s.tipoTitulacion=field.value;studentImportStage=null;await persist();draw();notify("Mecanismo de titulación actualizado.")}}}else if(field.hasAttribute("data-work-student")){trabajoStudentId=field.value;draw()}else if(field.hasAttribute("data-eval-select")){evaluationStudentId=field.value;draw()}else if(field.hasAttribute("data-nucleus-career")){nucleusCareerKey=field.value;draw()}else if(field.hasAttribute("data-requirement-filter")){reqFilter=field.value;draw()}else if(field.hasAttribute("data-status-filter")){reqStatus=field.value;draw()}else if(field.hasAttribute('data-program-date')){
  const index=field.dataset.programDate,fieldName=field.dataset.programType;
  if(!['inicio','fin'].includes(fieldName)||!index)return;
  if(!state.cronogramaPersonalizado)state.cronogramaPersonalizado={};
@@ -1233,7 +1354,8 @@ document.addEventListener("change",async ev=>{let field=ev.target;if(field.datas
  state.config[key]=candidate;
  await persist();draw();notify("Código de "+(key==='codigoOnline'?'online':'presencial')+" actualizado con el mes automático.");
 }else if(field.dataset.config){state.config[field.dataset.config]=field.type==="checkbox"?field.checked:field.value;await persist();draw()}});
-el("student-file").addEventListener("change",handleFiles);el("backup-file").addEventListener("change",handleFiles);
+el("student-file").addEventListener("change",handleFiles);
+el("smart-file").addEventListener("change",smartFileChange);el("backup-file").addEventListener("change",handleFiles);
 el("trabajo-file").addEventListener("change",handleTrabajoFile);
 el("cursos-file").addEventListener("change",handleCursosFile);
 el("firebase-file").addEventListener("change",firebaseLoadFile);

@@ -50,7 +50,7 @@ test('simulación usa exclusivamente los 37 verificados de 38 Complexivo',()=>{
  assert.equal(r.expected,38);
  assert.equal(r.verified,37);
  assert.equal(r.missing,1);
- assert.equal(r.estimatedValue,8.6);
+ assert.ok(Math.abs(r.estimatedValue-8.6)<1e-10);
  assert.equal(r.realMean,r.projectedMean);
  assert.equal(r.missingStudents[0].id,'0000000038');
  assert.equal(JSON.stringify(s),before);

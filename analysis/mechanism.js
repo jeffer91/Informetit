@@ -65,7 +65,7 @@ function apply(state,plan,stamp){
  }
  if(changes.length){
   next.auditoria.push({tipo:'cambio_mecanismo',fecha:stamp,fuente:plan.source,
-   cambios,excluidos:plan.rejected.map(x=>({...x}))});
+   cambios:changes,excluidos:plan.rejected.map(x=>({...x}))});
   next.importaciones.push({tipo:'clasificacion_mecanismo',nombre:plan.source,
    fecha:stamp,filas:plan.rows,actualizados:changes.length,bloqueados:plan.rejected.length});
  }

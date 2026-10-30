@@ -18,6 +18,14 @@ La aplicación se abre en Electron. `npm run web` es solo un servidor diagnósti
 
 Para comprobar el PDF sin datos reales, ejecutar `npm run smoke:pdf` en un entorno con escritorio compatible. La automatización de GitHub Actions ejecuta las pruebas JavaScript y la impresión PDF con datos ficticios en Linux.
 
+## Interfaz operativa minimalista · versión 1.2.2
+
+El **Inicio** deja de ser un panel estadístico y muestra **solo las tareas de carga pendientes** de la carrera y modalidad elegidas. Con una instalación nueva sin base privada muestra únicamente la solicitud de importación: las cifras agregadas de GitHub no se hacen pasar por expedientes nominales. Con nómina local agrupa por carrera los requisitos sin información, libros de núcleos, registros de Examen Complexivo y de Trabajo de Titulación realmente ausentes.
+
+Las notas provisionales y los conflictos se muestran en una sección aparte de **revisión**, no como calificaciones faltantes. Los estudiantes de Trabajo de Titulación no generan pendientes de núcleos; los no clasificados se muestran para clasificación sin inferir su mecanismo. La presencia de un registro no garantiza aprobación: siempre se requiere la comprobación académica correspondiente.
+
+El menú agrupa **Evaluaciones** (núcleos, complexivo y trabajo) y **Configuración** (logo/códigos, Firebase, respaldos), conservando todas las funciones anteriores. Desde cada tarea del Inicio se abre su pantalla; en cargas Moodle se preseleccionan carrera, modalidad y núcleo. **Cargar información** prioriza pegar o subir libros y muestra la cobertura detallada y respaldos como opciones desplegables. No modifica el motor académico ni los PDF.
+
 ## Módulos y fuentes
 
 | Módulo | Función |

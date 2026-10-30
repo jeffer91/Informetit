@@ -1,3 +1,15 @@
+## Centro de Carga Inteligente — implementación en `main` (30 de octubre de 2026)
+
+El menú **Centro de Carga Inteligente** permite pegar varios libros de Moodle en un mismo bloque o subir archivos `.txt`, `.tsv`, `.csv`, `.xls` y `.xlsx`. **Analizar y cotejar** no escribe datos: primero detecta los cursos por título, consulta el catálogo institucional para encontrar el núcleo real (el valor `Mod 13` de Moodle no es el número de núcleo) y relaciona cada nota con la nómina por cédula, correo y nombre exacto. La modalidad se obtiene del estudiante; un mismo archivo puede contener presencial y online.
+
+En el segundo paso, **Guardar revisión y actualizar base privada**, las notas nuevas quedan **provisionales** por defecto. Marcar el cotejo permite registrar como verificadas únicamente las notas con identidad confirmada y mecanismo **Examen Complexivo** explícito. Las discrepancias, filas ambiguas y estudiantes de Trabajo de Titulación no se convierten en notas oficiales; los valores faltantes tampoco se presumen ceros. El sistema conserva las notas previas y registra importaciones, conflictos y auditoría. El tablero **¿Qué falta cargar?** muestra por carrera, modalidad y núcleo las coberturas, pendientes de verificación y mecanismos por clasificar.
+
+Cada guardado de Informetit Desktop mantiene la base en IndexedDB y dos copias privadas en el perfil de Electron: `base-gpt-autosave.json` y `base-gpt.cjs` (además de `base-gpt.previous.cjs` como versión anterior al reemplazo). El módulo permite **Descargar base GPT privada**. Esos archivos contienen información personal y **no deben subirse a GitHub**. El respaldo en el equipo **no sincroniza automáticamente la Biblioteca de ChatGPT**. La conexión Firebase sigue separada y restringida a las colecciones `nucleos` y `complexivos`, con sus reglas previas de verificación.
+
+**Comprobación:** `npm run check` y `npm test` incluyen el nuevo motor de cotejo. No se garantiza interpretación de PDF ni extracción automática de texto de imágenes; usa texto Moodle o exportaciones tabulares, y revisa las filas marcadas para conciliación.
+
+---
+
 ## Actualización del generador completo — octubre de 2026 (`main`)
 
 Se ha recuperado el **informe institucional completo**; no se sustituyen las tablas individuales por un resumen. El PDF sigue organizado por modalidad y añade desarrollo por curso, análisis individual del Examen Complexivo, matrices nominales de los nueve requisitos, Plan de Mejora, referencias bibliográficas normativas en APA 7 y un control de cobertura documental. Los capítulos de primer nivel comienzan en página nueva. El resumen ejecutivo, después de resultados, incluye Ishikawa, FODA y árbol rediseñados con cifras disponibles, advertencias y denominadores.

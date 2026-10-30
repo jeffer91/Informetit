@@ -1,3 +1,15 @@
+## Informe institucional — narrativa de tablas y formato APA 7 (octubre de 2026 · `main`)
+
+El generador central `report_institucional.js` añade **un párrafo contextual antes y una interpretación breve después de cada tabla** mediante `analysis/table-commentary.js`, aplicable tanto a presencial como a online, incluida la caracterización, requisitos, núcleos, examen, proyectos, consolidado, plan de mejora y anexos. Los comentarios incluyen la referencia automática «Tabla N», se basan en los registros y no declaran como verificados los valores provisionales ni deducen resultados donde faltan fuentes. No se añade la etiqueta «Análisis» a los comentarios posteriores.
+
+**Estilo APA, séptima edición, en el cuerpo académico:** Times New Roman 12 puntos; interlineado doble; texto alineado a la izquierda; sangría de primera línea de 1,27 cm; encabezados jerarquizados; tabla con número en negrita, título en cursiva, reglas horizontales y nota bajo la tabla con «Nota.» en cursiva; figuras con número y título, y notas del mismo modo; referencias con sangría francesa de 1,27 cm e interlineado doble. El interior de las tablas usa un tamaño menor e interlineado más compacto para conservar legibilidad, como permite APA 7. Los índices, la numeración secuencial, los saltos de página por capítulo y los datos académicos existentes se mantienen.
+
+**Adaptación institucional, no cumplimiento editorial APA puro:** el informe sigue conservando portada, firmas y encabezado INF. La reserva superior de impresión de 5,05 cm para el encabezado constituye una excepción al margen APA habitual de 2,54 cm; los márgenes laterales son de 2,54 cm. Las referencias normativas deben cotejarse antes de aprobar el informe.
+
+**Validación:** `npm run check` y `npm test` incluyen `analysis/table-commentary.js` y `tests/table-apa7.test.js`. Los PDF deben revisarse visualmente en Windows para confirmar los saltos de página y la paginación con el encabezado institucional.
+
+---
+
 ## Cambios de mecanismo e interpolación de núcleos — 30 de octubre de 2026 (`main`)
 
 **Mecanismos:** En **Estudiantes y requisitos** el selector individual requiere confirmación con resumen del historial existente antes de cambiar entre `complexivo`, `trabajo` y `sin_definir`. La aplicación guarda el cambio en auditoría y conserva notas, calificaciones provisionales, proyectos y exámenes; únicamente cambia el conjunto de estudiantes utilizado en los cálculos de cada ruta. El Excel de **Trabajo de Titulación** presenta los totales de nuevas clasificaciones y los casos que pasarán desde Complexivo antes de solicitar confirmación, y registra la operación en auditoría. Ningún archivo de requisitos reclasifica estudiantes de forma implícita.

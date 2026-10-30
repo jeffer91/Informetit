@@ -9,6 +9,18 @@ const path = require('node:path');
 const ROOT = __dirname;
 const HOST = '127.0.0.1';
 const PORT = Number(process.env.PORT) || 5500;
+// El servidor es solo para diagnóstico: nunca publicar respaldos, credenciales,
+// carpetas Git, perfiles ni archivos que contengan datos personales.
+const PUBLIC_ROOT = new Set(['index.html','styles.css','app.js','public_summary.js',
+  'nucleos_agregados.js','report_institucional.js']);
+const PUBLIC_DIRS = new Set(['analysis','data','document','firebase','moodle','vendor']);
+function isPublicAsset(name){
+  const normalized=String(name||'').replace(/\\/g,'/');
+  if(PUBLIC_ROOT.has(normalized))return true;
+  const parts=normalized.split('/');
+  return parts.length===2 && PUBLIC_DIRS.has(parts[0]) &&
+    /^[a-zA-Z0-9_-]+(?:\.[a-zA-Z0-9_-]+)*\.js$/.test(parts[1]);
+}
 const TYPES = {
   '.html': 'text/html; charset=utf-8',
   '.css': 'text/css; charset=utf-8',
@@ -37,13 +49,23 @@ const server = http.createServer((req, res) => {
     target = path.resolve(ROOT, '.' + pathname);
     if (target !== ROOT && !target.startsWith(ROOT + path.sep)) throw new Error('Ruta fuera del proyecto');
     if (target === ROOT) target = path.join(ROOT, 'index.html');
+    const relative=path.relative(ROOT,target).split(path.sep).join('/');
+    if (!isPublicAsset(relative)) {
+      res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
+      res.end('Archivo no disponible');
+      return;
+    }
   } catch {
     res.writeHead(400);
     res.end('Ruta invalida');
     return;
   }
 
-  fs.stat(target, (error, stat) => {
+  fs.realpath(target, (realError,realPath) => {
+    if (realError || (realPath!==ROOT && !realPath.startsWith(ROOT+path.sep))) {
+      res.writeHead(404);res.end('Archivo no disponible');return;
+    }
+  fs.stat(realPath, (error, stat) => {
     if (error || !stat.isFile()) {
       res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
       res.end('Archivo no encontrado');
@@ -57,7 +79,8 @@ const server = http.createServer((req, res) => {
       'X-Content-Type-Options': 'nosniff'
     });
     if (req.method === 'HEAD') return res.end();
-    fs.createReadStream(target).pipe(res);
+    fs.createReadStream(realPath).pipe(res);
+  });
   });
 });
 

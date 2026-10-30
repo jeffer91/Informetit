@@ -1,70 +1,41 @@
-# Informetit — Cierre técnico de los bloques 01–08
+# Informetit — Cierre técnico y controles de entrega
 
-**Versión:** 1.2.0 · **Período exclusivo:** Octubre 2025–marzo 2026 · **Aplicación:** Electron, base privada local · **Rama:** `main`
+**Versión auditada:** 1.2.1 · **Rama:** `main` · **Cohorte:** octubre 2025–marzo 2026.
 
-Esta guía corresponde al cierre de implementación de los ocho bloques. **El cierre técnico no significa que los informes estén firmados o aprobados por la institución.** Las cifras académicas se actualizan cuando se incorporan los registros y evidencias originales.
+Este archivo sustituye el cierre técnico histórico de 1.2.0. La versión de 1.2.1 elimina el generador PDF paralelo y refuerza privacidad, persistencia y cotejo. **El cierre técnico no implica titulación institucional ni aprobación de actas.**
 
-## 1. Documentos que produce la aplicación
+## Arquitectura vigente
 
-Informetit permite visualizar y exportar **dos borradores PDF distintos**, uno de modalidad presencial y otro de modalidad online, directamente desde **Dos informes**. Cada documento contiene:
+- `app.js`, `index.html` y `styles.css`: interfaz Electron de escritorio.
+- `data/model.js` y `data/storage.js`: contrato de datos, migración, IndexedDB y respaldo privado.
+- `data/student-import.js`: carga de nómina sin inferir el mecanismo.
+- `moodle/importer.js` y `moodle/intelligent.js`: importación, reconocimiento, cotejo de identidad, conflictos y verificación de borradores.
+- `analysis/mechanism.js`: cambios manuales y masivos de mecanismo con auditoría y conservación de historia.
+- `analysis/interpolation.js`: simulación estadística **no persistida**, separada de calificaciones oficiales.
+- `analysis/requirements.js`, `analysis/nuclei.js`, `analysis/complexivo.js`, `analysis/trabajo.js`, `analysis/consolidado.js`: indicadores por modalidad y mecanismo.
+- `analysis/table-commentary.js`, `document/institutional.js`, `report_institucional.js`: único motor PDF HTML/Chromium con narrativa de tablas y adaptación a APA 7.
+- `firebase/reader.js` y `firebase/sync.js`: lectura/conciliación, y escrituras **solo mediante habilitación explícita**, acotadas a `nucleos` y `complexivos`.
+- `server.js`: diagnóstico HTTP localhost con lista blanca de recursos públicos. **No expone archivos GPT, credenciales o respaldos**.
 
-| Parte | Contenido |
-|---|---|
-| Portada INF | Encabezado, control documental, fecha, logotipo y responsables; firma pendiente |
-| Índices | Contenidos, tablas y figuras; PDF con intento de paginación verificada |
-| Resumen ejecutivo (después de la síntesis de resultados) | Población, hallazgos, Ishikawa, FODA y árbol de resultados según información disponible |
-| 1. Introducción | Antecedentes, objetivos, alcance y metodología |
-| 2. Marco legal | Referencias generales; versiones y artículos sujetos a validación |
-| 3. Planificación | Cronograma Complexivo editable y estado de ejecución declarado |
-| 4. Fase I | Nueve requisitos, incidencias por carrera, caracterización y seguimiento |
-| 5. Fase II | Cuatro núcleos por carrera, notas nominales si existen, estadísticas, gráficos y faltantes |
-| 6. Trabajo de Titulación | Rúbricas de los tres vocales, tutor, lector, cálculo, actas, resultados, cronograma |
-| 7. Fase III | Complexivo: 40 % teoría + 60 % práctica, ordinario, supletorio, resultados y actas |
-| 8. Síntesis | Consolidado de ambos mecanismos por carrera y modalidad |
-| 9. Conclusiones | Indicadores comprobables y pendientes |
-| 10. Recomendaciones | Medidas derivadas de las incidencias y límites |
-| 11. Anexos | Fuentes, conciliación, hallazgos de calidad y límites de interpretación |
-| Referencias | Inventario por completar con ediciones institucionales verificadas |
+El generador `report_pdf.js` fue eliminado: sus estilos y cálculos antiguos ya no se cargan ni pueden competir con el informe institucional vigente. También se retiró `pdfmake` de las dependencias.
 
-**No se mezclan las notas de los núcleos con las evaluaciones finales.** Un promedio agregado del Word no se convierte en calificación individual. El control “Titulación” o “AprobacionComplexivoProyecto” de Firebase no se convierte en nota.
+## Fuente de verdad y seguridad
 
-## 2. Motores de la aplicación
+La base académica operativa es IndexedDB. La copia automática `base-gpt.cjs` es un respaldo privado en el perfil Electron, y no sustituye una conexión remota a ChatGPT. Si existe una base GPT nueva en Descargas o la carpeta privada, se prioriza para lectura; el cargador no ejecuta código del archivo `.cjs`.
 
-- `data/model.js`: estructura local, migraciones, estudiantes y auditoría.
-- `analysis/requirements.js`: cumplimiento de requisitos y seguimiento por carrera.
-- `moodle/importer.js`: notas Moodle, vínculos y conflictos.
-- `analysis/nuclei.js`: análisis de los cuatro núcleos.
-- `analysis/complexivo.js` y `analysis/complexivo_import.js`: evaluaciones finales 40/60, actas y lotes.
-- `analysis/trabajo.js`: tutor, lector, tres vocales, proyecto y nota final.
-- `analysis/consolidado.js`: resultados integrados de ambos mecanismos.
-- `analysis/quality.js`: auditoría documental y estadística, bloqueos y anexos.
-- `firebase/reader.js` y `firebase/sync.js`: lectura institucional autorizada y conciliación; sin escrituras a Firestore.
-- `document/institutional.js`, `report_institucional.js`, `electron-main.js`: formato INF, índices, HTML y guardado PDF.
+Las notas provenientes de Word, fuentes agregadas o textos ambiguos permanecen provisionales hasta cotejo. Un valor estimado no acredita a nadie. La reclasificación entre Examen Complexivo y Trabajo conserva las calificaciones antiguas y recalcula la población de cada modalidad. Firebase no borra automáticamente los antecedentes históricos externos al reclasificar: las discrepancias se revisan.
 
-### Ponderaciones
+## Fórmulas e indicadores
 
-- **Complexivo:** ordinario = 40 % teoría + 60 % práctica. Supletorio separado y con fuente explícita.
-- **Trabajo de Titulación:** oral = (práctica + defensa) / 2; final = 60 % escrito + 40 % oral, conforme al ejemplo de acta **4134** (9,00 escrito, 7,00 práctica, 8,00 defensa, 7,50 oral, **8,40 final**). **Verificar la norma institucional antes de aprobar el documento.**
+- Núcleos: cuatro por carrera; solo estudiantes confirmados en Complexivo, sin mezclar agregados Word ni imputaciones.
+- Examen Complexivo: 40 % teoría y 60 % práctica en ordinario; recuperación documentada aparte.
+- Trabajo de Titulación: ponderaciones definidas por la rúbrica implementada, sujetas a la norma/actas oficiales.
+- Requisitos: nueve controles; cumplimiento administrativo no equivale a aprobar el examen ni a obtener el título.
+- Informes: presencial y online calculados por separado, encabezado INF, índices, introducción e interpretación de cada tabla, interlineado doble, sangrías y referencias APA 7 adaptadas.
 
-## 3. Control de calidad antes de emitir
+## Comprobaciones y limitaciones
 
-En **Dos informes → Auditoría del informe y cierre documental**, revisar:
-
-1. Población vigente y conciliación de las diferencias entre padrón local, resumen del informe y Firebase.
-2. Integridad de cédulas y carreras, separación de presencial y online.
-3. Requisitos sin verificar y registros Moodle/Word en conflicto.
-4. Núcleos sin nota y agregados del Word; diferenciar ausencia de una nota real de cero.
-5. Ordinarios, supletorios, ausencias, registros duplicados y proyectos incompletos.
-6. Número y fecha de cada acta, sus calificaciones y firmas en los documentos originales.
-7. Códigos oficiales INF: presencial UTET-INF-01-PRO-95 y online UTET-INF-02-PRO-95; sufijo automático dos meses después del período, y fecha real de elaboración independiente.
-8. Marco jurídico vigente, cronogramas y evidencias reales de ejecución.
-9. Integridad de la impresión PDF, saltos de página e índices.
-
-**Una referencia introducida para un acta no acredita su autenticidad.** Los estados de aprobación calculados no constituyen por sí mismos estudiantes incorporados, graduación ni eficiencia terminal oficial.
-
-## 4. Comprobar la aplicación en Windows
-
-Cerrar Informetit, abrir PowerShell en la carpeta del proyecto y ejecutar:
+En Windows:
 
 ```powershell
 git pull origin main
@@ -75,19 +46,6 @@ npm run smoke:pdf
 npm start
 ```
 
-- `npm run check`: comprueba sintaxis del proyecto.
-- `npm test`: pruebas automatizadas de los ocho bloques y Firebase.
-- `npm run smoke:pdf`: abre Electron en un **perfil temporal**, genera con datos ficticios ambos documentos, los imprime con Chromium, verifica firma PDF, contenido y la estabilidad de los números de índice; **no escribe ni utiliza datos reales**.
-- `npm start`: interfaz normal para revisar y exportar los documentos reales.
+GitHub Actions comprueba sintaxis, pruebas y humo PDF con **personas ficticias**. Para una entrega institucional debe comprobarse también la impresión **en Windows**, integridad de los índices y firmas, actas de ordinarios/supletorios, defensa de proyectos, requisitos, evidencias de cronograma, normativa vigente y padrón de corte. No afirmar cierre académico definitivo antes de resolver esos puntos.
 
-Si el smoke test falla, anotar el mensaje exacto y revisar la paginación antes de emitir. Al exportar desde Informetit, **el resultado comunica si la paginación del índice fue verificada**. La app permite guardar borradores con advertencias; no los identifica como aprobados.
-
-## 5. Fuentes necesarias para cierre institucional
-
-Para cerrar los informes como documentos definitivos deben estar cargados y verificados: nómina de corte validada; libros de Moodle que faltan; actas ordinarias y supletorias; actas de Trabajo de Titulación; evidencia de ejecución de cronogramas; códigos y firmas; y versiones normativas vigentes.
-
-La exportación Firebase previamente analizada contenía una población mayor que el padrón privado utilizado; **la conciliación de los registros adicionales no debe actualizar la población oficial automáticamente**. Los datos nominales se conservan en el almacenamiento privado de Electron y no se publican en GitHub.
-
-## 6. Estado de entrega
-
-**Bloques 01–08: implementación integrada a `main` y pruebas de lógica ejecutadas.** La impresión nativa de los PDF en **Windows** y la validación institucional con documentos reales **continúan pendientes de verificación**. El aplicativo debe permanecer en estado de borrador hasta completar esas comprobaciones.
+El historial anterior de implementación está disponible en Git. Este documento refleja la arquitectura actual.

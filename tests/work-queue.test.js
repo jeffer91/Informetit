@@ -3,6 +3,8 @@ const test=require('node:test'),assert=require('node:assert/strict');
 global.window=global;
 const D=require('../data/model.js');
 require('../data/nuclei-catalog.js');
+require('../analysis/complexivo.js');
+require('../analysis/trabajo.js');
 const Q=require('../analysis/work-queue.js');
 const s=(id,tipo='complexivo',mode='presencial',career='Administración')=>({
  id,nombre:'ESTUDIANTE '+id,tipoTitulacion:tipo,modalidad:mode,carrera:career,requisitos:Object.fromEntries(D.REQUIREMENTS.map(k=>[k,'CUMPLE']))
@@ -60,4 +62,24 @@ test('sólo clasificados en Complexivo generan faltantes de núcleos',()=>{
  const r=Q.build(x);
  assert.equal(r.upload.some(x=>x.nucleus>0),false);
  assert.ok(r.review.some(x=>/Clasificar mecanismo/.test(x.label)));
+});
+
+test('registros presentes pero incompletos generan tareas de completar, no de importar de nuevo',()=>{
+ const x=D.empty();x.estudiantes=[s('0000000001'),s('0000000002','trabajo')];
+ x.evaluaciones=[{studentId:'0000000001',tipo:'complexivo',
+   ordinario:{teoria:8,practica:null,asistencia:'presentado'}}];
+ x.trabajos=[{studentId:'0000000002',asistencia:'presentado',tutor:8,lector:9}];
+ const r=Q.build(x);
+ assert.equal(r.upload.some(t=>t.id.endsWith('exam')),false);
+ assert.equal(r.upload.find(t=>t.id.endsWith('exam-components')).count,1);
+ assert.equal(r.upload.some(t=>t.id.endsWith('project')),false);
+ assert.equal(r.upload.find(t=>t.id.endsWith('project-rubric')).count,1);
+});
+test('acta ausente genera cotejo, nunca una segunda calificación ficticia',()=>{
+ const x=D.empty();x.estudiantes=[s('0000000001')];
+ x.evaluaciones=[{studentId:'0000000001',tipo:'complexivo',
+   ordinario:{teoria:8,practica:9,asistencia:'presentado'}}];
+ const r=Q.build(x);
+ assert.equal(r.upload.some(t=>t.id.endsWith('exam-components')),false);
+ assert.equal(r.review.find(t=>t.id.endsWith('exam-actas')).count,1);
 });

@@ -1032,14 +1032,35 @@ async function smartFileChange(ev){
  const files=[...(ev.target.files||[])];if(!files.length)return;
  try{
   let pieces=[];
+  const catalogue=window.InformetitNucleiCatalog.list();
+  const findTitle=name=>{
+   const normalized=Data.key(name);
+   const found=[...new Set(catalogue.flatMap(c=>c.nuclei.map(n=>n.title))
+    .filter(title=>normalized.includes(Data.key(title))))];
+   return found.length===1?found[0]:null;
+  };
+  const titleHeader=(name,body,requireTitle)=>{
+   if(/T-\s*N[ÚU]CLEO\s*-\s*[^\r\n[]+\s*\[[^\]]+\]/i.test(body))return body;
+   const title=findTitle(name);
+   if(title)return 'T-NUCLEO - '+title+' [Archivo importado]\n'+body;
+   if(requireTitle)throw Error('No pude identificar el curso de «'+name+
+    '». Renombra el archivo o la hoja con el nombre del núcleo, o pega ese curso por separado.');
+   return body;
+  };
   for(const file of files){
    if(file.size>12*1024*1024)throw Error('Archivo mayor a 12 MB: '+file.name);
    const ext=file.name.toLowerCase().split('.').pop();
-   if(['txt','tsv','csv'].includes(ext))pieces.push(await file.text());
-   else if(['xls','xlsx'].includes(ext)){
+   const multiple=files.length>1;
+   if(['txt','tsv','csv'].includes(ext)){
+    const body=await file.text();
+    pieces.push(titleHeader(file.name,body,multiple));
+   }else if(['xls','xlsx'].includes(ext)){
     if(!window.XLSX)throw Error('No está disponible la biblioteca Excel.');
     const wb=XLSX.read(await file.arrayBuffer(),{type:'array'});
-    for(const name of wb.SheetNames)pieces.push(XLSX.utils.sheet_to_csv(wb.Sheets[name],{FS:'\t',RS:'\n'}));
+    for(const name of wb.SheetNames){
+     const body=XLSX.utils.sheet_to_csv(wb.Sheets[name],{FS:'\t',RS:'\n'});
+     pieces.push(titleHeader(name+' '+file.name,body,multiple||wb.SheetNames.length>1));
+    }
    }else throw Error('Formato no admitido: '+file.name);
   }
   smartText=[smartText,...pieces].filter(Boolean).join('\n\n');

@@ -6,6 +6,13 @@ const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('informetitDesktop', Object.freeze({
   isElectron: true,
+  chatgptStatus: () => ipcRenderer.invoke('informetit:chatgpt-status'),
+  chatgptSelectFolder: data => ipcRenderer.invoke('informetit:chatgpt-select-folder',data),
+  chatgptDisable: () => ipcRenderer.invoke('informetit:chatgpt-disable'),
+  firebaseBackupUpload: (data,passphrase) => ipcRenderer.invoke('informetit:firebase-backup-upload',{data,passphrase}),
+  firebaseBackupList: () => ipcRenderer.invoke('informetit:firebase-backup-list'),
+  firebaseBackupDownload: (id,passphrase) => ipcRenderer.invoke('informetit:firebase-backup-download',{id,passphrase}),
+  recoveryCheckpoint: data => ipcRenderer.invoke('informetit:recovery-checkpoint',data),
   firebaseConnect: method => ipcRenderer.invoke('informetit:firebase-connect',method),
   firebaseRead: () => ipcRenderer.invoke('informetit:firebase-read'),
   firebaseStatus: () => ipcRenderer.invoke('informetit:firebase-status'),

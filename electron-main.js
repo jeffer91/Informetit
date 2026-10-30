@@ -11,6 +11,7 @@ const path = require('node:path');
 const crypto = require('node:crypto');
 const { pathToFileURL } = require('node:url');
 const firestoreReader = require('./firebase/reader.js');
+const chatgptBridge = require('./data/chatgpt-bridge.js');
 
 app.setAppUserModelId('ec.itsqmet.informetit');
 const singleInstance = app.requestSingleInstanceLock();
@@ -174,10 +175,64 @@ ipcMain.handle('informetit:backup-master',async(event,payload)=>{
     }catch(error){if(error.code!=='ENOENT')throw error}
     await fs.writeFile(gptTemp,source,{encoding:'utf8',mode:0o600});
     await fs.rename(gptTemp,gptFile);
+    let bridge={enabled:false,ok:null};
+    try{bridge=await chatgptBridge.mirror(directory,payload)}
+    catch(error){bridge={enabled:true,ok:false,reason:error.message};
+      console.warn('[Informetit] Copia para ChatGPT no sincronizada:',error.message)}
     return {saved:true,location:'Perfil privado de Informetit',
-      files:['base-gpt-autosave.json','base-gpt.cjs'],bytes:Buffer.byteLength(content)};
+      files:['base-gpt-autosave.json','base-gpt.cjs'],bytes:Buffer.byteLength(content),bridge};
   });
   return privateBackupQueue;
+});
+
+
+function requireMainWindow(event){
+ if(!mainWindow||event.sender!==mainWindow.webContents)
+  throw Error('Operación privada no autorizada');
+}
+ipcMain.handle('informetit:chatgpt-status',async event=>{
+ requireMainWindow(event);return chatgptBridge.status(app.getPath('userData'));
+});
+ipcMain.handle('informetit:chatgpt-select-folder',async(event,payload)=>{
+ requireMainWindow(event);
+ if(!payload||!Array.isArray(payload.estudiantes)||!Array.isArray(payload.notas))
+  throw Error('Primero debe existir una base local válida');
+ const choice=await dialog.showOpenDialog(mainWindow,{
+  title:'Selecciona tu carpeta privada sincronizada con Dropbox, Google Drive o OneDrive',
+  properties:['openDirectory'],buttonLabel:'Vincular carpeta'});
+ if(choice.canceled||!choice.filePaths?.[0])return {canceled:true};
+ const directory=app.getPath('userData');
+ const folder=await chatgptBridge.setFolder(directory,choice.filePaths[0],__dirname);
+ try{
+  const mirror=await chatgptBridge.mirror(directory,payload);
+  return {canceled:false,...mirror};
+ }catch(error){
+  return {canceled:false,enabled:true,ok:false,folder,reason:error.message};
+ }
+});
+ipcMain.handle('informetit:chatgpt-disable',async event=>{
+ requireMainWindow(event);return chatgptBridge.stop(app.getPath('userData'));
+});
+ipcMain.handle('informetit:firebase-backup-upload',async(event,payload)=>{
+ requireMainWindow(event);return firestoreReader.uploadFullBackup(payload);
+});
+ipcMain.handle('informetit:firebase-backup-list',async event=>{
+ requireMainWindow(event);return firestoreReader.listFullBackups();
+});
+ipcMain.handle('informetit:firebase-backup-download',async(event,payload)=>{
+ requireMainWindow(event);return firestoreReader.downloadFullBackup(payload);
+});
+ipcMain.handle('informetit:recovery-checkpoint',async(event,data)=>{
+ requireMainWindow(event);
+ if(!data||!Array.isArray(data.estudiantes)||!Array.isArray(data.notas))
+  throw Error('Base local inválida para punto de restauración');
+ const content=JSON.stringify(data);
+ if(Buffer.byteLength(content,'utf8')>20*1024*1024)
+  throw Error('La base local excede el límite de restauración');
+ const stamp=new Date().toISOString().replace(/[:.]/g,'-');
+ const file=path.join(app.getPath('userData'),'base-pre-restore-'+stamp+'.json');
+ await fs.writeFile(file,content,{encoding:'utf8',flag:'wx',mode:0o600});
+ return {saved:true,name:path.basename(file)};
 });
 
 ipcMain.handle('informetit:save-pdf', async (event, payload) => {

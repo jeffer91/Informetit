@@ -140,7 +140,8 @@ ipcMain.handle('informetit:read-master', async event => {
       return {
         data,
         fingerprint: crypto.createHash('sha256').update(raw).digest('hex'),
-        filename: path.basename(entry.file)
+        filename: path.basename(entry.file),
+        autoSaved: path.dirname(entry.file)===app.getPath('userData')
       };
     } catch(error) {
       problem = error;
@@ -157,12 +158,21 @@ ipcMain.handle('informetit:backup-master',async(event,payload)=>{
     throw Error('El respaldo debe contener estudiantes y calificaciones válidos');
   const content=JSON.stringify(payload);
   if(Buffer.byteLength(content,'utf8')>20*1024*1024)throw Error('El respaldo privado excede 20 MB');
-  const filename=path.join(app.getPath('userData'),'base-gpt-autosave.json');
+  const directory=app.getPath('userData');
+  const filename=path.join(directory,'base-gpt-autosave.json');
+  const gptFile=path.join(directory,'base-gpt.cjs');
   privateBackupQueue=privateBackupQueue.catch(()=>{}).then(async()=>{
-    const temporary=filename+'.tmp';
+    const temporary=filename+'.tmp',gptTemp=gptFile+'.tmp';
+    const source='/* INFORMETIT BASE GPT PRIVADA. NO PUBLICAR EN GITHUB. */\nmodule.exports = '+content+';\n';
     await fs.writeFile(temporary,content,{encoding:'utf8',mode:0o600});
     await fs.rename(temporary,filename);
-    return {saved:true,location:'Perfil privado de Informetit',bytes:Buffer.byteLength(content)};
+    try{
+      await fs.copyFile(gptFile,path.join(directory,'base-gpt.previous.cjs'));
+    }catch(error){if(error.code!=='ENOENT')throw error}
+    await fs.writeFile(gptTemp,source,{encoding:'utf8',mode:0o600});
+    await fs.rename(gptTemp,gptFile);
+    return {saved:true,location:'Perfil privado de Informetit',
+      files:['base-gpt-autosave.json','base-gpt.cjs'],bytes:Buffer.byteLength(content)};
   });
   return privateBackupQueue;
 });

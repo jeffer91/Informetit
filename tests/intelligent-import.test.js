@@ -95,3 +95,15 @@ test('TSV o Excel Moodle con Total del curso explícito conserva nota cero',()=>
  assert.equal(a.courses[0].rows[0].grade,9.83);
  assert.equal(a.courses[0].rows[1].grade,0);
 });
+
+test('no permite guardar vista previa si cambia una nota o mecanismo sin variar el número de filas',()=>{
+ const old=master();const raw='T-NUCLEO - GESTIÓN COMERCIAL [Mod 13]\n'+
+ row('CARLOS EDUARDO ACOSTA CHICA','caacosta@itsqmet.edu.ec',
+ ['9,00','10,00','10,00','10,00','10,00','10,00','9,83']);
+ const staged=I.assess(raw,old);
+ old.estudiantes[0].tipoTitulacion='trabajo';
+ assert.throws(()=>I.apply(old,staged,false,'2026-10-30'),/base cambió/);
+ const fresh=master(),preview=I.assess(raw,fresh);
+ fresh.notas.push({studentId:'1234567890',nucleo:4,nota:8,verificado:true});
+ assert.throws(()=>I.apply(fresh,preview,true,'2026-10-30'),/base cambió/);
+});

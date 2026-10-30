@@ -18,22 +18,31 @@ La aplicación se abre en Electron. `npm run web` es solo un servidor diagnósti
 
 Para comprobar el PDF sin datos reales, ejecutar `npm run smoke:pdf` en un entorno con escritorio compatible. La automatización de GitHub Actions ejecuta las pruebas JavaScript y la impresión PDF con datos ficticios en Linux.
 
+## Arquitectura de las tres bases · versión 1.3.0
+
+1. **Base operativa local (IndexedDB):** se lee inmediatamente al abrir Informetit, sin depender de Firebase ni de ChatGPT. Todas las cargas y cambios se guardan aquí primero.
+2. **Base GPT en código (base-gpt.cjs):** cada guardado genera una representación completa en el perfil privado del equipo. Para no intercambiar archivos manualmente, en **Datos y respaldo → Vincular carpeta para ChatGPT** se puede elegir UNA VEZ una carpeta local sincronizada con **Dropbox, Google Drive u OneDrive**. Informetit actualiza allí base-gpt.cjs e informetit-chatgpt.json tras cada guardado. Para leerlos desde ChatGPT debe funcionar el cliente de sincronización en el equipo y el mismo servicio debe estar conectado a ChatGPT. La aplicación no puede acceder a ChatGPT ni certificar la subida del proveedor por sí sola.
+3. **Firebase utet-4387a:** funciona **exclusivamente como respaldo manual completo**, no como sincronización permanente. En **Firebase UTET** se conecta una identidad Google autorizada y se pulsa **Subir respaldo a Firebase** o **Bajar y recuperar respaldo**. Los respaldos se guardan en la colección informetit_backups, comprimidos, cifrados con AES-256-GCM y protegidos por una clave privada de al menos 12 caracteres. No se guardan contraseñas ni claves de cifrado en la nube; la clave es imprescindible para recuperar la copia. Al restaurar, Informetit valida el contenido, requiere confirmación y guarda primero una copia íntegra previa en el perfil privado.
+
+**Privacidad:** una carpeta sincronizada puede subir a la nube identificaciones y calificaciones reales. Configurarla es opcional y exige consentimiento; elige una carpeta privada, nunca un repositorio GitHub o un enlace público. Desvincularla detiene las escrituras futuras pero no borra las copias que ya se hayan sincronizado. Firebase nunca se consulta ni se actualiza en segundo plano y no toca otras colecciones académicas.
+
 ## Núcleos por carrera · carga guiada secuencial
 
 Desde **Núcleos por carrera**, la aplicación presenta una carrera cada vez y habilita solamente su primer núcleo pendiente. El botón **Descargar plantilla** genera un XLSX en el equipo con la nómina privada presencial y online de esa carrera, las notas anteriores como referencia y el nombre del núcleo vigente. La pestaña CONTROL permite detectar plantillas de otro período, carrera, núcleo o nómina.
 
 El usuario introduce la nota final real y marca cada registro como **VALIDADO** o **NO CURSA**. Si faltan registros, existe **SIN NOTA**, una nota distinta de la base local o se alteró la identidad, el núcleo queda bloqueado. Tras volver a subir el Excel, Informetit muestra incidencias **antes de guardar**. Una confirmación expresa actualiza IndexedDB y su respaldo privado, conserva auditoría y desbloquea solamente el siguiente núcleo. Las cuatro etapas quedan registradas en la base local por carrera y se invalidan si cambia la nómina.
 
-La sincronización de Firebase sigue las restricciones preexistentes: únicamente notas verificadas de estudiantes expresamente clasificados en Examen Complexivo, mediante las colecciones permitidas, con credenciales y autorización. Las notas de estudiantes sin mecanismo definido permanecen **provisionales y locales**, aunque la plantilla pueda quedar revisada. El sistema nunca anuncia una escritura en Firebase si no hubo confirmación. **No se envía la nómina ni una plantilla completa a GitHub o Firebase.**
+Las notas de estudiantes sin mecanismo definido permanecen provisionales. **El Excel y los núcleos se guardan únicamente en la base local y la base GPT; Firebase no recibe nada hasta que el usuario pulse «Subir respaldo».** Ninguna nómina ni archivo privado se publica en GitHub.
 
-## Dos modalidades de carga · versión 1.2.3
+## Dos modalidades de carga · versión 1.3.0
 
 Desde **Cargar información** puedes seleccionar **Formulario individual** o **Carga global**, sin trabajar con JSON o código. Si aún no hay nómina, Informetit solicita primero el Excel institucional de estudiantes.
 
 - **Formulario individual:** elige carrera, modalidad y estudiante; registra una nota de núcleo con su fuente, o actualiza el estado de un requisito. Para un examen Complexivo o un Trabajo de Titulación abre su formulario especializado con el estudiante preseleccionado. Una nota distinta de la registrada no se reemplaza: se archiva como conflicto para cotejo. Tras guardar, el Inicio presenta la siguiente tarea.
 - **Carga global:** importa el Excel de estudiantes, listados de Trabajo, cursos y libros Moodle (o pega Moodle). El motor reconoce núcleo, carrera y estudiante, revisa diferencias y permite marcar como cotejada la información cuando existe evidencia. Una segunda carga nunca debe reemplazar silenciosamente calificaciones distintas. Al confirmar, vuelve a los pendientes.
 
-**Persistencia y sincronización reales:** cada cambio confirmado se guarda primero en IndexedDB y en la copia automática privada `base-gpt.cjs` del perfil Electron. La interfaz muestra si esa copia se guardó o dio error; no se asume éxito si falla. Esto **no actualiza automáticamente la Biblioteca de ChatGPT**. Firebase `utet-4387a` es una base externa independiente: solamente se envían, cuando la sincronización está habilitada y autorizada, notas de núcleos **verificadas y sin conflictos** o resultados de Examen Complexivo con acta cotejada, exclusivamente a `nucleos` y `complexivos`. Requisitos, trabajos, notas provisionales y estimaciones permanecen locales. Sin credenciales, red o permisos, el envío queda pendiente; no se anuncia como completado. Ninguna prueba CI utiliza datos académicos reales ni credenciales productivas.
+**Persistencia real:** los cambios confirmados se guardan en IndexedDB y automáticamente en el respaldo GPT local. Cuando hay una carpeta privada vinculada a ChatGPT, también se actualizan allí los archivos de código y JSON. **Firebase es solo respaldo completo manual cifrado**, no se activa por la importación de calificaciones. Ningún dato nominal se escribe en GitHub.
+
 
 ## Interfaz operativa minimalista · versión 1.2.2
 
@@ -56,7 +65,7 @@ El menú agrupa **Evaluaciones** (núcleos, complexivo y trabajo) y **Configurac
 | Cronogramas | Fechas y ejecución declarada; documentación por comprobar |
 | Dos informes | Borradores PDF separados de presencial y online |
 | Logo y códigos INF | Encabezado institucional, versión, fecha y firmas pendientes |
-| Firebase UTET | Conciliación autorizada de `nucleos` y `complexivos` exclusivamente |
+| Firebase UTET | Subida y recuperación MANUAL de respaldos completos cifrados (informetit_backups) |
 | Datos y respaldo | Exportación JSON, base privada y seguimiento de incidencias |
 
 ### Carga de estudiantes y calificaciones
@@ -74,10 +83,10 @@ Los estudiantes se clasifican en `complexivo`, `trabajo` o `sin_definir`. Un cam
 - Base operativa: **IndexedDB** en el perfil privado de Electron.
 - En cada guardado: respaldo local `base-gpt-autosave.json` y `base-gpt.cjs` en el perfil de Electron; existe una copia anterior `base-gpt.previous.cjs`.
 - Importación externa: colocar `base-gpt.cjs` o un respaldo JSON compatible en **Descargas**, **Escritorio** o la carpeta privada de Informetit. Estas fuentes tienen prioridad sobre la copia automática del perfil. Los archivos `.cjs` se interpretan como datos JSON, **sin ejecutar código**.
-- El perfil local **no se sincroniza automáticamente con la Biblioteca de ChatGPT**. Usar la exportación de la base GPT privada para compartirla deliberadamente en este chat.
+- El perfil local **no es accesible directamente desde ChatGPT**. Para consulta sin archivos manuales, configura la carpeta sincronizada y el conector de Dropbox/Google Drive/OneDrive correspondiente en ChatGPT; esa integración requiere autorización.
 - **Jamás** subir `base-gpt.cjs`, respaldos nominales, actas, cédulas o notas individuales a un repositorio público.
 
-Firebase es independiente: necesita credenciales y consentimiento para habilitar sincronización. Solo envía registros académicos verificados a las colecciones permitidas; nunca escribe estimaciones ni convierte requisitos en notas. Una reclasificación de mecanismo no elimina automáticamente los registros académicos históricos de la nube: corresponde conciliar cualquier discrepancia.
+Firebase es independiente y nunca sincroniza en segundo plano: requiere credenciales autorizadas y un clic explícito para crear o recuperar un **respaldo integral cifrado**. La colección histórica académica nucleos/complexivos queda sin cambios automáticos. Se conserva una copia previa antes de restaurar.
 
 ## Informe institucional: APA 7 adaptada a INF
 

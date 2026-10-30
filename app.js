@@ -793,6 +793,40 @@ function reports(){
  if(!hasPrivate)out+='<div class="warnbox block">La rama pública contiene estadísticas agregadas, no expedientes individuales. Las notas personales deben manejarse en una base privada.</div>';
  return out;
 }
+function chatgptPanel(){
+ const c=chatgptStatus||{},backup=Store.lastBackup?.(),result=backup?.bridge;
+ const stateLabel=c.enabled?('Carpeta configurada: '+h(c.folder||'')+'. '+
+   (c.exists?'Existe en el equipo.':'No está disponible en el equipo.')+
+   (result?.enabled&&result.ok===false?' Última actualización fallida.':'')):
+   'Sin carpeta conectada. La base GPT local se sigue generando en el perfil privado.';
+ return '<section class="panel"><h2>Base GPT · Conexión privada con ChatGPT</h2>'+
+  '<p>Informetit actualiza automáticamente una copia de los datos en código. Para consultarla en ChatGPT sin subir archivos cada vez, selecciona una sola vez una carpeta sincronizada con Google Drive, Dropbox u OneDrive y conecta ese servicio también en ChatGPT.</p>'+
+  '<p class="hint">Incluye cédulas y calificaciones: utiliza exclusivamente una carpeta privada. Nunca un repositorio público de GitHub.</p>'+
+  '<p class="hint">'+stateLabel+'</p>'+
+  '<div class="actions"><button class="btn primary" data-action="chatgpt-choose">Vincular carpeta para ChatGPT</button>'+
+  (c.enabled?'<button class="btn" data-action="chatgpt-disable">Desvincular carpeta</button>':'')+'</div>'+
+  '<p class="hint">Se generan informetit-chatgpt.json y base-gpt.cjs en la carpeta elegida en cada guardado. La aplicación no verifica por sí sola si tu proveedor los subió a la nube o si ChatGPT tiene autorización para leerlos.</p></section>';
+}
+async function chatgptAction(code){
+ const bridge=window.informetitDesktop;
+ try{
+  if(!bridge?.chatgptStatus)throw Error('Requiere Informetit Desktop.');
+  if(code==='chatgpt-choose'){
+   if(!confirm('La carpeta que elijas recibirá una copia COMPLETA con datos privados de estudiantes. Debe ser una carpeta personal sincronizada y accesible solo para ti. ¿Continuar?'))return;
+   const result=await bridge.chatgptSelectFolder(state);
+   if(result?.canceled)return;
+   chatgptStatus=await bridge.chatgptStatus();draw();
+   notify(result?.ok?'Carpeta GPT vinculada. Comprueba que se sincronice con tu proveedor.':
+    'No se pudo crear la copia: '+(result?.reason||'error desconocido'));
+  }
+  if(code==='chatgpt-disable'){
+   if(!confirm('Se detendrán las actualizaciones a la carpeta, pero los archivos existentes permanecerán allí. ¿Desvincular?'))return;
+   await bridge.chatgptDisable();chatgptStatus=await bridge.chatgptStatus();draw();
+   notify('Carpeta GPT desvinculada; la base local continúa sin cambios.');
+  }
+ }catch(e){console.error(e);notify('Base GPT: '+e.message)}
+}
+
 function data(){
 const quality=Data.audit(state),p=Data.analyze(state,"presencial"),o=Data.analyze(state,"online");
 const problems=quality.issues.length?quality.issues.slice(0,30).map(x=>'<tr>'+td(x.type.replace(/_/g," "))+td(x.student)+'</tr>'):['<tr><td colspan="2">No hay incidencias de integridad detectadas.</td></tr>'];
@@ -801,7 +835,7 @@ return head("Base maestra local","Bloque 01 · Persistencia, integridad y cálcu
 +'<div class="cards">'+card("Versión de estructura",state.version||Data.SCHEMA_VERSION)+card("Presencial",p.total)+card("Online",o.total)+card("Incidencias",quality.issues.length)+'</div>'
 +'<p class="hint">Origen de los cálculos: datos individuales locales. Si la nómina privada no está instalada, la app conserva solo el resumen institucional agregado por separado.</p>'
 +table(["Control","Registro"],problems)+'</section>'
-+head("Datos y respaldo","Importación manual opcional y copia de seguridad.")+'<div class="grid2"><section class="panel"><h2>Importar</h2><p>Importa la base maestra JSON preparada desde ChatGPT o el archivo institucional original XLS/HTML/XLSX.</p><div class="actions"><button class="btn primary" data-action="backup-file">Importar JSON maestro</button><button class="btn" data-action="student-file">Importar Excel de estudiantes</button></div><p class="hint">La importación de JSON reemplaza la base local previa. Descarga antes una copia de seguridad si ya has registrado cambios.</p></section><section class="panel"><h2>Exportar respaldo</h2><p>Descarga estudiantes, notas, resultados, cronogramas verificados, observaciones y conflictos. Podrás compartir este JSON en el chat para que prepare una versión actualizada.</p><div class="actions"><button class="btn primary" data-action="export-json">Descargar JSON</button><button class="btn danger" data-action="clear-db">Vaciar base local</button></div></section></div><section class="panel"><h2>Estado de la base</h2><div class="cards">'+card("Estudiantes",state.estudiantes.length)+card("Notas de núcleos",state.notas.length)+card("Rúbricas de proyectos",state.trabajos.length)+card("Conflictos",state.conflictos.length)+card("Sin vincular",state.sinVincular.length)+'</div><h3>Importaciones</h3>'+table(["Fuente","Tipo","Filas","Fecha"],state.importaciones.map(i=>'<tr>'+td(i.nombre)+td(i.tipo)+td(i.filas)+td(i.fecha)+'</tr>'))+'<h3>Complementarios pendientes de conciliar</h3>'+table(["Fuente","Registro","Estado"],state.complementarios.map(x=>'<tr>'+td(x.fuente)+td(x.registro?.Nombre||x.registro?.nombre||"Sin nombre")+td(x.estado||"Por conciliar")+'</tr>'))+'<h3>Notas en conflicto</h3>'+table(["Estudiante","Núcleo","Actual","Nueva","Decisión"],state.conflictos.map((c,i)=>'<tr>'+td(c.id?.split("|")[0])+td(c.nuevo?.nucleo)+td(num(c.anterior?.nota))+td(num(c.nuevo?.nota))+'<td><button class="btn small" data-use-conflict="'+i+'">Usar nueva</button> <button class="btn small" data-keep-conflict="'+i+'">Conservar actual</button></td></tr>'))+'</section><section class="panel"><h2>Privacidad y límites</h2><p class="privacy">Los datos se guardan en IndexedDB (o localStorage de respaldo) de este navegador, no en GitHub. Borrar datos del navegador puede eliminarlos. Descarga copias JSON y almacénalas en un lugar privado. ChatGPT no puede modificar directamente el contenido guardado dentro de tu navegador: para aplicar cambios realizados aquí, importa el archivo JSON actualizado.</p></section>'}
++head("Datos y respaldo","Importación manual opcional y copia de seguridad.")+chatgptPanel()+'<div class="grid2"><section class="panel"><h2>Importar</h2><p>Importa la base maestra JSON preparada desde ChatGPT o el archivo institucional original XLS/HTML/XLSX.</p><div class="actions"><button class="btn primary" data-action="backup-file">Importar JSON maestro</button><button class="btn" data-action="student-file">Importar Excel de estudiantes</button></div><p class="hint">La importación de JSON reemplaza la base local previa. Descarga antes una copia de seguridad si ya has registrado cambios.</p></section><section class="panel"><h2>Exportar respaldo</h2><p>Descarga estudiantes, notas, resultados, cronogramas verificados, observaciones y conflictos. Podrás compartir este JSON en el chat para que prepare una versión actualizada.</p><div class="actions"><button class="btn primary" data-action="export-json">Descargar JSON</button><button class="btn danger" data-action="clear-db">Vaciar base local</button></div></section></div><section class="panel"><h2>Estado de la base</h2><div class="cards">'+card("Estudiantes",state.estudiantes.length)+card("Notas de núcleos",state.notas.length)+card("Rúbricas de proyectos",state.trabajos.length)+card("Conflictos",state.conflictos.length)+card("Sin vincular",state.sinVincular.length)+'</div><h3>Importaciones</h3>'+table(["Fuente","Tipo","Filas","Fecha"],state.importaciones.map(i=>'<tr>'+td(i.nombre)+td(i.tipo)+td(i.filas)+td(i.fecha)+'</tr>'))+'<h3>Complementarios pendientes de conciliar</h3>'+table(["Fuente","Registro","Estado"],state.complementarios.map(x=>'<tr>'+td(x.fuente)+td(x.registro?.Nombre||x.registro?.nombre||"Sin nombre")+td(x.estado||"Por conciliar")+'</tr>'))+'<h3>Notas en conflicto</h3>'+table(["Estudiante","Núcleo","Actual","Nueva","Decisión"],state.conflictos.map((c,i)=>'<tr>'+td(c.id?.split("|")[0])+td(c.nuevo?.nucleo)+td(num(c.anterior?.nota))+td(num(c.nuevo?.nota))+'<td><button class="btn small" data-use-conflict="'+i+'">Usar nueva</button> <button class="btn small" data-keep-conflict="'+i+'">Conservar actual</button></td></tr>'))+'</section><section class="panel"><h2>Privacidad y límites</h2><p class="privacy">Los datos se guardan en IndexedDB (o localStorage de respaldo) de este navegador, no en GitHub. Borrar datos del navegador puede eliminarlos. Descarga copias JSON y almacénalas en un lugar privado. ChatGPT no puede modificar directamente el contenido guardado dentro de tu navegador: para aplicar cambios realizados aquí, importa el archivo JSON actualizado.</p></section>'}
 
 function firebaseView(){
  const connected=!!firebaseConnection?.connected;
@@ -1270,13 +1304,12 @@ async function flowAction(code){
    if(!assessment.complete)throw Error('El archivo tiene '+assessment.errors.length+' incidencias. Sube una versión corregida.');
    if(!confirm('Guardar '+assessment.stats.validated+' notas, '+assessment.stats.excluded+
     ' NO CURSA y '+assessment.stats.provisional+' registros provisionales en la base local? '+
-    'Solo las notas verificadas de Complexivo podrán enviarse a Firebase cuando esté autorizado y conectado.'))return;
+    'Firebase solamente recibirá una copia completa cuando pulses «Subir respaldo».'))return;
    const result=F.apply(state,assessment,today());
    await Store.save(result.next);
    state=result.next;flowStage=null;draw();
-   scheduleFirebaseSync();
    notify('Núcleo '+assessment.n+' completado en base local. '+result.stats.verified+
-    ' notas verificadas; '+result.stats.provisional+' pendientes de clasificación. Firebase sujeto a conexión y conciliación.');
+    ' notas verificadas; '+result.stats.provisional+' pendientes de clasificación. Firebase no se modificará hasta que subas un respaldo.');
    return;
   }
  }catch(error){console.error(error);notify('Núcleos por carrera: '+error.message)}
@@ -1508,6 +1541,7 @@ async function handleFiles(ev){
 }
 
 async function action(code){
+ if(code.startsWith('chatgpt-'))return chatgptAction(code);
  if(code.startsWith('flow-'))return flowAction(code);
  if(code.startsWith('manual-'))return manualAction(code);
  if(code.startsWith("smart-"))return smartAction(code);
@@ -1689,13 +1723,19 @@ el("smart-file").addEventListener("change",smartFileChange);el("backup-file").ad
 el("nucleo-plantilla-file").addEventListener("change",flowFileChange);
 el("trabajo-file").addEventListener("change",handleTrabajoFile);
 el("cursos-file").addEventListener("change",handleCursosFile);
-el("firebase-file").addEventListener("change",firebaseLoadFile);
+
 el("logo-file").addEventListener("change",async ev=>{const file=ev.target.files?.[0];if(!file)return;try{if(!["image/png","image/jpeg","image/webp"].includes(file.type))throw Error("Solo se admiten archivos PNG, JPG o WebP.");if(file.size>2000000)throw Error("La imagen debe tener menos de 2 MB.");const dataURL=await new Promise((res,rej)=>{let fr=new FileReader();fr.onload=()=>res(fr.result);fr.onerror=()=>rej(new Error("No se pudo leer imagen."));fr.readAsDataURL(file)});if(!/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/.test(dataURL))throw Error("Imagen no reconocida; utiliza PNG, JPG o WebP.");const next=Data.migrate(state);next.config.logoDataUrl=dataURL;await Store.save(next);state=next;draw();notify("Logotipo guardado para la portada y encabezado de ambos PDF.");}catch(e){notify(e.message)}finally{ev.target.value=""}});
-(async()=>{state=await load();try{const imported=await loadPrivateGPT();if(imported&&!imported.unchanged){console.info("Base GPT privada disponible:",imported.students,"estudiantes nuevos,",imported.grades,"notas nuevas.")}}catch(e){console.error("No se pudo cargar la base GPT privada:",e);notify("No se pudo cargar la base GPT local: "+e.message)}ready=true;draw();
- if(window.informetitDesktop){
-  if(state.firebaseSync?.enabled)tryReconnectAcademicFirebase();
-  window.addEventListener('online',scheduleFirebaseSync);
-  setInterval(()=>{if(state.firebaseSync?.enabled)scheduleFirebaseSync()},90000);
+(async()=>{
+ state=await load();
+ if(state.firebaseSync)state.firebaseSync.enabled=false;
+ ready=true;draw();
+ if(window.informetitDesktop?.chatgptStatus){
+  try{chatgptStatus=await window.informetitDesktop.chatgptStatus();if(page==='datos')draw()}
+  catch(err){console.warn('Estado de carpeta GPT:',err.message)}
  }
+ try{
+  const imported=await loadPrivateGPT();
+  if(imported&&!imported.unchanged){draw();console.info('Base GPT local recuperada:',imported.students,'estudiantes')}
+ }catch(err){console.warn('Copia GPT externa no incorporada:',err.message)}
 })().catch(e=>{el("main").textContent="No fue posible iniciar Informetit: "+e.message});
 })();

@@ -507,7 +507,7 @@ function evaluations(){
      +numberInput("eval-sup-two","Práctica · 60 %",record?.supletorio.practica)
      +numberInput("eval-rescue","Nota final expresa del acta",record?.supletorio.notaFinal)
      +inputText("eval-sup-source","Acta de supletorio",record?.actaSupletorio)
-     +'</div><label class="field"><input type="checkbox" id="eval-acta-cotejada"'+(record?.actaCotejada?' checked':'')+'> Confirmo que cotejé las actas originales y sus calificaciones. Solo así se permite sincronizarlas con Firebase.</label>';
+     +'</div><label class="field"><input type="checkbox" id="eval-acta-cotejada"'+(record?.actaCotejada?' checked':'')+'> Confirmo que cotejé las actas originales y sus calificaciones. Las actas cotejadas se guardan en la base local; Firebase solo respalda con botón.</label>';
    out+='<div class="actions block"><button class="btn" data-action="preview-eval">Calcular y revisar</button>'
      +'<button class="btn primary" data-action="save-eval">Guardar evaluación</button></div>';
    out+='<p class="hint">Un ordinario insuficiente sin supletorio permanece pendiente de recuperación. Solo se declara reprobación definitiva cuando existe una nota supletoria inferior a 7,00. Las referencias de acta respaldan los resultados, pero no generan firmas electrónicas.</p>';
@@ -1061,7 +1061,7 @@ async function manualAction(code){
   const local='Guardado en el equipo'+(backup?.ok===true?' · respaldo privado actualizado':
     backup?.ok===false?' · no se pudo actualizar el respaldo privado':'');
   notify(local+(result.kind==='conflict'?' · conflicto pendiente de revisar':'')+
-   (result.kind==='verified'?' · Firebase sujeto a conexión y autorización':''));
+   (result.kind==='verified'?' · Firebase permanece sin cambios hasta que subas respaldo':''));
  }catch(error){notify('No se guardó: '+error.message)}
 }
 function intelligentView(){
@@ -1135,10 +1135,10 @@ function intelligentView(){
  out+='<p class="hint">Las notas provisionales y las discrepancias exigen cotejo. Las estimaciones no crean calificaciones académicas.</p></div></details>';
  out+=saveStatus();
  out+='<details class="panel subtle-details"><summary>Respaldos y exportaciones privadas</summary><div class="details-body">'
-  +'<p>Los cambios se guardan en IndexedDB y en el respaldo privado automático de Electron. También puedes descargar la base GPT en formato <code>base-gpt.cjs</code> para conservarla o compartirla de forma privada en ChatGPT.</p>'
+  +'<p>Los cambios se guardan en IndexedDB y en el respaldo privado automático de Electron. La base GPT se actualiza automáticamente. Puedes vincular una carpeta privada sincronizada en Configuración → Datos y respaldo para consultarla desde ChatGPT sin descargas repetidas. La exportación manual sigue disponible como opción extraordinaria.</p>'
   +'<div class="actions"><button class="btn" data-action="smart-export-gpt">Descargar base GPT privada</button>'
   +'<button class="btn" data-action="export-json">Descargar JSON</button></div>'
-  +'<p class="hint">La Biblioteca de ChatGPT no se actualiza automáticamente. No publiques datos personales en GitHub.</p></div></details>';
+  +'<p class="hint">La conexión con ChatGPT exige vincular la carpeta a un servicio compatible y autorizar su acceso. No publiques datos personales en GitHub.</p></div></details>';
  return out;
 }
 async function smartAction(code){
@@ -1244,7 +1244,7 @@ function sequentialView(){
   (n.complete?'Completado':n.number===p.current?'En curso':'Pendiente')+'</span></div>').join('')+'</div></section>';
  if(p.current===null){
   out+='<section class="panel"><h2>Carrera completada</h2>'+
-   '<p>Los cuatro núcleos tienen un archivo cotejado en la base local. Revisa aparte los cambios pendientes de Firebase.</p></section>';
+   '<p>Los cuatro núcleos tienen un archivo cotejado en la base local. Firebase permanece intacto hasta que subas un respaldo manual.</p></section>';
  }else{
   const title=p.catalog.nuclei[p.current-1].title;
   out+='<section class="panel upload-panel"><h2>Paso actual: Núcleo '+p.current+' · '+h(title)+'</h2>'+
@@ -1264,7 +1264,7 @@ function sequentialView(){
      '<ul>'+a.errors.slice(0,35).map(x=>'<li>'+h(x)+'</li>').join('')+'</ul>'+
      (a.errors.length>35?'<p>Existen '+(a.errors.length-35)+' incidencias adicionales.</p>':'')+'</div>';
    }else{
-    out+='<p class="hint">Las notas de estudiantes cuyo mecanismo de titulación aún no está confirmado permanecerán provisionales y no se enviarán a Firebase.</p>'+
+    out+='<p class="hint">Las notas de estudiantes cuyo mecanismo aún no está confirmado permanecerán provisionales. Firebase solo recibirá una copia integral cifrada cuando tú la solicites.</p>'+
      '<label class="field block"><input type="checkbox" id="flow-reviewed"> Confirmo que revisé las notas finales, la identidad y el núcleo frente a Moodle; autorizo guardarlas.</label>'+
      '<div class="actions"><button class="btn primary" data-action="flow-apply">3. Guardar y habilitar siguiente núcleo</button></div>';
    }
@@ -1377,7 +1377,7 @@ function renderStudentImportPreview(){
  if(!studentImportStage)return '';
  const stage=studentImportStage,p=stage.preview,c=p.counts;
  let html='<section class="panel"><h2>Vista previa de importación: '+h(stage.fileName)+'</h2>'
-  +'<p class="hint">No se ha guardado ningún cambio. Se conservan mecanismos de titulación, notas, actas, rúbricas y observaciones. Los requisitos nunca se envían a Firebase.</p>'
+  +'<p class="hint">No se ha guardado ningún cambio. Se conservan mecanismos de titulación, notas, actas, rúbricas y observaciones. Esta importación no envía nada a Firebase; los requisitos solo se incluyen si posteriormente subes un respaldo cifrado.</p>'
   +'<div class="cards">'+card('Filas del Excel',c.rows)+card('Estudiantes nuevos',c.added)
   +card('Estudiantes con cambios',c.updated)+card('Sin diferencias',c.unchanged)
   +card('Identidades bloqueadas',c.blocked)+card('Ausentes del archivo',c.missing)+'</div>'
@@ -1559,7 +1559,7 @@ async function action(code){
   if(!preview.updates.length){studentImportStage=null;draw();notify('Sin cambios: la base GPT ya está actualizada.');break}
   if(!confirm('¿Aplicar '+preview.counts.added+' estudiantes nuevos y actualizar '+
     preview.counts.updated+' existentes? '+preview.counts.blocked+
-    ' casos bloqueados permanecerán intactos. No se escribirán requisitos ni contactos en Firebase.'))break;
+    ' casos bloqueados permanecerán intactos. Esta importación no escribe en Firebase.'))break;
   const result=window.InformetitStudentImport.apply(state,preview,today());
   await Store.save(result.next);state=result.next;studentImportStage=null;page='inicio';draw();
   notify('Base GPT actualizada: '+result.stats.added+' nuevos, '+

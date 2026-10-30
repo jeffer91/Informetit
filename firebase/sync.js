@@ -35,6 +35,9 @@ const isPending=note=>['PROVISIONAL','SIMULADO','ESTIMADO','BORRADOR','SIN VERIF
  .includes(normalize(note.status||note.estado));
 function localRecords(state){
  const students=new Map((state.estudiantes||[]).map(s=>[v(s.id),s]));
+ const conflicts=(state.conflictos||[]).map(x=>v(x.id));
+ const disputed=(studentId,nucleus)=>conflicts.some(key=>
+  key===v(studentId)+'|'+Number(nucleus)||key.startsWith(v(studentId)+'|'+Number(nucleus)+'|'));
  const result=new Map(),issues=[],duplicateKeys=new Set();
  const add=(collection,record,origin)=>{
   if(!record)return;
@@ -42,6 +45,10 @@ function localRecords(state){
   if(duplicateKeys.has(key))return;
   if(result.has(key)){
    const previous=result.get(key);
+   // Distintas fuentes para una misma nota no son dos evaluaciones diferentes.
+   // La identidad de curso/núcleo ya forma parte de key; solo la diferencia
+   // académica real bloquea el envío, nunca el nombre del archivo de origen.
+   if(collection==='nucleos'&&grade(previous.record.notaFinal)===grade(record.notaFinal))return;
    if(signature(previous.record)!==signature(record)){
     issues.push({kind:'duplicate',collection,key,reason:'Dos registros locales distintos para la misma evaluación'});
     result.delete(key);duplicateKeys.add(key);
@@ -52,6 +59,7 @@ function localRecords(state){
   if(isPending(n)||n.verificado!==true)continue;
   const st=students.get(v(n.studentId));
   if(!st||st.tipoTitulacion!=='complexivo')continue;
+  if(disputed(st.id,n.nucleo))continue;
   if(n.curso&&Number(n.nucleo)===0)continue;
   add('nucleos',noteRecord(st,n),'notas');
  }
@@ -59,6 +67,7 @@ function localRecords(state){
   if(n.verificado!==true||isPending(n))continue;
   const st=students.get(v(n.studentId));
   if(!st||st.tipoTitulacion!=='complexivo')continue;
+  if(disputed(st.id,n.nucleo))continue;
   add('nucleos',noteRecord(st,n),'cursosNucleos');
  }
  const X=root.InformetitComplexivo;

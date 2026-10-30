@@ -44,7 +44,7 @@ function Figure(name,rows,{max,percentage=false,decimals=0,note='No se interpola
   svg+='<text x="'+(left-7)+'" y="'+(y+15)+'" font-family="Arial" font-size="11" fill="#22374e" text-anchor="end">'+E(short)+'</text><rect x="'+left+'" y="'+y+'" width="'+bw+'" height="18" rx="2" fill="#e7edf3"/><rect x="'+left+'" y="'+y+'" width="'+bar+'" height="18" rx="2" fill="#23628f"/><text x="'+(left+bw+4)+'" y="'+(y+14)+'" font-family="Arial" font-size="11">'+F(val,decimals)+(percentage?' %':'')+'</text>';
  });
  svg+='</svg>';
- return '<div class="fig"><p class="flabel">Figura '+figs+'</p><p class="fname">'+E(name)+'</p>'+svg+'<p class="note">Nota. '+E(note)+'</p></div>';
+ return '<div class="fig"><p class="flabel">Figura '+figs+'</p><p class="fname">'+E(name)+'</p>'+svg+'<p class="note"><em>Nota.</em> '+E(String(note).trim().replace(/[.\s]+$/,''))+'.</p></div>';
 }
 function getData(state,mode){
  const fallback=window.InformetitPublicSummary?.DATA?.[mode];

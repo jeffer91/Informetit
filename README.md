@@ -1,3 +1,15 @@
+## Cambios de mecanismo e interpolación de núcleos — 30 de octubre de 2026 (`main`)
+
+**Mecanismos:** En **Estudiantes y requisitos** el selector individual requiere confirmación con resumen del historial existente antes de cambiar entre `complexivo`, `trabajo` y `sin_definir`. La aplicación guarda el cambio en auditoría y conserva notas, calificaciones provisionales, proyectos y exámenes; únicamente cambia el conjunto de estudiantes utilizado en los cálculos de cada ruta. El Excel de **Trabajo de Titulación** presenta los totales de nuevas clasificaciones y los casos que pasarán desde Complexivo antes de solicitar confirmación, y registra la operación en auditoría. Ningún archivo de requisitos reclasifica estudiantes de forma implícita.
+
+**Cobertura:** El **Centro de Carga Inteligente** compara notas contra los **estudiantes confirmados en Complexivo** de cada carrera y modalidad. Muestra por separado total de estudiantes, Complexivo, Trabajo de Titulación y mecanismos por clasificar, con conteos de notas verificadas, provisionales, pendientes y conflictos. Los estudiantes de Trabajo no incrementan las notas esperadas de núcleos.
+
+**Interpolar:** Hay un control **Interpolar** por núcleo en **Centro de Carga Inteligente** y **Notas de núcleos**. Calcula en pantalla una proyección descriptiva por imputación de la media de las notas existentes, **solo cuando hay notas verificadas y estudiantes de Complexivo realmente sin nota**. No imputa casos ya provisionales o en conflicto. Se muestran el promedio real, valor hipotético y nombres sin calificación; la cobertura real permanece intacta. **No se escribe ninguna calificación simulada en IndexedDB, base GPT, Firebase o PDF**, no afecta aprobación ni registros académicos, y no es una nota oficial.
+
+**Verificación:** `npm run check` incluye `analysis/mechanism.js` y `analysis/interpolation.js`; `npm test` incluye `tests/mechanism-interpolation.test.js`. Se mantiene la necesidad de verificar el flujo Electron en Windows y las actas institucionales.
+
+---
+
 ## Centro de Carga Inteligente — implementación en `main` (30 de octubre de 2026)
 
 El menú **Centro de Carga Inteligente** permite pegar varios libros de Moodle en un mismo bloque o subir archivos `.txt`, `.tsv`, `.csv`, `.xls` y `.xlsx`. **Analizar y cotejar** no escribe datos: primero detecta los cursos por título, consulta el catálogo institucional para encontrar el núcleo real (el valor `Mod 13` de Moodle no es el número de núcleo) y relaciona cada nota con la nómina por cédula, correo y nombre exacto. La modalidad se obtiene del estudiante; un mismo archivo puede contener presencial y online.

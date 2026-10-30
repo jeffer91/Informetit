@@ -89,3 +89,19 @@ test('no se calcula proyección sin notas verificadas',()=>{
  assert.equal(r.possible,false);
  assert.equal(r.expected,1);
 });
+
+test('no simula sobre una nota existente en cursos ni sobre una discrepancia',()=>{
+ const s=base();
+ s.estudiantes.push(st('0000000004'));
+ s.notas=[{studentId:'0000000001',nucleo:1,nota:8,verificado:true}];
+ s.cursosNucleos=[{studentId:'0000000004',nucleo:1,curso:'Gestión Estratégica',nota:9,verificado:true}];
+ let x=Interpolation.project(s,'presencial','Administración',1);
+ assert.equal(x.missing,0);
+ assert.equal(x.provisional,1);
+ s.cursosNucleos=[{studentId:'0000000001',nucleo:1,curso:'Gestión Estratégica',nota:9,verificado:true}];
+ x=Interpolation.project(s,'presencial','Administración',1);
+ assert.equal(x.conflicts,1);
+ assert.equal(x.verified,0);
+ assert.equal(x.missing,1);
+ assert.equal(x.possible,false);
+});

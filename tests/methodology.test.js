@@ -37,10 +37,10 @@ test('catálogo contiene 16 carreras, cuatro núcleos por carrera y 256 ejes de 
 });
 test('las cuatro denominaciones de Administración son exactas y mantienen el orden',()=>{
  assert.deepEqual(Catalog.lookup('Administración').nuclei.map(n=>n.title),[
-  'Gestión Estratégica','Gestión de Procesos y Calidad','Gestión Financiera','Gestión Comercial']);
+  'Gestión Comercial','Gestión de Procesos y Calidad','Gestión Estratégica','Gestión Financiera']);
  assert.equal(Catalog.lookup('Gestión del Talento Humano',1).title,
   'Administración de la Compensación y Beneficios Laborales');
- assert.equal(Catalog.lookup('Administración de Empresas',1).title,'Gestión Estratégica');
+ assert.equal(Catalog.lookup('Administración de Empresas',1).title,'Gestión Comercial');
  assert.equal(Catalog.lookup('Mecánica',1).title,'Fundamentos Científicos y Medición Automotriz');
  assert.equal(Catalog.lookup('Carrera inexistente'),null);
 });
@@ -64,7 +64,7 @@ test('metodología describe cuatro núcleos por carrera y distingue contenido pr
  assert.match(out,/3\.1\.2\. ENFERMERÍA/);
  assert.equal((out.match(/class="inf-nucleus-subtitle"/g)||[]).length,8);
  assert.equal((out.match(/data-nucleus-map=/g)||[]).length,2);
- assert.match(out,/Núcleo 1: GESTIÓN ESTRATÉGICA/);
+ assert.match(out,/Núcleo 1: GESTIÓN COMERCIAL/);
  assert.match(out,/Diagnóstico empresarial:/);
  assert.match(out,/Núcleo 4: ENFERMERÍA PARA EL CUIDADO INTEGRAL DE PACIENTES/);
  assert.match(out,/no tienen como finalidad impartir asignaturas nuevas/i);

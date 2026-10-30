@@ -96,3 +96,13 @@ main{max-width:1380px;padding:32px clamp(18px,3.2vw,46px) 65px}
  .work-list,.work-review{padding:16px}
  .work-onboarding{padding:20px}
 }
+
+
+/* Dos modalidades de carga accesibles en la misma pantalla */
+.load-switch{display:inline-flex;gap:5px;padding:5px;margin-bottom:16px;border:1px solid #e3eaf2;border-radius:11px;background:#f8fafc}
+.load-switch .btn{border-color:transparent;border-radius:8px;box-shadow:none}
+.load-switch .btn:not(.primary){background:transparent;color:#4a6280}
+.load-switch .btn:not(.primary):hover{background:#eaf0f6}
+.load-sync-status{padding:12px 14px;border-radius:9px;background:#f8fafc;border:1px solid #ebeff3;line-height:1.55;color:#5f7082}
+.upload-panel .field-row{margin-top:14px}
+@media(max-width:600px){.load-switch{display:flex;flex-wrap:wrap}.load-switch .btn{flex:1}}

@@ -84,3 +84,14 @@ test('Pendientes se separan por carrera, modalidad y mecanismo',()=>{
  assert.equal(admin.find(x=>x.mode==='presencial').unknown,1);
  assert.equal(admin[0].nuclei.length,4);
 });
+
+
+test('TSV o Excel Moodle con Total del curso explícito conserva nota cero',()=>{
+ const raw='Nombre / Apellido(s)\tDirección de correo\tCuestionarioEVALUACIÓN PARCIAL 1\tMedia de calificacionesTotal del curso\n'
+   +'CARLOS EDUARDO ACOSTA CHICA\tcaacosta@itsqmet.edu.ec\t9,00\t9,83\n'
+   +'MALENA RACHELL ALVARADO PEREZ\tmalvarado@itsqmet.edu.ec\t0,00\t0,00';
+ const a=I.assess(raw,master(),{career:'Administración',nucleus:4});
+ assert.equal(a.counts.ready,2);
+ assert.equal(a.courses[0].rows[0].grade,9.83);
+ assert.equal(a.courses[0].rows[1].grade,0);
+});

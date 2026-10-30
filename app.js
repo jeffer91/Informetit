@@ -1106,6 +1106,12 @@ async function manualAction(code){
   if(result.kind==='conflict'&&!confirm('Se encontró una nota diferente. Se registrará para conciliación sin reemplazar la anterior. ¿Continuar?'))return;
   await Store.save(result.next);state=result.next;smartStage=null;
   if(result.kind==='verified')scheduleFirebaseSync();
+  if(result.kind!=='conflict'){
+   const roster=window.InformetitWorkQueue?.build(state).careers||[];
+   const st=state.estudiantes.find(x=>x.id===studentId);
+   homeScope=roster.find(x=>x.mode===st?.modalidad&&Data.career(x.career)===Data.career(st?.carrera))?.id||homeScope;
+   page='inicio';
+  }
   draw();
   const backup=Store.lastBackup?.();
   const local='Guardado en el equipo'+(backup?.ok===true?' · respaldo privado actualizado':
@@ -1218,7 +1224,7 @@ async function smartAction(code){
   try{
    const result=engine.apply(state,smartStage,smartReviewed,today());
    await Store.save(result.next);state=result.next;smartStage=null;smartText='';smartReviewed=false;
-   scheduleFirebaseSync();draw();
+   scheduleFirebaseSync();page='inicio';draw();
    notify('Guardado local: '+result.stats.verified+' verificadas, '+result.stats.provisional+' provisionales, '
     +result.stats.conflicts+' conflictos, '+result.stats.quarantine+' en revisión.');
   }catch(e){console.error(e);notify('No se completó la carga: '+e.message)}
@@ -1505,7 +1511,7 @@ async function action(code){
     preview.counts.updated+' existentes? '+preview.counts.blocked+
     ' casos bloqueados permanecerán intactos. No se escribirán requisitos ni contactos en Firebase.'))break;
   const result=window.InformetitStudentImport.apply(state,preview,today());
-  await Store.save(result.next);state=result.next;studentImportStage=null;draw();
+  await Store.save(result.next);state=result.next;studentImportStage=null;page='inicio';draw();
   notify('Base GPT actualizada: '+result.stats.added+' nuevos, '+
    result.stats.updated+' modificados y '+result.stats.blocked+' bloqueados para revisión.');
  }catch(error){console.error(error);notify('No se aplicó la importación: '+error.message)}

@@ -4,6 +4,7 @@
  */
 'use strict';
 const fs=require('node:fs/promises');
+const backupCodec=require('./manual-backup.js');
 const PROJECT='utet-4387a';
 const COLLECTIONS=Object.freeze(['nucleos','complexivos']);
 const COLLECTION_SET=new Set(COLLECTIONS);
@@ -120,5 +121,97 @@ async function writeAcademic({collection,id,record,precondition}={}){
   .map(([k,v])=>[k,encode(v)]));
  return request(url.toString(),{method:'PATCH',body:{fields}});
 }
+
+/* Respaldo completo MANUAL. No comparte datos con nucleos ni complexivos.
+ * El contenido se cifra antes de efectuar cualquier solicitud de red.
+ */
+const BACKUP_COLLECTION='informetit_backups';
+function decoded(value){
+ if(!value||typeof value!=='object')return null;
+ if('stringValue' in value)return value.stringValue;
+ if('integerValue' in value)return Number(value.integerValue);
+ if('doubleValue' in value)return Number(value.doubleValue);
+ if('booleanValue' in value)return !!value.booleanValue;
+ if('nullValue' in value)return null;
+ if('arrayValue' in value)return (value.arrayValue.values||[]).map(decoded);
+ if('mapValue' in value)return Object.fromEntries(Object.entries(value.mapValue.fields||{}).map(([key,val])=>[key,decoded(val)]));
+ return null;
+}
+function snapshotDocument(raw){
+ return Object.fromEntries(Object.entries(raw?.fields||{}).map(([name,val])=>[name,decoded(val)]));
+}
+function safeBackupId(id){
+ if(typeof id!=='string'||!/^bk_[A-Za-z0-9_]{10,65}$/.test(id))
+  throw Error('Identificador de respaldo no válido');
+ return id;
+}
+function backupURL(id){
+ return API+'/'+BACKUP_COLLECTION+(id?'/'+encodeURIComponent(id):'');
+}
+async function putBackupDocument(id,record){
+ const url=new URL(backupURL(id));
+ url.searchParams.set('currentDocument.exists','false');
+ const fields=Object.fromEntries(Object.entries(record).map(([key,val])=>[key,encode(val)]));
+ return request(url.toString(),{method:'PATCH',body:{fields}});
+}
+async function uploadFullBackup({data,passphrase}={}){
+ if(!authClient)throw Error('Conecta Firebase antes de subir el respaldo');
+ const {manifest,chunks}=await backupCodec.seal(data,passphrase);
+ // Solo se escribe un manifiesto completo cuando todos los fragmentos existen.
+ // Un fallo previo no hace visible un respaldo parcialmente cargado.
+ for(let i=0;i<chunks.length;i++){
+  const id=manifest.backupId+'__part_'+String(i).padStart(3,'0');
+  await putBackupDocument(id,{type:'chunk',backupId:manifest.backupId,index:i,data:chunks[i]});
+ }
+ await putBackupDocument(manifest.backupId,manifest);
+ return {id:manifest.backupId,createdAt:manifest.createdAt,students:manifest.students,
+  grades:manifest.grades,parts:manifest.parts,periodo:manifest.periodo,confirmed:true};
+}
+async function listFullBackups(){
+ if(!authClient)throw Error('Conecta Firebase para consultar los respaldos');
+ const backups=[];let token='',read=0;
+ do{
+  const url=new URL(backupURL(''));url.searchParams.set('pageSize','500');
+  if(token)url.searchParams.set('pageToken',token);
+  const batch=await request(url.toString(),{missingIsEmpty:true});
+  for(const entry of batch.documents||[]){
+   const row=snapshotDocument(entry);
+   if(row.type==='manifest'&&row.format===1&&row.status==='complete'){
+    const id=entry.name?.split('/').pop()||row.backupId;
+    if(id===row.backupId&&/^bk_[A-Za-z0-9_]{10,65}$/.test(id))
+     backups.push({id,createdAt:row.createdAt,periodo:row.periodo,
+      students:row.students,grades:row.grades,parts:row.parts});
+   }
+  }
+  read+=(batch.documents||[]).length;
+  if(read>5000)throw Error('Demasiados documentos de respaldo: solicita mantenimiento');
+  token=batch.nextPageToken||'';
+ }while(token);
+ return backups.sort((a,b)=>String(b.createdAt).localeCompare(String(a.createdAt))).slice(0,100);
+}
+async function downloadFullBackup({id,passphrase}={}){
+ if(!authClient)throw Error('Conecta Firebase antes de recuperar');
+ const backupId=safeBackupId(id);
+ const raw=await request(backupURL(backupId));
+ const manifest=snapshotDocument(raw);
+ if(manifest.backupId!==backupId||manifest.type!=='manifest'||manifest.status!=='complete')
+  throw Error('El documento seleccionado no es un respaldo completo');
+ if(!Number.isInteger(manifest.parts)||manifest.parts<1||manifest.parts>100)
+  throw Error('Número de fragmentos inválido');
+ const chunks=[];
+ for(let i=0;i<manifest.parts;i++){
+  const part=await request(backupURL(backupId+'__part_'+String(i).padStart(3,'0')));
+  const record=snapshotDocument(part);
+  if(record.type!=='chunk'||record.backupId!==backupId||record.index!==i||
+   typeof record.data!=='string'||record.data.length>backupCodec.CHUNK)
+   throw Error('Fragmento incompleto o no correspondiente al respaldo');
+  chunks.push(record.data);
+ }
+ const data=await backupCodec.unseal(manifest,chunks,passphrase);
+ return {data,metadata:{id:backupId,createdAt:manifest.createdAt,periodo:manifest.periodo,
+  students:manifest.students,grades:manifest.grades}};
+}
+
 function status(){return {connected:!!authClient,project:PROJECT,authMethod,readOnly:false,collections:[...COLLECTIONS]}}
-module.exports={PROJECT,PERIOD,COLLECTIONS,connect,readAll,status,writeAcademic,assertCollection,validateRecord,documentId,encode};
+module.exports={PROJECT,PERIOD,COLLECTIONS,connect,readAll,status,writeAcademic,assertCollection,validateRecord,documentId,encode,
+ uploadFullBackup,listFullBackups,downloadFullBackup};

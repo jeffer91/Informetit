@@ -28,6 +28,7 @@
   <script src="./analysis/trabajo.js" defer></script>
   <script src="./analysis/consolidado.js" defer></script>
   <script src="./analysis/quality.js" defer></script>
+  <script src="./analysis/work-queue.js" defer></script>
   <script src="./analysis/executive.js" defer></script>
   <script src="./analysis/informe-completo.js" defer></script>
   <script src="./report_institucional.js" defer></script>
@@ -46,20 +47,30 @@
       <div class="side-group">PERÍODO</div>
       <div class="period-label">Octubre 2025 — Marzo 2026</div>
       <div class="side-group">MÓDULOS</div>
-      <nav id="nav" aria-label="Módulos">
-        <button class="nav active" data-page="inicio"><span>▤</span> Resumen</button>
-        <button class="nav" data-page="estudiantes"><span>♟</span> Estudiantes y requisitos</button>
-        <button class="nav" data-page="carga"><span>⇪</span> Centro de Carga Inteligente</button>
-        <button class="nav" data-page="nucleos"><span>▦</span> Notas de núcleos</button>
-        <button class="nav" data-page="evaluaciones"><span>◉</span> Examen Complexivo</button>
-        <button class="nav" data-page="trabajo"><span>▧</span> Trabajo de Titulación</button>
+      <nav id="nav" aria-label="Navegación de Informetit">
+        <button class="nav active" data-page="inicio"><span>⌂</span> Inicio</button>
+        <button class="nav" data-page="carga"><span>↑</span> Cargar información</button>
+        <button class="nav" data-page="estudiantes"><span>♙</span> Estudiantes</button>
+        <details class="nav-disclosure" id="nav-evaluaciones">
+          <summary><span>▦</span> Evaluaciones</summary>
+          <div class="nav-submenu">
+            <button class="nav" data-page="nucleos">Notas de núcleos</button>
+            <button class="nav" data-page="evaluaciones">Examen Complexivo</button>
+            <button class="nav" data-page="trabajo">Trabajo de Titulación</button>
+          </div>
+        </details>
+        <button class="nav" data-page="informes"><span>▤</span> Informes</button>
         <button class="nav" data-page="cronogramas"><span>▣</span> Cronogramas</button>
-        <button class="nav" data-page="informes"><span>▤</span> Dos informes</button>
-        <button class="nav" data-page="identidad"><span>▧</span> Logo y códigos INF</button>
-        <button class="nav" data-page="firebase"><span>☁</span> Firebase UTET</button>
-        <button class="nav" data-page="datos"><span>↧</span> Datos y respaldo</button>
+        <details class="nav-disclosure" id="nav-configuracion">
+          <summary><span>⚙</span> Configuración</summary>
+          <div class="nav-submenu">
+            <button class="nav" data-page="identidad">Logo y códigos INF</button>
+            <button class="nav" data-page="firebase">Firebase UTET</button>
+            <button class="nav" data-page="datos">Datos y respaldo</button>
+          </div>
+        </details>
       </nav>
-      <div class="side-note">Las calificaciones sin fuente se guardan como <b>pendientes</b>. Las estimaciones se muestran por separado.</div>
+
     </aside>
     <main id="main" tabindex="-1" aria-live="polite"></main>
   </div>

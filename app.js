@@ -1008,6 +1008,20 @@ function interpolationPanel(mode,career,nucleus){
 
 /* Centro de Carga Inteligente: análisis primero; escritura privada solo al confirmar. */
 
+function saveStatus(){
+ const backup=Store.lastBackup?.(),F=window.InformetitFirebase;
+ const pending=F?F.pending(state).length:0;
+ let text='Guardado local: al confirmar la carga, los datos se conservan en este equipo.';
+ if(backup?.ok===true)text+=' Copia privada GPT: actualizada.';
+ else if(backup?.ok===false)text+=' Copia privada GPT: ERROR, revisa Datos y respaldo.';
+ else text+=' Copia GPT: se genera automáticamente en Electron al guardar.';
+ if(!state.firebaseSync?.enabled)text+=' Firebase: sin autorización de envío automático.';
+ else if(!firebaseConnection?.connected)text+=' Firebase: sin conexión autorizada, pendiente de sincronizar.';
+ else text+=' Firebase: '+(pending?pending+' registros verificados pendientes de confirmación.':'sin cambios verificados pendientes de envío.')+
+   ' Última escritura: '+(state.firebaseSync.lastPush||'sin confirmar')+'.';
+ text+=' Solo núcleos verificados y Complexivo con acta cotejada pueden sincronizarse; requisitos y Trabajo permanecen locales.';
+ return '<p class="hint load-sync-status" role="status">'+h(text)+'</p>';
+}
 function manualView(){
  const catalogue=window.InformetitNucleiCatalog,groups=catalogue.list();
  const careers=[...new Map(state.estudiantes.filter(s=>s.modalidad===manualMode)
@@ -1063,7 +1077,7 @@ function manualView(){
    '<label class="field block">Documento o fuente<input class="control" id="manual-source" type="text" placeholder="Ejemplo: expediente institucional revisado"></label>'+
    '<div class="actions"><button class="btn primary" data-action="manual-save">Guardar requisito</button></div>';
  }
- out+='<p class="hint">Los cambios se guardan en este equipo. Las notas verificadas de Complexivo se pueden enviar a Firebase únicamente si la sincronización está autorizada y disponible. Los requisitos y proyectos no se envían.</p></section>';
+ out+=saveStatus()+'</section>';
  return out;
 }
 async function manualAction(code){
@@ -1103,7 +1117,7 @@ async function manualAction(code){
 }
 function intelligentView(){
  const engine=window.InformetitCargaInteligente;
- let header=head('Cargar información','Elige si deseas ingresar una ficha individual o cargar información de varios estudiantes.');
+ let header=head('Cargar información','Elige cómo registrar información, sin preparar archivos técnicos.');
  header+='<div class="load-switch"><button type="button" class="btn '+(loadMethod==='individual'?'primary':'')+
   '" data-load-mode="individual">Formulario individual</button><button type="button" class="btn '+(loadMethod==='global'?'primary':'')+
   '" data-load-mode="global">Carga global</button></div>';
@@ -1149,7 +1163,7 @@ function intelligentView(){
   if(filtered.length>180)out+='<p class="hint">Se muestran 180 de '+filtered.length+' filas. Todas se consideran en la revisión.</p>';
   out+='<label class="field block"><input type="checkbox" id="smart-verified"'+(smartReviewed?' checked':'')+'> Certifico que cotejé personalmente las notas finales contra Moodle. Solo los estudiantes clasificados en Complexivo y sin conflictos podrán quedar como verificados.</label>'
    +'<p class="hint">Si no marcas la verificación, las notas nuevas se guardarán como PROVISIONALES. Los estudiantes con mecanismo sin definir nunca serán acreditados como Complexivo automáticamente.</p>'
-   +'<div class="actions"><button class="btn primary" data-action="smart-apply"'+(!a.counts.ready&&!a.counts.review?' disabled':'')+'>Guardar revisión y actualizar base privada</button>'
+   +'<div class="actions"><button class="btn primary" data-action="smart-apply"'+(!a.counts.ready&&!a.counts.review?' disabled':'')+'>Guardar calificaciones cotejadas</button>'
    +'<button class="btn" data-action="smart-analyze">Volver a analizar</button></div></section>';
  }
  out+='<details class="panel subtle-details"><summary>Ver cobertura detallada por carrera y núcleo</summary><div class="details-body">'
@@ -1169,6 +1183,7 @@ function intelligentView(){
  out+='<div class="tablewrap"><ol>'+filteredActions.slice(0,28).map(x=>'<li>'+h(x)+'</li>').join('')+'</ol></div>';
  if(filteredActions.length>28)out+='<p class="hint">Hay '+(filteredActions.length-28)+' tareas adicionales; filtra por modalidad.</p>';
  out+='<p class="hint">Las notas provisionales y las discrepancias exigen cotejo. Las estimaciones no crean calificaciones académicas.</p></div></details>';
+ out+=saveStatus();
  out+='<details class="panel subtle-details"><summary>Respaldos y exportaciones privadas</summary><div class="details-body">'
   +'<p>Los cambios se guardan en IndexedDB y en el respaldo privado automático de Electron. También puedes descargar la base GPT en formato <code>base-gpt.cjs</code> para conservarla o compartirla de forma privada en ChatGPT.</p>'
   +'<div class="actions"><button class="btn" data-action="smart-export-gpt">Descargar base GPT privada</button>'
@@ -1204,7 +1219,7 @@ async function smartAction(code){
    const result=engine.apply(state,smartStage,smartReviewed,today());
    await Store.save(result.next);state=result.next;smartStage=null;smartText='';smartReviewed=false;
    scheduleFirebaseSync();draw();
-   notify('Guardadas: '+result.stats.verified+' verificadas, '+result.stats.provisional+' provisionales, '
+   notify('Guardado local: '+result.stats.verified+' verificadas, '+result.stats.provisional+' provisionales, '
     +result.stats.conflicts+' conflictos, '+result.stats.quarantine+' en revisión.');
   }catch(e){console.error(e);notify('No se completó la carga: '+e.message)}
  }
